@@ -6,6 +6,12 @@ Clone the Atlas repository, select Node 24.21.0 from .nvmrc, install pnpm 11.25.
 
 `pnpm dev` → http://127.0.0.1:3000. App Router server pages compose small client islands for theme, dialogs, menus and navigation. Source imports from workspace packages are transpiled by Next.js. Tailwind scans shared UI explicitly. No external font download is needed.
 
+## Branch workflow
+
+`master` is the canonical/default integration branch. Create feature branches from the current `master` and target `master` when opening pull requests. `test/phase-00-foundation` remains the Phase 00 working branch; it is not the repository default. Git branches have commit ancestry rather than a permanent parent-child setting, so use the PR base to express this relationship. Keep local feature branches tracking their matching remote branches, not `origin/master`.
+
+The quality workflow runs on pull requests and pushes to `master`. Configure a future Vercel project's production branch as `master`; feature branches produce previews.
+
 ## Commands
 
 | Command                             | Effect                                                    |
