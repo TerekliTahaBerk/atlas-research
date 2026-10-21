@@ -7,7 +7,8 @@ This file is canonical for every coding agent. `CLAUDE.md` points here and must 
 1. Read README, docs/MASTER_PLAN.md, docs/ARCHITECTURE.md, docs/SECURITY.md, and the active docs/phases/PHASE_XX.md. Read database and API documents when touching those boundaries.
 2. Inspect existing code and Git state. Preserve unrelated changes. Never read, copy, depend on, or modify Scholara code, credentials, database, deployments, or services.
 3. Respect phase scope. Phase 00 has no authentication or product data service. Do not implement a later phase without user instruction. Do not turn preview data into a pretend production service.
-4. Prefer small reviewable changes/commits. Avoid unrelated refactoring, unnecessary dependencies, empty packages, duplicate utilities, and premature infrastructure.
+4. Use `master` as the canonical integration branch and PR base. Create scoped working branches from `master`; `test/phase-00-foundation` is the Phase 00 working branch. Keep each working branch tracking its matching remote branch.
+5. Prefer small reviewable changes/commits. Avoid unrelated refactoring, unnecessary dependencies, empty packages, duplicate utilities, and premature infrastructure.
 
 ## Implementation requirements
 
