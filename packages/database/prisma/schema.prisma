@@ -1,0 +1,117 @@
+generator client {
+ provider = "prisma-client"
+ output = "../src/generated/client"
+}
+datasource db {
+ provider = "postgresql"
+}
+enum OrganizationRole {
+ OWNER
+ ADMIN
+ MEMBER
+}
+enum WorkspaceRole {
+ ADMIN
+ MEMBER
+ VIEWER
+}
+enum ProjectRole {
+ OWNER
+ EDITOR
+ VIEWER
+}
+enum ProjectVisibility {
+ PRIVATE
+ WORKSPACE
+}
+model Profile {
+ id String @id @db.Uuid
+ displayName String @map("display_name") @db.VarChar(120)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ organizationMemberships OrganizationMembership[]
+ @@map("profiles")
+}
+model Organization {
+ id String @id @default(uuid()) @db.Uuid
+ name String @db.VarChar(120)
+ personal Boolean @default(false)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ memberships OrganizationMembership[]
+ workspaces Workspace[]
+ @@map("organizations")
+}
+model OrganizationMembership {
+ organizationId String @map("organization_id") @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ role OrganizationRole @default(MEMBER)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+ profile Profile @relation(fields: [profileId], references: [id], onDelete: Restrict)
+ workspaceMemberships WorkspaceMembership[]
+ @@id([organizationId, profileId])
+ @@index([profileId, organizationId])
+ @@map("organization_memberships")
+}
+model Workspace {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ name String @db.VarChar(120)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+ memberships WorkspaceMembership[]
+ projects Project[]
+ @@unique([organizationId, id])
+ @@index([organizationId, deletedAt])
+ @@map("workspaces")
+}
+model WorkspaceMembership {
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ role WorkspaceRole @default(MEMBER)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ workspace Workspace @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Restrict)
+ organizationMembership OrganizationMembership @relation(fields: [organizationId, profileId], references: [organizationId, profileId], onDelete: Restrict)
+ projectMemberships ProjectMembership[]
+ @@id([workspaceId, profileId])
+ @@unique([organizationId, workspaceId, profileId])
+ @@index([profileId, organizationId])
+ @@map("workspace_memberships")
+}
+model Project {
+ id String @id @default(uuid()) @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ name String @db.VarChar(120)
+ visibility ProjectVisibility @default(PRIVATE)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ workspace Workspace @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Restrict)
+ memberships ProjectMembership[]
+ @@unique([organizationId, workspaceId, id])
+ @@index([workspaceId, deletedAt, createdAt, id])
+ @@map("projects")
+}
+model ProjectMembership {
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ role ProjectRole @default(VIEWER)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ project Project @relation(fields: [organizationId, workspaceId, projectId], references: [organizationId, workspaceId, id], onDelete: Restrict)
+ workspaceMembership WorkspaceMembership @relation(fields: [organizationId, workspaceId, profileId], references: [organizationId, workspaceId, profileId], onDelete: Restrict)
+ @@id([projectId, profileId])
+ @@index([workspaceId, profileId])
+ @@map("project_memberships")
+}

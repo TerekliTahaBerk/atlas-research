@@ -1,0 +1,46 @@
+{
+  "name": "atlas-research",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @atlas/web dev",
+    "build": "pnpm db:generate && pnpm --filter @atlas/web build",
+    "start": "pnpm --filter @atlas/web start",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm db:generate && pnpm -r typecheck && tsc --noEmit -p tsconfig.tools.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:validate": "pnpm --filter @atlas/database validate",
+    "db:generate": "pnpm --filter @atlas/database generate",
+    "db:migrate": "pnpm --filter @atlas/database migrate"
+  },
+  "devDependencies": {
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
+    "prettier": "3.9.10",
+    "vitest": "4.1.12",
+    "@vitejs/plugin-react": "5.2.0",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/user-event": "14.6.8",
+    "jsdom": "27.4.0",
+    "@playwright/test": "1.64.1",
+    "@axe-core/playwright": "4.14.0",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@atlas/ui": "workspace:*"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+.vercel/
+*.tsbuildinfo
+packages/database/src/generated/
+.DS_Store
+.pnpm-store/
+apps/web/next-env.d.ts
