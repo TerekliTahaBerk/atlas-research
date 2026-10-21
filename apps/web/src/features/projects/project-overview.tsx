@@ -1,127 +1,194 @@
+'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 import {
   ArrowRight,
-  BookOpen,
   FileText,
+  BookOpen,
+  Circle,
+  Folder,
   CircleCheck,
-  Sprout,
-  MessagesSquare,
 } from 'lucide-react';
 import { Button } from '@atlas/ui/components/button';
-import { Badge } from '@atlas/ui/components/badge';
-import { PageHeader } from '@/components/page-header';
-const entries = [
-  {
-    title: 'Paper library',
-    description: 'Collect and organise relevant papers.',
-    href: 'library',
-    icon: BookOpen,
-  },
-  {
-    title: 'Documents & notes',
-    description: 'Capture your ideas and write.',
-    href: 'documents',
-    icon: FileText,
-  },
-  {
-    title: 'Research tasks',
-    description: 'Keep track of your progress.',
-    href: 'tasks',
-    icon: CircleCheck,
-  },
-];
+import { AtlasComposer } from '@/features/atlas-ai/atlas-composer';
+import { useAtlas } from '@/features/atlas-ai/atlas-provider';
+import {
+  CreatePreview,
+  SectionHeading,
+  ViewToggle,
+} from '@/features/preview/primitives';
+import { documentSamples, taskSamples } from '@/features/preview/fixtures';
 export function ProjectOverview() {
+  const { openAssistant } = useAtlas();
+  const [view, setView] = useState('Grid');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('recent');
+  const docs = documentSamples
+    .filter((doc) => doc.title.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : 0));
   return (
-    <>
-      <PageHeader
-        title="A place for your next discovery."
-        description="Connect your sources, ideas, and research. This is a sample project in the Phase 00 interface preview."
-      />
-      <section className="welcome-panel" aria-labelledby="welcome-heading">
-        <div className="seed-icon">
-          <Sprout aria-hidden="true" />
-        </div>
+    <div className="home-screen">
+      <header className="home-heading">
         <div>
-          <h2 id="welcome-heading">Research begins with a good question.</h2>
-          <p>
-            Your project is a blank canvas. Explore the workspace foundation.
-          </p>
+          <h1>A place for your next discovery.</h1>
+          <p>Pick up a thought. Follow a question. Make something new.</p>
         </div>
-        <Button asChild>
-          <Link href="/app/projects/sample/library">
-            Explore paper library
+        <CreatePreview kind="document" />
+      </header>
+      <AtlasComposer
+        onSubmit={(prompt, references) => openAssistant({ prompt, references })}
+      />
+      <div className="quick-actions">
+        <Button variant="outline" asChild>
+          <Link href="/app/projects/sample/research">
+            <BookOpen data-icon="inline-start" />
+            Find papers
             <ArrowRight data-icon="inline-end" />
           </Link>
         </Button>
-      </section>
-      <div className="overview-columns">
-        <section aria-labelledby="research-heading">
-          <h2 id="research-heading">Your research workspace</h2>
-          <div className="research-rows">
-            {entries.map((e) => (
-              <Link
-                key={e.href}
-                className="research-row"
-                href={`/app/projects/sample/${e.href}`}
-              >
-                <span className="row-icon">
-                  <e.icon aria-hidden="true" />
-                </span>
+        <Button
+          variant="outline"
+          onClick={() =>
+            openAssistant({ prompt: '/summarize', context: 'paper' })
+          }
+        >
+          <FileText data-icon="inline-start" />
+          Summarize a source
+          <ArrowRight data-icon="inline-end" />
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() =>
+            openAssistant({ prompt: '/create-task', context: 'tasks' })
+          }
+        >
+          <CircleCheck data-icon="inline-start" />
+          Plan research
+          <ArrowRight data-icon="inline-end" />
+        </Button>
+      </div>
+      <SectionHeading title="Continue working">
+        <Link className="quiet-link" href="/app/projects/sample/documents">
+          View all <ArrowRight aria-hidden="true" />
+        </Link>
+      </SectionHeading>
+      <div className="collection-toolbar">
+        <label className="sr-only" htmlFor="home-filter">
+          Filter recent documents
+        </label>
+        <input
+          id="home-filter"
+          className="quiet-input"
+          placeholder="Filter recent documents…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <label className="sr-only" htmlFor="home-sort">
+          Sort documents
+        </label>
+        <select
+          id="home-sort"
+          className="quiet-select"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+        >
+          <option value="recent">Last edited</option>
+          <option value="title">Title A–Z</option>
+        </select>
+        <ViewToggle value={view} onChange={setView} />
+      </div>
+      <div
+        className={
+          view === 'Grid' ? 'document-cards' : 'document-cards list-view'
+        }
+      >
+        {docs.map((doc) => (
+          <Link
+            key={doc.id}
+            href={`/app/projects/sample/documents?note=${doc.id}`}
+            className="document-card"
+          >
+            <span className="document-glyph">
+              <FileText aria-hidden="true" />
+            </span>
+            <div>
+              <h3>{doc.title}</h3>
+              <p className="metadata">Sample document · {doc.edited}</p>
+              <p>{doc.description}</p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        ))}
+        {!docs.length ? (
+          <p className="empty-inline" role="status">
+            No recent documents match. Clear the filter to return to your work.
+          </p>
+        ) : null}
+      </div>
+      <div className="home-lower">
+        <section>
+          <SectionHeading title="Your projects">
+            <Link className="quiet-link" href="/app/workspaces/sample/projects">
+              View all <ArrowRight aria-hidden="true" />
+            </Link>
+          </SectionHeading>
+          <Link href="/app/projects/sample/research" className="project-card">
+            <span className="project-monogram">H</span>
+            <div>
+              <h3>Human-centered AI</h3>
+              <p>Understanding how people work with intelligent systems.</p>
+              <small>
+                <Folder aria-hidden="true" />
+                Sample project · 3 papers · 2 notes
+              </small>
+            </div>
+          </Link>
+        </section>
+        <section>
+          <SectionHeading title="Up next">
+            <Link className="quiet-link" href="/app/projects/sample/tasks">
+              View all <ArrowRight aria-hidden="true" />
+            </Link>
+          </SectionHeading>
+          <div className="up-next">
+            {taskSamples.slice(0, 2).map((task) => (
+              <Link key={task.id} href="/app/projects/sample/tasks">
+                <Circle aria-hidden="true" />
                 <span>
-                  <h3>{e.title}</h3>
-                  <p>{e.description}</p>
+                  {task.title}
+                  <small>{task.due}</small>
                 </span>
-                <Badge variant="secondary">Planned</Badge>
+                <ArrowRight aria-hidden="true" />
               </Link>
             ))}
           </div>
         </section>
-        <section className="project-details" aria-labelledby="details-heading">
-          <h2 id="details-heading">Project details</h2>
-          <dl>
-            {[
-              ['Name', 'Sample project'],
-              ['Workspace', 'Sample workspace'],
-              ['Access', 'Preview only'],
-              ['Phase', 'Foundation'],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <dt>{k}</dt>
-                <dd>{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
       </div>
-      <section className="connected-panel">
+      <section className="connected-desk">
         <div>
-          <h2>Connected by design</h2>
-          <p>
-            Papers, notes, tasks, and conversations will share one research
-            context.
-          </p>
+          <h2>A connected research desk</h2>
+          <p>Move from reading to thinking to doing, all in one place.</p>
         </div>
-        <div className="artifact-network" aria-hidden="true">
-          <span>
-            <BookOpen />
-          </span>
-          <i />
-          <span>
-            <FileText />
-          </span>
-          <i />
-          <span>
-            <CircleCheck />
-          </span>
-          <i />
-          <span>
-            <MessagesSquare />
-          </span>
+        <div className="artifact-links">
+          <Link href="/app/projects/sample/library">
+            <BookOpen aria-hidden="true" />
+            Paper
+          </Link>
+          <ArrowRight aria-hidden="true" />
+          <Link href="/app/projects/sample/documents">
+            <FileText aria-hidden="true" />
+            Note
+          </Link>
+          <ArrowRight aria-hidden="true" />
+          <Link href="/app/projects/sample/tasks">
+            <CircleCheck aria-hidden="true" />
+            Task
+          </Link>
         </div>
       </section>
       <footer className="preview-footer">
         No research data is stored in this preview.
       </footer>
-    </>
+    </div>
   );
 }

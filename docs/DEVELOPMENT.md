@@ -45,3 +45,7 @@ Read DATABASE.md and SECURITY.md before changing schema. Create your own empty d
 ## Troubleshooting
 
 Missing Prisma client: `pnpm db:generate`. Schema engine download/network restrictions: allow official Prisma engine host; do not claim validation passed if blocked. Playwright missing executable: `pnpm exec playwright install chromium` (CI uses --with-deps). Port 3100 conflict: stop the conflicting test server; Playwright intentionally does not reuse an unknown server. Workspace UI styles missing: verify global Tailwind @source, semantic variables, and transpilePackages. CI frozen-lockfile error: run reviewed `pnpm install`, retain updated lockfile, rerun checks. Do not suppress failures.
+
+## Restricted build environments
+
+Phase 00.5 validation encountered a Turbopack CSS worker `EPERM` while binding a local port. Keep the default `pnpm build` script unchanged. If that host restriction applies, `pnpm build --webpack` runs Next.js’s supported alternate production bundler, including type checks and static generation. Run `pnpm test:e2e` against that production output and report the default build failure separately. Do not alter assertions or disable checks to hide the restriction.

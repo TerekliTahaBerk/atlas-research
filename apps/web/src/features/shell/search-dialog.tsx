@@ -11,10 +11,15 @@ import {
   DialogClose,
 } from '@atlas/ui/components/dialog';
 import { Input } from '@atlas/ui/components/input';
-import { modules, projectBase } from './navigation';
+import { navigationItems } from './navigation';
 export function SearchTrigger({ onOpen }: { onOpen: () => void }) {
   return (
-    <button className="search-trigger" onClick={onOpen}>
+    <button
+      className="search-trigger"
+      aria-label="Search…"
+      title="Search (Cmd/Ctrl + K)"
+      onClick={onOpen}
+    >
       <Search aria-hidden="true" />
       <span>Search…</span>
       <kbd>⌘ K</kbd>
@@ -33,7 +38,7 @@ export function SearchDialog({
   returnFocus: () => void;
 }) {
   const [query, setQuery] = useState('');
-  const matches = modules.filter((m) =>
+  const matches = navigationItems.filter((m) =>
     m.label.toLowerCase().includes(query.toLowerCase()),
   );
   return (
@@ -63,10 +68,7 @@ export function SearchDialog({
         <nav aria-label="Search results" className="search-results">
           {matches.map((m) => (
             <DialogClose asChild key={m.slug}>
-              <Link
-                href={`${projectBase}/${m.slug}`}
-                onClick={() => onNavigate?.()}
-              >
+              <Link href={m.href} onClick={() => onNavigate?.()}>
                 <m.icon aria-hidden="true" />
                 {m.label}
               </Link>
