@@ -2,7 +2,7 @@
 
 ## Decision and package boundaries
 
-One Next.js App Router application, a modular monolith with feature-oriented server services. Routes validate/authorize and call services; services own domain transactions and repository access. `ui` depends on React/Radix; `core` depends on Zod; `ai` is pure TypeScript contracts; `database` owns Prisma/Postgres. No domain imports UI, and no browser module imports database or server secrets. Only preview components exist in Phase 00; server domain services below are planned.
+One Next.js App Router application, a modular monolith with feature-oriented server services. Routes validate/authorize and call services; services own domain transactions and repository access. `ui` depends on React/Radix; `core` depends on Zod; `ai` is pure TypeScript contracts; `database` owns Prisma/Postgres. No domain imports UI, and no browser module imports database or server secrets. Only preview components and in-memory UI demonstrations exist through Phase 00.5; server domain services below are planned.
 
 ```mermaid
 flowchart LR

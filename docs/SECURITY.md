@@ -2,7 +2,7 @@
 
 ## Current security posture
 
-Phase 00 is an unauthenticated, explicitly labelled UI preview with no research APIs, file ingestion, database calls, or AI requests. It must not host real private research yet. Headers disable framing and MIME sniffing and restrict sensitive browser features. CSP with nonce-based Next.js compatibility, HSTS after domain setup, and deployed security review are future release gates; do not assume this preview is production hardened.
+Phases 00 and 00.5 are an unauthenticated, explicitly labelled UI preview with no research APIs, file ingestion, database calls, or AI requests. It must not host real private research yet. Phase 00.5 adds local UI demonstrations but no product endpoint; browser storage contains only appearance and sidebar preferences. Auth fields are reviewed locally and cleared without network submission. Synthetic references never prove identity, membership, authorization or source verification. Headers disable framing and MIME sniffing and restrict sensitive browser features. CSP with nonce-based Next.js compatibility, HSTS after domain setup, and deployed security review are future release gates; do not assume this preview is production hardened.
 
 ## Identity/session boundaries (Phase 01 gate)
 

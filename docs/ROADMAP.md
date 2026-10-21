@@ -1,6 +1,8 @@
 # Roadmap
 
-Phase 00 delivers the foundation; Phases 01–07 are planned with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
+Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundation and explicit local interaction demonstrations. Phases 01–07 are planned with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
+
+0.5. UI/UX master foundation: semantic V2 themes, responsive navigation, contextual AI presentation and pickers, coherent module screens, auth/onboarding previews, visual/interaction QA. No backend services. See [delivery plan](phases/PHASE_00_5.md).
 
 1. Core platform: identity, personal organizations, workspace/project CRUD, invitations, permissions.
 2. Research discovery/library: provider adapters, normalization, lawful private files, reading and annotations.

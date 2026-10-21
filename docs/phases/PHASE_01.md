@@ -8,7 +8,7 @@ Deliver core platform as the phase outcome. Authentication, profile linkage, per
 
 ## 2. Dependencies
 
-Phase 00 checks green; new Atlas Supabase development/staging projects; verified auth redirect/domain configuration.
+Phase 00 foundation and Phase 00.5 UI contracts reviewed; new Atlas Supabase development/staging projects; verified auth redirect/domain configuration.
 
 ## 3. Exact scope
 
@@ -79,3 +79,7 @@ Auth cookie and pooled RLS semantics may diverge; test actual Supabase pooler an
 - P01-04: Implement workspace/project CRUD with private defaults, explicit owner grant, cursor pagination, optimistic update versions and archive recovery. Acceptance: implement the corresponding task above with its failure paths, tests, documentation and phase gate evidence. Depends on the preceding issue where a contract or schema is needed.
 - P01-05: Add hashed expiring single-use invitations, atomic acceptance, role ceilings, last-owner transaction locks and membership audit events. Acceptance: implement the corresponding task above with its failure paths, tests, documentation and phase gate evidence. Depends on the preceding issue where a contract or schema is needed.
 - P01-06: Add non-owner runtime DB/RLS policies, server DTO routes, distributed rate limits and cross-tenant/pooler tests before enabling live mode. Acceptance: implement the corresponding task above with its failure paths, tests, documentation and phase gate evidence. Depends on the preceding issue where a contract or schema is needed.
+
+## Phase 00.5 presentation handoff
+
+Follow [Phase 00.5 integration requirements](PHASE_00_5.md), [screen map](../SCREEN_MAP.md), and [AI interaction contracts](../AI_INTERACTION_SPEC.md). Replace local auth/onboarding review with verified services, provide membership-authorized workspace/project DTOs and real empty/denied states, and preserve private defaults. Never accept synthetic `sample` IDs, reference chips, UI proposals or local preferences as authorization. UI-only demonstration content must remain separate from production models and cannot bypass server guards.

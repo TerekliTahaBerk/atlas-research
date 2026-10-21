@@ -1,33 +1,44 @@
-# Atlas design system
+# Atlas design system V2
+
+Phase 00.5 refines the Phase 00 UI infrastructure. It keeps Radix/shadcn, semantic tokens, the single `cn` utility, and local light/dark/system theme handling. The active [desktop concept](design/phase-00-5-concept.png), [UX blueprint](UX_MASTER_BLUEPRINT.md) and [component inventory](COMPONENT_INVENTORY.md) describe the current design. The original Phase 00 concept remains historical evidence.
 
 ## Visual contract
 
-A quiet research desk: pale sage navigation, near-white canvas, forest-green actions, editorial Georgia headings and compact Arial UI. The generated concept at `docs/design/atlas-concept.png` is a design reference, not production data or a UI background. `design/concept-brief.md` preserves the generation brief. Primary screen anatomy: 244px sidebar, 70px contextual header, 36px content gutters, welcome band, research rows and project detail rail, connected-artifact footer. Mobile uses a focus-trapped Radix navigation dialog; content becomes one column. Public entry extends the same tokens and typography.
+A warm research desk rather than an administrative dashboard. Primary anatomy: 230px neutral sidebar, 60px minimal context bar, 42px desktop content gutters, editorial welcome, sage question composer, reading/continuation surfaces and connected-artifact links. Compact sidebar is 64px. Documents use a centered reading width; task boards use available width; reading/manuscript/notebook layouts have their own rails without duplicating the shell. The original Atlas compass and Lucide 1.5–1.7 stroke icon family remain code-native. No generated screenshot is used as a background or substituted for UI.
 
-## Tokens (implemented in apps/web/src/styles/globals.css)
+## Semantic tokens
 
-| Semantic token          | Light             | Dark              |
+Implemented in `apps/web/src/styles/globals.css`. All feature color use resolves to this table; no feature literal colors or remote fonts.
+
+| Token                   | Light             | Dark              |
 | ----------------------- | ----------------- | ----------------- |
-| background / foreground | #fafbf9 / #202c29 | #131b18 / #edf2ec |
-| sidebar                 | #f0f3ef           | #18231c           |
-| primary / on-primary    | #245b45 / #ffffff | #9acaaa / #10271b |
-| secondary / foreground  | #e6ede7 / #254738 | #283a2e / #d0e6d4 |
-| muted / foreground      | #eef1ed / #5b6862 | #202d25 / #a5b5a9 |
-| accent / foreground     | #e0e9e0 / #173f2f | #2b4031 / #e3f2e5 |
-| border / input          | #d7dfd8 / #c3cfc5 | #35463a / #4c6051 |
-| destructive             | #a32e2e           | #ffaaa5           |
-| focus ring              | #397b5b           | #a2d2ae           |
+| background / foreground | #faf9f6 / #242622 | #1b1d1b / #f3f4ef |
+| canvas / card           | #fffdf9           | #222522 / #232623 |
+| sidebar                 | #f2f1eb           | #20231f           |
+| primary / on-primary    | #2b7745 / #ffffff | #98caa2 / #183120 |
+| secondary / foreground  | #e5ede0 / #335d3c | #2e3d30 / #c5e0c6 |
+| muted / foreground      | #f0efe9 / #60665c | #292d28 / #aeb6a9 |
+| accent / foreground     | #e0ebd9 / #284f32 | #2d3c2c / #d3e8cf |
+| composer welcome        | #e4ecdf           | #2a3828           |
+| border / input          | #e1dfd6 / #c7c9bd | #3a4037 / #68715f |
+| focus ring              | #397b4f           | #a5cf9b           |
+| destructive             | #a33333           | #ffb2ab           |
+| surface hover           | #ecece3           | #343b31           |
 
-Text pairs target WCAG AA (4.5:1 body, 3:1 large text); focus/controls must retain visible contrast. Browser axe checks and manual theme review complement token inspection; they do not replace assistive-technology testing. Error text uses destructive token; shape/icon and wording supplement color. Status is never color alone.
+AA body contrast is tested with axe, including the composer’s muted labels and inactive tabs. Status uses labels/icons as well as color. Focus is a 2px semantic ring with an offset; Radix controls keep their upstream focus behavior. A generated source without provenance cannot receive a verified status.
 
-Typography: display clamp 32–53px (public 44–90), section 26, row heading 18, body 14–15, UI 12–14, caption 11–12. Georgia headings 400/500, sans body 400, controls 500/600; body line-height 1.6, heading 1.15–1.3. Local system fonts eliminate build-time font network dependencies. English copy, `lang=en`, logical reading order; future localization extracts strings and uses Intl date/number formatting. UUID routing avoids localized identifiers.
+## Typography, spacing and motion
 
-Spacing: 4px base with 4/8/12/16/20/24/32/36/48/64. Radius 4/6/8/12, pill only for status and avatars. Thin borders; one subtle shadow level for overlays. Z layers: canvas 0, popovers/dialogs 50 (upstream primitives), skip-link 100; no arbitrary overlay overrides. Motion 150–200ms feedback, no decorative animation. Reduced motion collapses animation and transitions. Breakpoints: 560 compact, 850 mobile navigation, 1180 condensed desktop, 1500 wide.
+`--font-ui` is the local OS sans family (-apple-system, BlinkMacSystemFont, Segoe UI, Arial, sans-serif). `--font-editorial` is Georgia/Times. System fonts avoid install/build network dependencies and font layout shifts. Editorial headings are 30–44px in the app, up to 48px onboarding and 88px public entry; 21–25px serif section/paper headings, 13–16px body/reading text, 11–14px controls and 10–12px metadata. Small state labels are secondary, never the sole action name. Documents use 1.95 line height, body 1.65 and headings around 1.2–1.35.
 
-## Reusable components
+Spacing is based on 4px with 8/12/16/20/24/28/32/42/48/60/64 for composition. Thin single borders; 5–10px control/panel radius; circles for avatars and compact statuses. One subtle overlay shadow; no gradients, neon or decorative data graphics. Feedback transitions use roughly 160–200ms. Mobile drawer omits the centered dialog’s scale animation so its edge stays anchored. Reduced motion collapses animation and transitions globally.
 
-Official shadcn/Radix source lives in `packages/ui/src/components`: Button, Input, Textarea, Select, Dialog, DropdownMenu, Tooltip, Badge, Avatar, Card, Tabs, Skeleton, Empty, Alert, Separator. Accessible composition and upstream keyboard behavior remain intact. `cn` is the single local clsx/tailwind-merge utility. Use semantic variants rather than per-use color overrides. `apps/web/src/components` supplies PageHeader, EmptyState, ErrorState (with retry), LoadingIndicator, Providers and ThemeControl. Feature shell supplies sidebar, breadcrumbs, selectors, search dialog, user menu and responsive composition.
+Breakpoints: 1700 wide, 1280 condensed composition, 1100 narrow desktop, 850 mobile navigation/stacked assistant, 650 compact rails and single columns. Verification targets 1440/1280/1024/768/390. Long strings wrap inside content and truncate only in reference chips with a full accessible title. Code and tables scroll locally. Z ordering: normal canvas, picker 10, compact tooltip 15, upstream modal/popover 50, skip-link 100; no independent competing floating widgets.
 
-Required states: default/hover/pressed/focus/disabled, loading with status announcement, empty with explanatory copy and navigation, recoverable error with retry, not-found with return path. Inputs need labels, invalid state and description when used in real forms. Dialog needs title/description, focus trap, Escape close and focus restoration. Dropdown options use groups; select items use SelectGroup. Avatars have fallback. Tabs use TabsList. Decorative icons are aria-hidden and Lucide stroke style remains consistent.
+## Component and interaction rules
 
-Theme preference uses next-themes (light/dark/system), persisted locally; system reacts to OS media changes. No user account is implied. Search filters navigation only (Cmd/Ctrl+K), not research contents. Workspace/project selectors contain a single labelled sample each, avoiding fake creation or persistence. Footer explicitly states no research data is stored.
+Reuse the existing UI package. Use Button variants, labeled Input/Select, TabsList composition, AvatarFallback, grouped menu/select items, Dialog title and description, Empty/Alert/Skeleton and shared layout classes. Feature primitives add preview disclosure, draft review, native radio view switches, paper cards, reference chips, task states and context-aware pickers. See [inventory](COMPONENT_INVENTORY.md).
+
+Global search is navigation-only. Research/library search explicitly filters fixtures. Every later-phase capability either has a working local UI effect with disclosure or an explanation of unavailability; none reports fabricated success. Workspace/project selectors intentionally contain one sample context, without implying live membership or a tenant creation path.
+
+Only `theme` and `atlas-sidebar-collapsed` persist in localStorage. In-memory notes, messages, prompts, tasks, reading lists and onboarding choices never persist. Browser unload warns on dirty notes; in-app navigation is explicitly described as discarding local drafts. See [interaction specification](INTERACTION_PATTERNS.md) and [visual QA](design/VISUAL_QA.md).

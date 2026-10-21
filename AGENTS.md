@@ -6,8 +6,8 @@ This file is canonical for every coding agent. `CLAUDE.md` points here and must 
 
 1. Read README, docs/MASTER_PLAN.md, docs/ARCHITECTURE.md, docs/SECURITY.md, and the active docs/phases/PHASE_XX.md. Read database and API documents when touching those boundaries.
 2. Inspect existing code and Git state. Preserve unrelated changes. Never read, copy, depend on, or modify Scholara code, credentials, database, deployments, or services.
-3. Respect phase scope. Phase 00 has no authentication or product data service. Do not implement a later phase without user instruction. Do not turn preview data into a pretend production service.
-4. Use `master` as the canonical integration branch and PR base. Create scoped working branches from `master`; `test/phase-00-foundation` is the Phase 00 working branch. Keep each working branch tracking its matching remote branch.
+3. Respect phase scope. Phases 00 and 00.5 have no authentication or product data service. Phase 00.5 permits explicitly labeled in-memory UI demonstrations, including local text editing, task/message state and AI presentation; it never executes models, searches, compilation or code. Read docs/phases/PHASE_00_5.md and the UX/AI interaction specifications for UI work. Do not implement a later phase without user instruction. Do not turn preview data into a pretend production service.
+4. Use `master` as the canonical integration branch and PR base. Create scoped working branches from `master`; `test/phase-00-foundation` is the Phase 00 working branch. Phase 00.5 uses `feat/phase-00-5-ui-ux`. Keep each working branch tracking its matching remote branch.
 5. Prefer small reviewable changes/commits. Avoid unrelated refactoring, unnecessary dependencies, empty packages, duplicate utilities, and premature infrastructure.
 
 ## Implementation requirements
@@ -21,6 +21,7 @@ This file is canonical for every coding agent. `CLAUDE.md` points here and must 
 - Use shared UI and tokens; accessible names, focus, keyboard behavior, responsive states, contrast, and reduced motion are required. Preserve SSR/client boundaries.
 - Add meaningful regression tests for new behavior and critical failure paths. Never weaken checks or tests merely to pass.
 - Migrations require an explicitly identified development target. Never migrate an unknown or production database from local automation. Use expand/backfill/contract migrations and verified backups for data-bearing changes. Avoid research-data cascades.
+- Keep synthetic UI fixtures separate from production domain models. Persist only appearance and navigation preferences; never store preview prompts, drafts, messages or onboarding content in browser storage.
 - Keep docs, ADRs, contracts, and phase acceptance criteria aligned with delivered behavior. Record consequential deviations and revisit conditions.
 
 ## Completion gate
