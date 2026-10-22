@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { TenantDirectory } from './tenant-directory';
 import { useState } from 'react';
 import { Plus, FolderKanban, LayoutGrid, List } from 'lucide-react';
 import { type PlatformState } from '@atlas/core';
@@ -38,7 +39,10 @@ export function LiveHome({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar>
-        <Crumb title={workspace ? (selected?.name ?? 'Workspaces') : 'Home'} />
+        <Crumb
+          as="span"
+          title={workspace ? (selected?.name ?? 'Workspaces') : 'Home'}
+        />
       </Topbar>
       <AtlasAnchor placement="canvas" />
       <div className="min-h-0 flex-1 overflow-auto">
@@ -53,18 +57,19 @@ export function LiveHome({
               ? `${state.organizations.find((o) => o.id === selected.organizationId)?.name ?? ''} · ${selected.name}`
               : 'Choose or create a workspace to begin.'}
           </p>
-          <div className="mb-6 flex flex-wrap gap-2">
-            {state.workspaces.map((w) => (
+          <TenantDirectory state={state} />
+          {state.recentProject ? (
+            <section className="mb-8">
+              <h2 className="mb-2 text-xs text-tx3">Continue working</h2>
               <a
-                key={w.id}
-                href={`/app/workspaces/${w.id}`}
-                aria-current={w.id === state.workspaceId ? 'page' : undefined}
-                className="rounded-lg border border-bd px-3 py-2 text-xs text-tx2 hover:bg-hov"
+                href={`/app/projects/${state.recentProject.id}/overview`}
+                className="flex items-center gap-3 rounded-lg border border-bd2 bg-card px-3 py-3 text-ui"
               >
-                {w.name}
+                <FolderKanban aria-hidden="true" className="size-4 text-actx" />
+                {state.recentProject.name}
               </a>
-            ))}
-          </div>
+            </section>
+          ) : null}
           <div className="mb-3 flex items-center gap-2">
             <h2 className="font-serif text-2xl font-medium">Projects</h2>
             <span className="rounded bg-el px-1.5 text-xs text-tx3">

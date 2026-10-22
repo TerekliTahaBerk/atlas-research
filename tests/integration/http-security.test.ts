@@ -29,6 +29,33 @@ vi.mock('../../apps/web/src/features/identity/server/supabase', () => ({
 }));
 afterEach(() => vi.unstubAllEnvs());
 describe('HTTP and session security, SDK boundary mocked', () => {
+  it.each([
+    {
+      email: 'incomplete@address',
+      password: 'Synthetic-test-password-42',
+      message: 'Enter a valid email address.',
+    },
+    {
+      email: 'person@atlas.example',
+      password: 'short',
+      message: 'Use a password between 12 and 128 characters.',
+    },
+  ])(
+    'explains invalid signup fields without contacting the provider or echoing values',
+    async ({ email, password, message }) => {
+      mocks.rate.mockClear();
+      await expect(
+        authenticate({
+          action: 'signup',
+          email,
+          password,
+          confirmation: password,
+          displayName: 'Test researcher',
+        }),
+      ).rejects.toMatchObject({ code: 'VALIDATION_ERROR', message });
+      expect(mocks.rate).not.toHaveBeenCalled();
+    },
+  );
   it('requires an exact configured origin for mutations', () => {
     vi.stubEnv('ATLAS_ORIGIN', 'http://127.0.0.1:3102');
     expect(() =>

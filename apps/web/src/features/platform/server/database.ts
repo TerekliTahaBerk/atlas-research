@@ -18,7 +18,7 @@ export function runtimeDatabase() {
 }
 export async function checkRuntime(tx: Prisma.TransactionClient) {
   const rows =
-    await tx.$queryRaw<unknown>`SELECT r.rolsuper OR r.rolbypassrls OR EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='profiles' AND pg_has_role(current_user,c.relowner,'MEMBER')) AS unsafe, pg_has_role(current_user,'atlas_runtime','MEMBER') AS permitted FROM pg_roles r WHERE r.rolname=current_user`;
+    await tx.$queryRaw<unknown>`SELECT EXISTS(SELECT 1 FROM pg_roles privileged WHERE pg_has_role(current_user,privileged.oid,'MEMBER') AND (privileged.rolsuper OR privileged.rolbypassrls OR privileged.rolcreaterole OR privileged.rolcreatedb OR privileged.rolreplication)) OR EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') AND pg_has_role(current_user,c.relowner,'MEMBER')) AS unsafe, pg_has_role(current_user,'atlas_runtime','MEMBER') AS permitted`;
   const [row] = z
     .array(z.object({ unsafe: z.boolean(), permitted: z.boolean() }))
     .parse(rows);

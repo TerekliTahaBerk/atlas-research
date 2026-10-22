@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { z } from 'zod';
 import {
   memberDto,
+  memberPageDto,
+  invitationPageDto,
+  type MemberPage,
   invitationDto,
   type Scope,
   type Capability,
@@ -19,9 +22,11 @@ export function MembershipPanel({
   scope: Scope;
   scopeId: string;
   capabilities: Capability[];
-  initial: Member[];
+  initial: MemberPage;
 }) {
-  const [members, setMembers] = useState(initial);
+  const [members, setMembers] = useState(initial.items);
+  const [nextCursor, setNextCursor] = useState(initial.nextCursor);
+  const [inviteCursor, setInviteCursor] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState(scope === 'project' ? 'VIEWER' : 'MEMBER');
   const [message, setMessage] = useState('');
@@ -35,13 +40,40 @@ export function MembershipPanel({
       : scope === 'organization'
         ? ['OWNER', 'ADMIN', 'MEMBER']
         : ['ADMIN', 'MEMBER', 'VIEWER'];
-  async function refresh() {
-    setMembers(
-      await requestData(
-        `/api/v1/${scope}s/${scopeId}/members`,
-        z.array(memberDto),
-      ),
+  async function refresh(cursor?: string) {
+    const page = await requestData(
+      `/api/v1/${scope}s/${scopeId}/members${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+      memberPageDto,
     );
+    setMembers((previous) =>
+      cursor
+        ? [
+            ...previous,
+            ...page.items.filter(
+              (item) =>
+                !previous.some((old) => old.profileId === item.profileId),
+            ),
+          ]
+        : page.items,
+    );
+    setNextCursor(page.nextCursor);
+  }
+  async function loadInvites(cursor?: string) {
+    const page = await requestData(
+      `/api/v1/invitations${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+      invitationPageDto,
+    );
+    setInvites((previous) =>
+      cursor
+        ? [
+            ...previous,
+            ...page.items.filter(
+              (item) => !previous.some((old) => old.id === item.id),
+            ),
+          ]
+        : page.items,
+    );
+    setInviteCursor(page.nextCursor);
   }
   return (
     <section className="mt-8 max-w-[700px]">
@@ -139,6 +171,30 @@ export function MembershipPanel({
           </li>
         ))}
       </ul>
+      {nextCursor ? (
+        <button
+          type="button"
+          disabled={busy}
+          className="mt-3 text-xs text-actx underline"
+          onClick={async () => {
+            setBusy(true);
+            setMessage('');
+            try {
+              await refresh(nextCursor);
+            } catch (error) {
+              setMessage(
+                error instanceof Error
+                  ? error.message
+                  : 'Unable to load members.',
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          More members
+        </button>
+      ) : null}
       {canManage ? (
         <>
           <h3 className="mt-6 mb-2 font-medium">Invite a collaborator</h3>
@@ -217,12 +273,7 @@ export function MembershipPanel({
             className="mt-4 text-xs text-actx underline"
             onClick={async () => {
               try {
-                setInvites(
-                  await requestData(
-                    '/api/v1/invitations',
-                    z.array(invitationDto),
-                  ),
-                );
+                await loadInvites();
               } catch (error) {
                 setMessage(
                   error instanceof Error
@@ -234,6 +285,25 @@ export function MembershipPanel({
           >
             Manage invitations
           </button>
+          {inviteCursor ? (
+            <button
+              type="button"
+              className="ml-3 text-xs text-actx underline"
+              onClick={async () => {
+                try {
+                  await loadInvites(inviteCursor);
+                } catch (error) {
+                  setMessage(
+                    error instanceof Error
+                      ? error.message
+                      : 'Unable to load invitations.',
+                  );
+                }
+              }}
+            >
+              More invitations
+            </button>
+          ) : null}
           <ul>
             {invites.map((i) => (
               <li

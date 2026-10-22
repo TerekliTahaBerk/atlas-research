@@ -1,5 +1,13 @@
 # Database architecture
 
+## Phase 01 migrated core
+
+Additive migrations `20261022100000_core_platform` and `20261022110000_onboarding_drafts` extend the foundation. Profiles gain research attributes, avatar reference (no uploads), bounded server onboarding draft and completion timestamp. Unique personal-owner keys on organizations/workspaces protect bootstrap concurrency. Containers and memberships have optimistic versions. Projects gain creator/idempotency keys and retain `deleted_at` as archive state. New tables: invitations (composite scope FKs, role/scope checks, SHA-256 hash, seven-day expiry, accepted/revoked times), append-only audit events, and expiring distributed rate buckets. No Phase 02–07 table is added.
+
+The reviewed SQL grants the non-owner `atlas_runtime` role scoped SELECT and constrained function EXECUTE only. RLS remains enabled on every domain table; direct DML is denied, with explicit `USING`/`WITH CHECK` deny policies as defense in depth. Security-definer capability helpers prevent recursive membership policies. The bounded mutation function resolves resource scope and enforces rights/invariants/audit within one transaction. No runtime ownership or BYPASSRLS is accepted. [Authorization](identity/AUTHORIZATION.md) documents actor propagation and the privileged function boundary.
+
+On a compatible Supabase target, `profiles.id` is linked to `auth.users.id`; portable plain PostgreSQL tests omit that external FK. Existing personal rows are not guessed/backfilled. Review and identify every development target before migration; no existing or hosted database was reset. Migration-from-scratch, actual runtime-role isolation and concurrency evidence are in the implementation report. Actual Prisma/actor cleanup on both approved hosted development poolers passed; backup/restore, production topology and deployment verification remain separate.
+
 ## Implemented foundation
 
 PostgreSQL 17-compatible schema through Prisma 7.10.1. Prisma 8 is excluded while prerelease. The `prisma-client` generator emits ignored TypeScript; the package exports an explicit PostgreSQL adapter factory with no import-time connection. CLI config loads root `.env`; schema validation/generation use an unreachable offline sentinel when no URL is provided. Migration commands require an explicit connection.

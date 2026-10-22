@@ -1,8 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { TenantDirectory } from './tenant-directory';
 import { useState } from 'react';
-import type { z } from 'zod';
-import type { PlatformState, memberDto, PlatformCommand } from '@atlas/core';
+import type { PlatformState, MemberPage, PlatformCommand } from '@atlas/core';
 import { Topbar, Crumb } from '@/features/shell/topbar';
 import { ThemeMenu } from '@/features/shell/theme-menu';
 import { MembershipPanel } from './membership-panel';
@@ -16,8 +16,8 @@ export function LiveSettings({
 }: {
   state: PlatformState;
   section: string;
-  orgMembers: z.infer<typeof memberDto>[];
-  workspaceMembers: z.infer<typeof memberDto>[];
+  orgMembers: MemberPage;
+  workspaceMembers: MemberPage;
 }) {
   const router = useRouter();
   const selected = state.workspaces.find((w) => w.id === state.workspaceId);
@@ -60,7 +60,7 @@ export function LiveSettings({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar bordered>
-        <Crumb title="Settings" />
+        <Crumb as="span" title="Settings" />
       </Topbar>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="max-w-[1000px] px-8 py-10 max-sm:px-4">
@@ -154,17 +154,7 @@ export function LiveSettings({
           ) : null}
           {section === 'workspace' ? (
             <>
-              <div className="flex flex-wrap gap-2">
-                {state.workspaces.map((w) => (
-                  <a
-                    key={w.id}
-                    href={`/app/settings/workspace?workspaceId=${w.id}`}
-                    className="rounded-lg border border-bd px-3 py-2 text-xs"
-                  >
-                    {w.name}
-                  </a>
-                ))}
-              </div>
+              <TenantDirectory state={state} destination="settings" />
               {org ? (
                 <section className="mt-6">
                   <h2 className="mb-3 font-serif text-2xl">

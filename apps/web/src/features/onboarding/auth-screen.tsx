@@ -41,8 +41,8 @@ const links: Record<Mode, { href: string; label: string }[]> = {
 const inputCls =
   'h-9 rounded-lg border bg-canvas px-[11px] text-[13.5px] text-tx';
 /**
- * Authentication previews (prototype auth overlay). Forms never submit to a
- * server: Phase 01 replaces them with verified Supabase flows.
+ * Shared approved authentication presentation. Explicit preview mode keeps
+ * local demonstrations; live mode submits to verified Supabase services.
  */
 export function AuthScreen({
   mode,
@@ -64,6 +64,8 @@ export function AuthScreen({
   const [name, setName] = useState('');
   const [confirmation, setConfirmation] = useState('');
   async function submit() {
+    if (busy) return;
+    let redirecting = false;
     setBusy(true);
     setFeedback('');
     setStatus('idle');
@@ -89,12 +91,18 @@ export function AuthScreen({
             : {}),
         },
       );
-      if (result.redirect)
+      if (result.redirect) {
+        setFeedback(
+          mode === 'signin'
+            ? 'Signed in. Opening your research…'
+            : 'Request completed. Opening the next page…',
+        );
         window.location.assign(
           result.redirect +
             (result.redirect === '/invite' ? window.location.hash : ''),
         );
-      else {
+        redirecting = true;
+      } else {
         setFeedback(result.message ?? 'Request completed.');
         setStatus('sent');
       }
@@ -104,7 +112,7 @@ export function AuthScreen({
       );
       setStatus('error');
     } finally {
-      setBusy(false);
+      if (!redirecting) setBusy(false);
       setPassword('');
       setConfirmation('');
     }
@@ -224,7 +232,7 @@ export function AuthScreen({
             </>
           ) : null}
           <form
-            noValidate
+            noValidate={!live}
             className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
@@ -247,6 +255,7 @@ export function AuthScreen({
                 <input
                   id={ids.name}
                   autoComplete="name"
+                  maxLength={live ? 120 : undefined}
                   required={live}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -266,6 +275,7 @@ export function AuthScreen({
                   required={live}
                   type="email"
                   autoComplete="email"
+                  maxLength={live ? 254 : undefined}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@university.edu"
@@ -295,6 +305,7 @@ export function AuthScreen({
                   id={ids.password}
                   required={live}
                   minLength={live && mode !== 'signin' ? 12 : undefined}
+                  maxLength={live ? 128 : undefined}
                   type="password"
                   autoComplete={
                     mode === 'signup' ? 'new-password' : 'current-password'
@@ -307,6 +318,9 @@ export function AuthScreen({
                     status === 'error' ? 'border-danger' : 'border-bd',
                   )}
                 />
+                {live && mode !== 'signin' ? (
+                  <span>Use 12–128 characters.</span>
+                ) : null}
               </div>
             ) : null}
             {live && (mode === 'signup' || mode === 'password') ? (
@@ -316,6 +330,8 @@ export function AuthScreen({
                   type="password"
                   autoComplete="new-password"
                   required
+                  minLength={12}
+                  maxLength={128}
                   value={confirmation}
                   onChange={(e) => setConfirmation(e.target.value)}
                   className={cn(inputCls, 'border-bd')}

@@ -3,6 +3,8 @@ import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
 import { createDatabase } from '../../packages/database/src/index';
 import {
   executeCommand,
+  directory,
+  invitations,
   getProject,
   loadState,
   members,
@@ -10,8 +12,10 @@ import {
 import {
   withActor,
   runtimeDatabase,
+  checkRuntime,
 } from '../../apps/web/src/features/platform/server/database';
 import { rateLimit } from '../../apps/web/src/features/platform/server/limiter';
+import { publicError } from '../../apps/web/src/features/platform/server/errors';
 import type { PlatformCommand } from '../../packages/core/src/platform';
 const runtime = process.env.ATLAS_TEST_DATABASE_URL;
 const adminUrl = process.env.ATLAS_TEST_ADMIN_URL;
@@ -77,6 +81,32 @@ async function invite(
   return { token, id: result.id! };
 }
 describe.sequential('real non-owner PostgreSQL platform boundary', () => {
+  it('waits for a briefly saturated pool instead of failing the two-second default acquisition budget', async () => {
+    const db = createDatabase(runtime!);
+    let started = 0;
+    let ready!: () => void;
+    const allStarted = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    const held = Array.from({ length: 10 }, () =>
+      db.$transaction(async (tx) => {
+        started++;
+        if (started === 10) ready();
+        await tx.$executeRaw`SELECT pg_sleep(3)`;
+      }),
+    );
+    try {
+      await allStarted;
+      const waiting = db.$transaction(
+        (tx) => tx.$queryRaw`SELECT 1 AS connected`,
+      );
+      await expect(waiting).resolves.toEqual([{ connected: 1 }]);
+      await Promise.all(held);
+    } finally {
+      await Promise.allSettled(held);
+      await db.$disconnect();
+    }
+  });
   it('provisions exactly one personal hierarchy under simultaneous retries', async () => {
     const input = {
       command: 'bootstrap' as const,
@@ -163,6 +193,27 @@ describe.sequential('real non-owner PostgreSQL platform boundary', () => {
     await expect(
       db.$executeRaw`INSERT INTO profiles(id,display_name,updated_at) VALUES(${randomUUID()}::uuid,'Forged',now())`,
     ).rejects.toThrow();
+  });
+  it('rejects a runtime that owns another public table even when profiles has a different owner', async () => {
+    const role = decodeURIComponent(new URL(runtime!).username);
+    if (!/^[a-z_][a-z0-9_]*$/.test(role))
+      throw new Error('Unexpected local test role.');
+    await expect(
+      admin.$transaction(async (tx) => {
+        // Test-only DDL against the loopback target validated above. Quote the
+        // allowlisted role identifier; roll every grant/ownership change back.
+        await tx.$executeRawUnsafe(
+          `GRANT CREATE ON SCHEMA public TO "${role}"`,
+        );
+        await tx.$executeRawUnsafe(`ALTER TABLE projects OWNER TO "${role}"`);
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE "${role}"`);
+        await expect(checkRuntime(tx)).rejects.toMatchObject({
+          code: 'INTERNAL_ERROR',
+        });
+        throw new Error('ROLLBACK_OWNER_PROBE');
+      }),
+    ).rejects.toThrow('ROLLBACK_OWNER_PROBE');
+    expect((await getProject(a, project)).id).toBe(project);
   });
   it('resets transaction-local identity on reused connections', async () => {
     for (let n = 0; n < 4; n++) {
@@ -476,5 +527,212 @@ describe('onboarding recovery', () => {
     expect(
       await admin.project.count({ where: { createdById: person.id } }),
     ).toBe(1);
+  });
+});
+
+describe('pagination, rollback and organization owner invariants', () => {
+  it('rolls back a late provisioning failure and permits a clean retry', async () => {
+    const person = actor();
+    const invalid = {
+      displayName: 'Rollback researcher',
+      workspaceName: 'Rollback workspace',
+      projectName: 'Rollback project',
+      researchInterests: Array(21).fill('Invalid bound'),
+    };
+    await expect(
+      withActor(
+        person,
+        (tx) =>
+          tx.$queryRaw`SELECT atlas_private.mutate('bootstrap',${JSON.stringify(invalid)}::jsonb,${randomUUID()}::uuid)`,
+      ),
+    ).rejects.toThrow();
+    expect(await admin.profile.count({ where: { id: person.id } })).toBe(0);
+    expect(
+      await admin.organization.count({ where: { personalOwnerId: person.id } }),
+    ).toBe(0);
+    await cmd(person, {
+      command: 'bootstrap',
+      displayName: 'Recovered researcher',
+      workspaceName: 'Recovered',
+      researchInterests: [],
+    });
+    expect(
+      await admin.organization.count({ where: { personalOwnerId: person.id } }),
+    ).toBe(1);
+  });
+  it('preserves an organization owner during simultaneous demotions', async () => {
+    const first = actor(),
+      second = actor();
+    for (const person of [first, second])
+      await cmd(person, {
+        command: 'bootstrap',
+        displayName: 'Owner test',
+        workspaceName: 'Personal',
+        researchInterests: [],
+      });
+    const id = (
+      await cmd(first, {
+        command: 'organization.create',
+        name: 'Owner concurrency',
+      })
+    ).id!;
+    const invitation = await invite(
+      first,
+      second,
+      'organization',
+      id,
+      'MEMBER',
+    );
+    await cmd(second, {
+      command: 'invitation.accept',
+      token: invitation.token,
+    });
+    await cmd(first, {
+      command: 'membership.set',
+      scope: 'organization',
+      scopeId: id,
+      profileId: second.id,
+      role: 'OWNER',
+      expectedVersion: 1,
+    });
+    const race = await Promise.allSettled([
+      cmd(first, {
+        command: 'membership.set',
+        scope: 'organization',
+        scopeId: id,
+        profileId: first.id,
+        role: 'MEMBER',
+        expectedVersion: 1,
+      }),
+      cmd(second, {
+        command: 'membership.set',
+        scope: 'organization',
+        scopeId: id,
+        profileId: second.id,
+        role: 'MEMBER',
+        expectedVersion: 2,
+      }),
+    ]);
+    expect(race.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(
+      await admin.organizationMembership.count({
+        where: { organizationId: id, role: 'OWNER' },
+      }),
+    ).toBe(1);
+  });
+  it('normalizes actual PostgreSQL domain denials without private details', async () => {
+    const person = actor();
+    await cmd(person, {
+      command: 'bootstrap',
+      displayName: 'Denial test',
+      workspaceName: 'Personal',
+      researchInterests: [],
+    });
+    try {
+      await cmd(person, {
+        command: 'organization.update',
+        id: randomUUID(),
+        name: 'Unknown',
+        expectedVersion: 1,
+      });
+      throw new Error('Expected denial');
+    } catch (error) {
+      expect(publicError(error).code).toBe('NOT_FOUND');
+    }
+  });
+  it('pages large directories, memberships and invitations with actor-bound signed cursors', async () => {
+    const person = actor();
+    await cmd(person, {
+      command: 'bootstrap',
+      displayName: 'Pagination test',
+      workspaceName: 'Personal',
+      researchInterests: [],
+    });
+    const orgs = Array.from({ length: 105 }, (_, i) => ({
+      id: randomUUID(),
+      name: `Pagination organization ${i}`,
+    }));
+    await admin.organization.createMany({ data: orgs });
+    await admin.organizationMembership.createMany({
+      data: orgs.map((o) => ({
+        organizationId: o.id,
+        profileId: person.id,
+        role: 'OWNER',
+      })),
+    });
+    const spaces = orgs.map((o, i) => ({
+      id: randomUUID(),
+      organizationId: o.id,
+      name: `Workspace ${i}`,
+    }));
+    await admin.workspace.createMany({ data: spaces });
+    await admin.workspaceMembership.createMany({
+      data: spaces.map((w) => ({
+        organizationId: w.organizationId,
+        workspaceId: w.id,
+        profileId: person.id,
+        role: 'ADMIN',
+      })),
+    });
+    const initial = await loadState(person);
+    expect(initial.organizationsCursor).not.toBeNull();
+    expect(initial.workspacesCursor).not.toBeNull();
+    const orgPage = await directory(
+      person,
+      'organizations',
+      initial.organizationsCursor!,
+    );
+    expect(orgPage.items.length).toBeGreaterThan(0);
+    expect(
+      orgPage.items.some((o) =>
+        initial.organizations.some((old) => old.id === o.id),
+      ),
+    ).toBe(false);
+    await expect(
+      directory(b, 'organizations', initial.organizationsCursor!),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    const rest = await directory(
+      person,
+      'workspaces',
+      initial.workspacesCursor!,
+    );
+    const extra = rest.items[0]!;
+    expect((await loadState(person, extra.id)).workspaceId).toBe(extra.id);
+    const people = Array.from({ length: 101 }, () => ({
+      id: randomUUID(),
+      displayName: 'Synthetic member',
+    }));
+    await admin.profile.createMany({ data: people });
+    const scope = orgs[0]!.id;
+    await admin.organizationMembership.createMany({
+      data: people.map((p) => ({
+        organizationId: scope,
+        profileId: p.id,
+        role: 'MEMBER',
+      })),
+    });
+    const page = await members(person, 'organization', scope);
+    expect(page.items).toHaveLength(100);
+    expect(page.nextCursor).not.toBeNull();
+    expect(
+      (await members(person, 'organization', scope, page.nextCursor!)).items,
+    ).toHaveLength(2);
+    await admin.invitation.createMany({
+      data: Array.from({ length: 101 }, (_, i) => ({
+        id: randomUUID(),
+        organizationId: scope,
+        scope: 'organization',
+        role: 'MEMBER',
+        email: `page${i}@atlas.example`,
+        inviterId: person.id,
+        tokenHash: createHash('sha256').update(randomUUID()).digest('hex'),
+        expiresAt: new Date(Date.now() + 86400000),
+      })),
+    });
+    const invitationPage = await invitations(person);
+    expect(invitationPage.items).toHaveLength(100);
+    expect(
+      (await invitations(person, invitationPage.nextCursor!)).items,
+    ).toHaveLength(1);
   });
 });

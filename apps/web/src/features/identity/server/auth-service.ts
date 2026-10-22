@@ -38,7 +38,28 @@ export const authInput = z.discriminatedUnion('action', [
     .strict(),
 ]);
 export async function authenticate(raw: unknown) {
-  const input = authInput.parse(raw);
+  const parsed = authInput.safeParse(raw);
+  if (!parsed.success) {
+    const fields = new Set(parsed.error.issues.map((issue) => issue.path[0]));
+    const signingIn =
+      typeof raw === 'object' &&
+      raw !== null &&
+      'action' in raw &&
+      raw.action === 'signin';
+    const message = fields.has('email')
+      ? 'Enter a valid email address.'
+      : fields.has('password')
+        ? signingIn
+          ? 'Enter your password (at most 128 characters).'
+          : 'Use a password between 12 and 128 characters.'
+        : fields.has('displayName')
+          ? 'Enter your name (1–120 characters).'
+          : fields.has('confirmation')
+            ? 'Confirm your password.'
+            : 'Check the authentication form and try again.';
+    throw new PlatformError('VALIDATION_ERROR', message);
+  }
+  const input = parsed.data;
   await rateLimit('auth-global', 'all', 300, 60);
   await rateLimit(
     'auth-action',

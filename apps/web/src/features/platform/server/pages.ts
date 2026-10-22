@@ -1,9 +1,11 @@
+import { cookies } from 'next/headers';
 import 'server-only';
 import { redirect, notFound } from 'next/navigation';
 import { z } from 'zod';
 import { verifyActor } from '@/features/identity/server/supabase';
 import { getProject, loadState } from './services';
 import { PlatformError, publicError } from './errors';
+import { readNavigation } from '../navigation';
 export async function pageActor(returnTo = '/app/home') {
   try {
     return await verifyActor();
@@ -18,9 +20,43 @@ export async function pageState(
   cursor?: string,
   organizationId?: string,
 ) {
+  if (
+    (workspaceId && !z.uuid().safeParse(workspaceId).success) ||
+    (organizationId && !z.uuid().safeParse(organizationId).success) ||
+    (cursor && cursor.length > 1024)
+  )
+    notFound();
   const actor = await pageActor();
   try {
-    const state = await loadState(actor, workspaceId, cursor, organizationId);
+    const jar = await cookies();
+    const navigation = readNavigation(
+      jar.get('atlas-navigation')?.value,
+      actor.id,
+    );
+    const preferred =
+      !organizationId && !workspaceId ? navigation?.workspaceId : undefined;
+    let state;
+    try {
+      state = await loadState(
+        actor,
+        workspaceId ?? preferred,
+        cursor,
+        organizationId,
+      );
+    } catch (error) {
+      if (preferred && publicError(error).code === 'NOT_FOUND')
+        state = await loadState(actor, undefined, undefined, organizationId);
+      else throw error;
+    }
+    if (navigation?.projectId)
+      try {
+        const recent = await getProject(actor, navigation.projectId);
+        if (recent.workspaceId === state.workspaceId && !recent.archived)
+          state.recentProject = recent;
+      } catch (error) {
+        if (publicError(error).code !== 'NOT_FOUND') throw error;
+      }
+
     if (!state.profile?.onboardingCompleted) redirect('/onboarding');
     return state;
   } catch (error) {

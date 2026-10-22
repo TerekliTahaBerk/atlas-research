@@ -1,3 +1,4 @@
+import { safeReturnTo } from '@/features/identity/redirect';
 import { randomBytes } from 'node:crypto';
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
@@ -12,7 +13,7 @@ export async function proxy(request: NextRequest) {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    `connect-src 'self' ${provider} ${process.env.NODE_ENV === 'development' ? 'ws://127.0.0.1:3102' : ''}`,
+    `connect-src 'self' ${provider} ${process.env.NODE_ENV === 'development' ? (process.env.ATLAS_ORIGIN ?? '').replace(/^http/, 'ws') : ''}`,
     "font-src 'self'",
     "img-src 'self' data: blob:",
     "frame-src 'self'",
@@ -45,8 +46,28 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  // Refresh cookies only. Pages/services independently verify identity and scope.
-  await client.auth.getUser();
+  // Refresh plus an early redirect preserving the requested path. This is
+  // not authorization: every page/API/service verifies identity and scope again.
+  const { data, error } = await client.auth.getUser();
+  if (
+    (request.nextUrl.pathname === '/app' ||
+      request.nextUrl.pathname.startsWith('/app/') ||
+      request.nextUrl.pathname === '/onboarding') &&
+    (error || !data.user?.email_confirmed_at || data.user.is_anonymous)
+  ) {
+    const destination = new URL(
+      '/login',
+      process.env.ATLAS_ORIGIN ?? request.url,
+    );
+    destination.searchParams.set(
+      'next',
+      safeReturnTo(request.nextUrl.pathname + request.nextUrl.search),
+    );
+    const redirected = NextResponse.redirect(destination);
+    for (const cookie of response.cookies.getAll())
+      redirected.cookies.set(cookie);
+    response = redirected;
+  }
   response.headers.set('Content-Security-Policy', policy);
   response.headers.set('Cache-Control', 'private, no-store');
   return response;

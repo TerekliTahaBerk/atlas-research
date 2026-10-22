@@ -4,9 +4,29 @@ import {
   platformState,
 } from '../../packages/core/src/platform';
 import { safeReturnTo } from '../../apps/web/src/features/identity/redirect';
+import { readNavigation } from '../../apps/web/src/features/platform/navigation';
 import { validateEnvironment } from '../../apps/web/src/lib/env';
 const uuid = '10000000-0000-4000-8000-000000000001';
 describe('Phase 01 external boundaries', () => {
+  it('rejects malformed or different-actor navigation hints', () => {
+    expect(readNavigation('{broken', uuid)).toBeNull();
+    expect(
+      readNavigation(
+        JSON.stringify({ actorId: uuid, workspaceId: 'sample' }),
+        uuid,
+      ),
+    ).toBeNull();
+    const preference = { actorId: uuid, workspaceId: uuid, projectId: uuid };
+    expect(
+      readNavigation(
+        JSON.stringify(preference),
+        '20000000-0000-4000-8000-000000000001',
+      ),
+    ).toBeNull();
+    expect(readNavigation(JSON.stringify(preference), uuid)).toEqual(
+      preference,
+    );
+  });
   it.each([
     'https://evil.example',
     '//evil.example',

@@ -37,8 +37,10 @@ export default async function Page({
       state.organizations.find((o) => o.id === state.organizationId) ??
       state.organizations[0];
     const [orgMembers, workspaceMembers] = await Promise.all([
-      org ? members(actor, 'organization', org.id) : [],
-      ws ? members(actor, 'workspace', ws.id) : [],
+      org
+        ? members(actor, 'organization', org.id)
+        : { items: [], nextCursor: null },
+      ws ? members(actor, 'workspace', ws.id) : { items: [], nextCursor: null },
     ]);
     return (
       <LiveFrame state={state}>

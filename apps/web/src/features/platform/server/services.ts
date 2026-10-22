@@ -12,6 +12,7 @@ import {
   platformState,
   projectDto,
   organizationDto,
+  workspaceDto,
   memberDto,
   invitationDto,
   mutationResult,
@@ -25,7 +26,7 @@ const hash = (token: string) =>
   createHash('sha256').update(token).digest('hex');
 const cursorPayload = z.object({
   id: z.uuid(),
-  workspaceId: z.uuid(),
+  scope: z.string().max(160),
   actorId: z.uuid(),
 });
 function cursorKey() {
@@ -38,7 +39,7 @@ function encodeCursor(value: z.infer<typeof cursorPayload>) {
   const body = Buffer.from(JSON.stringify(value)).toString('base64url');
   return `${body}.${createHmac('sha256', cursorKey()).update(body).digest('hex')}`;
 }
-function decodeCursor(value: string, actorId: string, workspaceId: string) {
+function decodeCursor(value: string, actorId: string, scope: string) {
   const [body, signature] = value.split('.');
   if (!body || !signature || !/^[a-f0-9]{64}$/.test(signature))
     throw new PlatformError('VALIDATION_ERROR', 'Invalid cursor.');
@@ -55,7 +56,7 @@ function decodeCursor(value: string, actorId: string, workspaceId: string) {
   if (
     !result.success ||
     result.data.actorId !== actorId ||
-    result.data.workspaceId !== workspaceId
+    result.data.scope !== scope
   )
     throw new PlatformError('VALIDATION_ERROR', 'Invalid cursor.');
   return result.data.id;
@@ -81,11 +82,55 @@ export async function loadState(
     const organizations = z
       .array(organizationDto)
       .parse(
-        await tx.$queryRaw`SELECT id,name,personal,version,atlas_private.capabilities('organization',id) AS capabilities FROM organizations ORDER BY name,id LIMIT 100`,
+        await tx.$queryRaw`SELECT id,name,personal,version,atlas_private.capabilities('organization',id) AS capabilities FROM organizations ORDER BY id LIMIT 101`,
       );
     const rawWorkspaces =
-      await tx.$queryRaw`SELECT id,name,organization_id AS "organizationId",version,atlas_private.capabilities('workspace',id) AS capabilities FROM workspaces ORDER BY name,id LIMIT 100`;
+      await tx.$queryRaw`SELECT id,name,organization_id AS "organizationId",version,atlas_private.capabilities('workspace',id) AS capabilities FROM workspaces ORDER BY id LIMIT 101`;
     const workspaces = platformState.shape.workspaces.parse(rawWorkspaces);
+    const organizationsCursor = trimPage(
+      organizations,
+      actor.id,
+      'organizations',
+      (o) => o.id,
+    ).nextCursor;
+    const workspacesCursor = trimPage(
+      workspaces,
+      actor.id,
+      'workspaces',
+      (w) => w.id,
+    ).nextCursor;
+    // Requested contexts may lie beyond the first navigation page. RLS still
+    // authorizes these fixed-ID lookups before adding their minimal DTOs.
+    if (workspaceId && !workspaces.some((w) => w.id === workspaceId)) {
+      const extra = z
+        .array(workspaceDto)
+        .parse(
+          await tx.$queryRaw`SELECT id,name,organization_id AS "organizationId",version,atlas_private.capabilities('workspace',id) AS capabilities FROM workspaces WHERE id=${workspaceId}::uuid`,
+        );
+      workspaces.push(...extra);
+    }
+    if (
+      organizationId &&
+      !workspaces.some((w) => w.organizationId === organizationId)
+    ) {
+      const extra = z
+        .array(workspaceDto)
+        .parse(
+          await tx.$queryRaw`SELECT id,name,organization_id AS "organizationId",version,atlas_private.capabilities('workspace',id) AS capabilities FROM workspaces WHERE organization_id=${organizationId}::uuid ORDER BY id LIMIT 1`,
+        );
+      workspaces.push(...extra);
+    }
+    const requestedOrg =
+      organizationId ??
+      workspaces.find((w) => w.id === workspaceId)?.organizationId;
+    if (requestedOrg && !organizations.some((o) => o.id === requestedOrg)) {
+      const extra = z
+        .array(organizationDto)
+        .parse(
+          await tx.$queryRaw`SELECT id,name,personal,version,atlas_private.capabilities('organization',id) AS capabilities FROM organizations WHERE id=${requestedOrg}::uuid`,
+        );
+      organizations.push(...extra);
+    }
     if (organizationId && !organizations.some((o) => o.id === organizationId))
       throw new PlatformError('NOT_FOUND', 'Organization unavailable.');
     const selected = workspaceId
@@ -98,7 +143,9 @@ export async function loadState(
     let projects: z.infer<typeof projectDto>[] = [];
     let nextCursor: string | null = null;
     if (selected) {
-      const after = cursor ? decodeCursor(cursor, actor.id, selected.id) : null;
+      const after = cursor
+        ? decodeCursor(cursor, actor.id, `projects:${selected.id}`)
+        : null;
       projects = z
         .array(projectDto)
         .parse(
@@ -110,7 +157,7 @@ export async function loadState(
         if (last)
           nextCursor = encodeCursor({
             id: last.id,
-            workspaceId: selected.id,
+            scope: `projects:${selected.id}`,
             actorId: actor.id,
           });
       }
@@ -130,6 +177,8 @@ export async function loadState(
         organizations[0]?.id ??
         null,
       nextCursor,
+      organizationsCursor,
+      workspacesCursor,
     });
   });
 }
@@ -146,9 +195,60 @@ export async function getProject(actor: VerifiedActor, id: string) {
     return project;
   });
 }
-export async function members(actor: VerifiedActor, scope: Scope, id: string) {
+function trimPage<T>(
+  items: T[],
+  actorId: string,
+  scope: string,
+  getId: (item: T) => string,
+) {
+  let nextCursor: string | null = null;
+  if (items.length > 100) {
+    items.pop();
+    const last = items.at(-1);
+    if (last) nextCursor = encodeCursor({ id: getId(last), actorId, scope });
+  }
+  return { items, nextCursor };
+}
+export async function directory(
+  actor: VerifiedActor,
+  kind: 'organizations' | 'workspaces',
+  cursor?: string,
+) {
+  const after = cursor ? decodeCursor(cursor, actor.id, kind) : null;
+  return withActor(actor, async (tx) => {
+    if (kind === 'organizations')
+      return trimPage(
+        z
+          .array(organizationDto)
+          .parse(
+            await tx.$queryRaw`SELECT id,name,personal,version,atlas_private.capabilities('organization',id) AS capabilities FROM organizations WHERE (${after}::uuid IS NULL OR id>${after}::uuid) ORDER BY id LIMIT 101`,
+          ),
+        actor.id,
+        kind,
+        (item) => item.id,
+      );
+    return trimPage(
+      z
+        .array(workspaceDto)
+        .parse(
+          await tx.$queryRaw`SELECT id,name,organization_id AS "organizationId",version,atlas_private.capabilities('workspace',id) AS capabilities FROM workspaces WHERE (${after}::uuid IS NULL OR id>${after}::uuid) ORDER BY id LIMIT 101`,
+        ),
+      actor.id,
+      kind,
+      (item) => item.id,
+    );
+  });
+}
+export async function members(
+  actor: VerifiedActor,
+  scope: Scope,
+  id: string,
+  cursor?: string,
+) {
   scopeType.parse(scope);
   z.uuid().parse(id);
+  const cursorScope = `members:${scope}:${id}`;
+  const after = cursor ? decodeCursor(cursor, actor.id, cursorScope) : null;
   return withActor(actor, async (tx) => {
     const [check] = z
       .array(z.object({ allowed: z.boolean() }))
@@ -157,7 +257,6 @@ export async function members(actor: VerifiedActor, scope: Scope, id: string) {
       );
     if (!check?.allowed)
       throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-    // Prisma.sql fragments are fixed server-owned identifiers, never request text.
     const table =
       scope === 'organization'
         ? Prisma.sql`organization_memberships`
@@ -170,22 +269,33 @@ export async function members(actor: VerifiedActor, scope: Scope, id: string) {
         : scope === 'workspace'
           ? Prisma.sql`workspace_id`
           : Prisma.sql`project_id`;
-    return z
-      .array(memberDto)
-      .parse(
-        await tx.$queryRaw(
-          Prisma.sql`SELECT profile_id AS "profileId",role::text,version FROM ${table} WHERE ${field}=${id}::uuid ORDER BY profile_id LIMIT 100`,
+    return trimPage(
+      z
+        .array(memberDto)
+        .parse(
+          await tx.$queryRaw(
+            Prisma.sql`SELECT profile_id AS "profileId",role::text,version FROM ${table} WHERE ${field}=${id}::uuid AND (${after}::uuid IS NULL OR profile_id>${after}::uuid) ORDER BY profile_id LIMIT 101`,
+          ),
         ),
-      );
+      actor.id,
+      cursorScope,
+      (item) => item.profileId,
+    );
   });
 }
-export async function invitations(actor: VerifiedActor) {
+export async function invitations(actor: VerifiedActor, cursor?: string) {
+  const after = cursor ? decodeCursor(cursor, actor.id, 'invitations') : null;
   return withActor(actor, async (tx) =>
-    z
-      .array(invitationDto)
-      .parse(
-        await tx.$queryRaw`SELECT id,email,scope,role,expires_at::text AS "expiresAt",accepted_at IS NOT NULL AS accepted,revoked_at IS NOT NULL AS revoked FROM invitations ORDER BY created_at DESC,id LIMIT 100`,
-      ),
+    trimPage(
+      z
+        .array(invitationDto)
+        .parse(
+          await tx.$queryRaw`SELECT id,email,scope,role,expires_at::text AS "expiresAt",accepted_at IS NOT NULL AS accepted,revoked_at IS NOT NULL AS revoked FROM invitations WHERE (${after}::uuid IS NULL OR id>${after}::uuid) ORDER BY id LIMIT 101`,
+        ),
+      actor.id,
+      'invitations',
+      (item) => item.id,
+    ),
   );
 }
 export async function executeCommand(

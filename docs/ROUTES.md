@@ -1,5 +1,11 @@
 # Route inventory · Phase 00.5A
 
+## Phase 01 live routing
+
+`ATLAS_MODE=live` activates the verified application. `/`, `/login`, `/register`, `/reset-password`, `/auth/callback`, `/update-password` and the metadata-free `/invite` landing are public Auth-related surfaces. `/onboarding` requires a verified actor and recovers their saved draft. All `/app` pages require verified identity; Home/workspace/project/settings loaders independently resolve authorized DTOs and completed setup. Invalid/sample/inaccessible resources return safe 404s. Unauthenticated access returns to login; allowlisted return destinations preserve deep-link intent.
+
+Live routes include `/app/home`, `/app/workspaces`, `/app/workspaces/:workspaceId[/projects]`, `/app/projects/:projectId[/overview]`, all known project module slugs, and `/app/settings/{profile,appearance,workspace,plan}`. Workspace selection is server-authorized. Future modules require the project context and show their phase/unavailable state. Live Inbox/design-system/help preview routes are unavailable; the full approved synthetic UI remains in the separate preview environment. Settings accepts `workspaceId`/`organizationId` for intentional context selection. `/sample` never bypasses live authorization. The inventory below describes preview mode only.
+
 Every route serves synthetic sample content. Server allowlists (`generateStaticParams` with `dynamicParams=false`) still accept only the `sample` workspace and project and the explicit module and settings slugs. Anything else returns a 404 with recovery.
 
 | Route                                                                          | Screen (handoff)                                    | Query parameters                   |
