@@ -22,6 +22,9 @@ import {
   User,
   Users,
 } from 'lucide-react';
+import type { z } from 'zod';
+import type { onboardingDraft } from '@atlas/core';
+import { mutate } from '@/features/platform/client';
 import { cn } from '@atlas/ui/lib/utils';
 import {
   onboardingFields,
@@ -97,28 +100,103 @@ function OptionCard({
  * Seven-step onboarding preview (prototype onboarding overlay). Choices
  * stay in component state; nothing is created, invited or stored.
  */
-export function OnboardingScreen() {
+export function OnboardingScreen({
+  live = false,
+  draft,
+}: {
+  live?: boolean;
+  draft?: z.infer<typeof onboardingDraft>;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const initial = Math.min(6, Math.max(0, Number(params.get('step') ?? 1) - 1));
-  const [step, setStep] = useState(Number.isFinite(initial) ? initial : 0);
-  const [role, setRole] = useState<string>('PhD researcher');
-  const [fields, setFields] = useState<string[]>([
-    'Machine learning',
-    'Structural biology',
-  ]);
-  const [ws, setWs] = useState<string>('lab');
+  const [step, setStep] = useState(
+    live ? (draft?.step ?? 0) : Number.isFinite(initial) ? initial : 0,
+  );
+  const [role, setRole] = useState<string>(
+    draft?.researchRole ?? 'PhD researcher',
+  );
+  const [fields, setFields] = useState<string[]>(
+    draft?.researchInterests ??
+      (live ? [] : ['Machine learning', 'Structural biology']),
+  );
+  const [ws, setWs] = useState<string>(live ? 'solo' : 'lab');
   const [tpl, setTpl] = useState<string>('paper');
-  const [wsName, setWsName] = useState('Kaya Lab');
-  const [projectName, setProjectName] = useState('Sparse Evoformer');
-  const [invites, setInvites] = useState([
-    'ayse.demir@kayalab.example',
-    'mehmet.kaya@kayalab.example',
-    '',
-  ]);
+  const [wsName, setWsName] = useState(
+    draft?.workspaceName ?? (live ? 'My Research' : 'Kaya Lab'),
+  );
+  const [projectName, setProjectName] = useState(
+    draft?.projectName ?? (live ? '' : 'Sparse Evoformer'),
+  );
+  const [invites, setInvites] = useState(
+    live
+      ? []
+      : ['ayse.demir@kayalab.example', 'mehmet.kaya@kayalab.example', ''],
+  );
   const s = onboardingSteps[step] ?? onboardingSteps[0];
-  const next = () =>
-    step === 6 ? router.push('/app/home') : setStep(step + 1);
+  const [displayName, setDisplayName] = useState(
+    draft?.displayName ?? 'Researcher',
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function finish() {
+    setBusy(true);
+    setError('');
+    try {
+      const result = await mutate({
+        command: 'bootstrap',
+        displayName,
+        researchRole: role,
+        researchInterests: fields,
+        workspaceName: wsName,
+        ...(projectName.trim() ? { projectName } : {}),
+      });
+      window.location.assign(
+        result.projectId
+          ? `/app/projects/${result.projectId}/overview`
+          : `/app/workspaces/${result.workspaceId}`,
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Unable to complete setup.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function next() {
+    if (!live) {
+      if (step === 6) router.push('/app/home');
+      else setStep(step + 1);
+      return;
+    }
+    if (step === 6) {
+      await finish();
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await mutate({
+        command: 'onboarding.save',
+        draft: {
+          displayName,
+          researchRole: role,
+          researchInterests: fields,
+          workspaceName: wsName,
+          projectName,
+          step: step + 1,
+        },
+      });
+      setStep(step + 1);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Unable to save setup.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <div className="flex min-h-dvh flex-col overflow-auto bg-canvas text-tx">
       <header className="flex items-center gap-3.5 px-5 py-4">
@@ -149,6 +227,12 @@ export function OnboardingScreen() {
           ))}
         </div>
         <Link
+          onClick={(e) => {
+            if (live) {
+              e.preventDefault();
+              void finish();
+            }
+          }}
           href="/app/home"
           className="h-7 rounded-md px-2.5 text-ctl leading-7 text-tx2 hover:bg-hov"
         >
@@ -164,23 +248,41 @@ export function OnboardingScreen() {
             {s.title}
           </h1>
           <p className="mb-7 max-w-[540px] text-sm text-tx2">{s.sub}</p>
+          {live && step === 0 ? (
+            <label className="mb-5 flex max-w-[420px] flex-col gap-1.5 text-xs text-tx2">
+              Display name
+              <input
+                required
+                maxLength={120}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="h-10 rounded-lg border border-bd bg-card px-3 text-sm text-tx"
+              />
+            </label>
+          ) : null}
           {step === 0 ? (
             <ul className="mb-7 flex flex-col border-t border-bd2">
               {[
                 [
                   Telescope,
                   'Find and read',
-                  'Search scholarly sources, save to your library, annotate PDFs.',
+                  live
+                    ? 'A personal research workspace and real project containers.'
+                    : 'Search scholarly sources, save to your library, annotate PDFs.',
                 ],
                 [
                   PenLine,
                   'Write',
-                  'Research notes and LaTeX manuscripts with live preview.',
+                  live
+                    ? 'Documents and manuscripts arrive in later phases.'
+                    : 'Research notes and LaTeX manuscripts with live preview.',
                 ],
                 [
                   Sparkles,
                   'Ask Atlas anywhere',
-                  'Context-aware help that cites its sources.',
+                  live
+                    ? 'AI presentation is available; no model is connected.'
+                    : 'Context-aware help that cites its sources.',
                 ],
               ].map(([Icon, t, d]) => {
                 const I = Icon as typeof User;
@@ -262,16 +364,18 @@ export function OnboardingScreen() {
                 className="mb-6 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5"
               >
                 {step === 3
-                  ? onboardingWorkspaces.map((w) => (
-                      <OptionCard
-                        key={w.key}
-                        icon={wsIcons[w.key]}
-                        label={w.label}
-                        description={w.description}
-                        selected={ws === w.key}
-                        onSelect={() => setWs(w.key)}
-                      />
-                    ))
+                  ? onboardingWorkspaces
+                      .filter((w) => !live || w.key === 'solo')
+                      .map((w) => (
+                        <OptionCard
+                          key={w.key}
+                          icon={wsIcons[w.key]}
+                          label={w.label}
+                          description={w.description}
+                          selected={ws === w.key}
+                          onSelect={() => setWs(w.key)}
+                        />
+                      ))
                   : onboardingTemplates.map((t) => (
                       <OptionCard
                         key={t.key}
@@ -297,7 +401,14 @@ export function OnboardingScreen() {
               </label>
             </>
           ) : null}
-          {step === 5 ? (
+          {live && step === 5 ? (
+            <p className="mb-7 max-w-[520px] text-sm text-tx2">
+              Create your workspace first. You can invite collaborators from its
+              settings or your project’s Members panel after setup. No
+              invitation is sent during onboarding.
+            </p>
+          ) : null}
+          {!live && step === 5 ? (
             <div className="mb-7 flex max-w-[520px] flex-col gap-2">
               {invites.map((v, i) => (
                 <div key={i} className="flex gap-1.5">
@@ -365,21 +476,30 @@ export function OnboardingScreen() {
               </button>
             ) : null}
             <button
+              disabled={busy}
               type="button"
-              onClick={next}
+              onClick={() => void next()}
               className="inline-flex h-10 items-center gap-[7px] rounded-lg bg-tx px-5 text-[13.5px] font-medium text-canvas hover:opacity-90"
             >
-              {step === 0
-                ? 'Get started'
-                : step === 6
-                  ? 'Open Atlas'
-                  : 'Continue'}
+              {busy
+                ? 'Saving…'
+                : step === 0
+                  ? 'Get started'
+                  : step === 6
+                    ? 'Open Atlas'
+                    : 'Continue'}
               <ArrowRight aria-hidden="true" className="size-[14px]" />
             </button>
           </div>
+          {error ? (
+            <p role="alert" className="mt-4 text-xs text-danger">
+              {error}
+            </p>
+          ) : null}
           <p className="mt-6 text-[11px] text-tx3">
-            Preview walkthrough — no account, workspace or project is created,
-            and nothing is stored.
+            {live
+              ? 'Setup progress is saved to your account. Every researcher gets a personal environment; shared organizations can be created later in Settings. Project templates do not create research content.'
+              : 'Preview walkthrough — no account, workspace or project is created, and nothing is stored.'}
           </p>
         </div>
       </main>

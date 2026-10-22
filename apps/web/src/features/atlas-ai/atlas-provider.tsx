@@ -27,6 +27,7 @@ import { initialMessages, previewSteps, sampleReply } from './sample-replies';
  */
 export interface AtlasApi {
   screen: ScreenKey;
+  live: boolean;
   mode: AtlasMode;
   closing: boolean;
   setMode: (mode: AtlasMode) => void;
@@ -90,10 +91,12 @@ let messageSeq = 0;
 export function AtlasProvider({
   children,
   screen: screenOverride,
+  live = false,
 }: {
   children: ReactNode;
   /** Tests and isolated previews may pin the screen context. */
   screen?: ScreenKey;
+  live?: boolean;
 }) {
   const pathname = usePathname();
   const screen = screenOverride ?? screenFromPath(pathname ?? '/app/home');
@@ -101,12 +104,18 @@ export function AtlasProvider({
   const [closing, setClosing] = useState(false);
   const [input, setInput] = useState('');
   const [chips, setChips] = useState<ContextReference[]>(
-    screenContexts[screen].chips,
+    live ? [] : screenContexts[screen].chips,
   );
-  const [messages, setMessages] = useState<AtlasMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<AtlasMessage[]>(
+    live ? [] : initialMessages,
+  );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editorComposer, setEditorComposer] = useState(true);
   const [prevScreen, setPrevScreen] = useState(screen);
+  const ambient = useRef({
+    screen,
+    context: live ? [] : screenContexts[screen].chips,
+  });
   const menuOpen = useRef(false);
   const inputEl = useRef<HTMLInputElement | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -116,7 +125,7 @@ export function AtlasProvider({
   // and focus mode steps back to open (prototype `go()`).
   if (screen !== prevScreen) {
     setPrevScreen(screen);
-    setChips(screenContexts[screen].chips);
+    setChips(live ? [] : screenContexts[screen].chips);
     setClosing(false);
     if (mode === 'open') setModeState('compact');
     if (mode === 'focus') setModeState('open');
@@ -155,6 +164,10 @@ export function AtlasProvider({
     (raw?: string, context = chips) => {
       const text = (raw ?? input).trim();
       if (!text || busyId) return;
+      if (live) {
+        setModeState('open');
+        return;
+      }
       const contextLabel = context[0]?.title ?? 'this workspace';
       const id = `a${++messageSeq}`;
       const reply = sampleReply(text, screen, contextLabel);
@@ -187,7 +200,7 @@ export function AtlasProvider({
       setModeState((m) => (m === 'compact' ? 'open' : m));
       if (!instant) setBusyId(id);
     },
-    [busyId, chips, input, screen],
+    [busyId, chips, input, screen, live],
   );
   const update = useCallback(
     (id: string, patch: (m: AssistantMessage) => Partial<AssistantMessage>) =>
@@ -290,9 +303,36 @@ export function AtlasProvider({
     },
     [chips, focusInput, send],
   );
-  const setContext = useCallback((context: ContextReference[]) => {
-    setChips(context);
-  }, []);
+  const setContext = useCallback(
+    (context: ContextReference[]) => {
+      const previous =
+        ambient.current.screen === screen
+          ? ambient.current.context
+          : live
+            ? []
+            : screenContexts[screen].chips;
+      const sameResource =
+        context.length === previous.length &&
+        context.every(
+          (item, index) =>
+            item.id === previous[index]?.id &&
+            item.kind === previous[index]?.kind,
+        );
+      ambient.current = { screen, context };
+      // An editor can mount after route-level context already appeared. Update
+      // its label without discarding references added in that interval.
+      setChips((current) =>
+        sameResource
+          ? current.map(
+              (item) =>
+                context.find((c) => c.id === item.id && c.kind === item.kind) ??
+                item,
+            )
+          : context,
+      );
+    },
+    [screen, live],
+  );
   const setMenuOpen = useCallback((open: boolean) => {
     menuOpen.current = open;
   }, []);
@@ -349,6 +389,7 @@ export function AtlasProvider({
   const value = useMemo<AtlasApi>(
     () => ({
       screen,
+      live,
       mode,
       closing,
       setMode,
@@ -391,6 +432,7 @@ export function AtlasProvider({
       mode,
       registerInput,
       retry,
+      live,
       screen,
       send,
       setMenuOpen,

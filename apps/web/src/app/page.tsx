@@ -1,3 +1,4 @@
+import { isLive } from '@/lib/env';
 import Link from 'next/link';
 import { ArrowUpRight, BookOpen, Network, ShieldCheck } from 'lucide-react';
 import { btnVariants } from '@/components/atlas/button';
@@ -18,7 +19,7 @@ export default function Home() {
           href="/app"
           className={btnVariants({ variant: 'outline', size: 'base' })}
         >
-          Open preview
+          {isLive() ? 'Open Atlas' : 'Open preview'}
           <ArrowUpRight aria-hidden="true" />
         </Link>
       </header>
@@ -44,8 +45,9 @@ export default function Home() {
           <ArrowUpRight aria-hidden="true" />
         </Link>
         <p className="mt-4 text-xs text-tx3">
-          Phase 00.5A design preview. No account required; every workspace item
-          is labeled sample data and nothing you type is stored.
+          {isLive()
+            ? 'Create a verified account and a personal workspace. Research modules and AI are not connected yet.'
+            : 'Phase 00.5A design preview. No account required; every workspace item is labeled sample data and nothing you type is stored.'}
         </p>
         <div className="mt-16 grid gap-6 border-t border-bd2 pt-8 sm:grid-cols-3">
           {[

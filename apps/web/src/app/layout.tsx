@@ -1,3 +1,5 @@
+import { connection } from 'next/server';
+import { isLive } from '@/lib/env';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from '@/components/providers';
 import '@fontsource-variable/geist';
@@ -12,7 +14,7 @@ import '../styles/globals.css';
 export const metadata: Metadata = {
   title: { default: 'Atlas — Research, connected.', template: '%s · Atlas' },
   description:
-    'Atlas Research OS. Phase 00.5A design-integration preview with labeled sample data.',
+    'Atlas Research OS. Research workspaces and project collaboration, with clearly labeled future modules.',
 };
 export const viewport: Viewport = {
   themeColor: [
@@ -20,11 +22,12 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: light)', color: '#f2f1eb' },
   ],
 };
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  if (isLive()) await connection();
   return (
     <html lang="en" suppressHydrationWarning>
       <body>

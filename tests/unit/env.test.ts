@@ -18,8 +18,8 @@ describe('environment boundary', () => {
       expect(String(error)).not.toContain('secret-value');
     }
   });
-  it('does not enable unimplemented live mode', () =>
+  it('rejects live mode without its required security configuration', () =>
     expect(() => validateEnvironment({ ATLAS_MODE: 'live' })).toThrow(
-      'ATLAS_MODE',
+      'Missing live environment variables',
     ));
 });

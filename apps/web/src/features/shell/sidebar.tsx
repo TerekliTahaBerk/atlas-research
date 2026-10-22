@@ -49,6 +49,8 @@ import {
   type ScreenKey,
 } from './navigation';
 import { useShell } from './shell-context';
+import { usePlatformOptional } from '@/features/platform/platform-context';
+import { LiveSidebar } from '@/features/platform/live-sidebar';
 import { ThemeMenu } from './theme-menu';
 const rowBase =
   'flex h-[30px] w-full min-w-0 items-center gap-[9px] rounded-md px-2 text-tx2 transition-colors hover:bg-hov hover:text-tx group-data-[drawer=true]/sb:h-9 [&>svg]:size-[15px] [&>svg]:shrink-0';
@@ -107,8 +109,15 @@ function SectionToggle({
     </button>
   );
 }
+export function Sidebar(props: {
+  drawer?: boolean;
+  onNavigate?: (() => void) | undefined;
+}) {
+  const live = usePlatformOptional();
+  return live ? <LiveSidebar {...props} /> : <PreviewSidebar {...props} />;
+}
 /** Compact 216px sidebar (handoff §3 / prototype aside). */
-export function Sidebar({
+function PreviewSidebar({
   drawer = false,
   onNavigate,
 }: {

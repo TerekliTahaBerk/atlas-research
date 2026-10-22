@@ -1,14 +1,14 @@
 import { notFound, redirect } from 'next/navigation';
-import { moduleHref, previewProjectId } from '@/features/shell/navigation';
+import { isLive } from '@/lib/env';
+import { pageProject } from '@/features/platform/server/pages';
 export default async function Page({
   params,
 }: {
   params: Promise<{ projectId: string }>;
 }) {
-  if ((await params).projectId !== previewProjectId) notFound();
-  redirect(moduleHref('overview'));
-}
-export const dynamicParams = false;
-export function generateStaticParams() {
-  return [{ projectId: previewProjectId }];
+  const { projectId } = await params;
+  if (isLive()) {
+    await pageProject(projectId);
+  } else if (projectId !== 'sample') notFound();
+  redirect(`/app/projects/${projectId}/overview`);
 }
