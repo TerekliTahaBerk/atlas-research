@@ -8,6 +8,8 @@
 
 The existing 101-test design suite stays in preview mode and retains screenshot, geometry, accessibility, interaction and no-fake-network assertions. A late manuscript mount now uses the same canonical context ID as the initial provider and preserves explicitly added references when the same ambient resource is reapplied. Unknown-resource 404s are resolved before the streaming loading boundary. No accessibility rule or permission test is weakened.
 
+`ATLAS_APPROVED_DEV_PROJECT=hgngonpirctrwbckhbmy pnpm test:hosted` is an explicit opt-in for the approved development project. It loads only ignored web runtime configuration and runs three non-mutating checks: actual Prisma/TLS/runtime/actor cleanup through both hosted pooler modes, plus actual Auth settings and anonymous/private-schema Data API denial. No users, mail, migrations or research records are created. It does not replace actual hosted signup/recovery journeys. Hosted secrets never enter CI.
+
 ## Executable checks
 
 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:validate`, `pnpm format:check`; then `pnpm exec playwright install chromium` once and `pnpm test:e2e`. Containers that ship a different Chromium can set `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; CI leaves it unset. Playwright launches a production app on 127.0.0.1:3100; it must be built first. Standard CI runs all checks. Browser plugin is not installed in this session, so regular Playwright Chromium is the recorded browser QA path.

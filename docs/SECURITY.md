@@ -4,7 +4,7 @@
 
 Live mode implements verified Supabase `getUser`, PKCE callbacks, signed short-lived recovery markers, exact-origin JSON mutations, distributed SQL quotas, per-request script nonce CSP, no-store responses and safe error/request IDs. Runtime role validation rejects owner/superuser/BYPASSRLS access. RLS plus constrained SQL commands enforce live tenant/resource capabilities, invitation single use/recipient binding, parent revocation and concurrent last-owner protection. [Authorization](identity/AUTHORIZATION.md) and [authentication](identity/AUTHENTICATION.md) define the trust model and limits.
 
-The credential-free preview remains a separate explicit environment; no sample IDs confer live access. No AI, research execution, ingestion, assets or messages are enabled. Hosted Auth/OAuth/SMTP, actual hosted pooler reuse, infrastructure log redaction and deployed security are not verified. Production invitation creation is deliberately blocked without delivery configuration. No production security certification or deployment is claimed.
+The credential-free preview remains a separate explicit environment; no sample IDs confer live access. No AI, research execution, ingestion, assets or messages are enabled. The approved development target passed actual TLS/Prisma pooler-context checks and Data API exclusions. Hosted Auth email/OAuth/SMTP, infrastructure log redaction and deployed security are not verified. Production invitation creation is deliberately blocked without delivery configuration. No production security certification or deployment is claimed.
 
 ## Current security posture
 

@@ -6,7 +6,7 @@ Additive migrations `20261022100000_core_platform` and `20261022110000_onboardin
 
 The reviewed SQL grants the non-owner `atlas_runtime` role scoped SELECT and constrained function EXECUTE only. RLS remains enabled on every domain table; direct DML is denied, with explicit `USING`/`WITH CHECK` deny policies as defense in depth. Security-definer capability helpers prevent recursive membership policies. The bounded mutation function resolves resource scope and enforces rights/invariants/audit within one transaction. No runtime ownership or BYPASSRLS is accepted. [Authorization](identity/AUTHORIZATION.md) documents actor propagation and the privileged function boundary.
 
-On a compatible Supabase target, `profiles.id` is linked to `auth.users.id`; portable plain PostgreSQL tests omit that external FK. Existing personal rows are not guessed/backfilled. Review and identify every development target before migration; no existing or hosted database was reset. Migration-from-scratch, actual runtime-role isolation and concurrency evidence are in the implementation report. Hosted pooler/backup/deployment verification is separate.
+On a compatible Supabase target, `profiles.id` is linked to `auth.users.id`; portable plain PostgreSQL tests omit that external FK. Existing personal rows are not guessed/backfilled. Review and identify every development target before migration; no existing or hosted database was reset. Migration-from-scratch, actual runtime-role isolation and concurrency evidence are in the implementation report. Actual Prisma/actor cleanup on both approved hosted development poolers passed; backup/restore, production topology and deployment verification remain separate.
 
 ## Implemented foundation
 

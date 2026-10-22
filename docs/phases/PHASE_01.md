@@ -71,7 +71,7 @@ Library, AI, docs/tasks and messaging all depend on these guards. Future enterpr
 
 ## 15. Risks and mitigation
 
-Auth cookie and pooled RLS semantics may diverge; test the actual hosted Supabase pooler and session refresh. Disposable GoTrue/PostgreSQL tests pass; the approved hosted development target still requires secure local database credentials and reviewed activation. Production invitation creation remains gated until approved delivery exists.
+Auth cookie and pooled RLS semantics may diverge; test the actual hosted Supabase pooler and session refresh. Disposable GoTrue/PostgreSQL tests pass; the approved hosted development target now has reviewed migrations, a non-owner runtime and passing read-only Prisma/pooler checks; actual hosted email/OAuth and deployed security remain open. Production invitation creation remains gated until approved delivery exists.
 
 ## 16. Suggested issue breakdown for coding agents
 
