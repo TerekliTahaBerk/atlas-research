@@ -39,7 +39,10 @@ export function LiveHome({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar>
-        <Crumb title={workspace ? (selected?.name ?? 'Workspaces') : 'Home'} />
+        <Crumb
+          as="span"
+          title={workspace ? (selected?.name ?? 'Workspaces') : 'Home'}
+        />
       </Topbar>
       <AtlasAnchor placement="canvas" />
       <div className="min-h-0 flex-1 overflow-auto">

@@ -60,7 +60,11 @@ export function LiveProject({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar bordered>
-        <Crumb parent={project.name} title={active?.label ?? 'Overview'} />
+        <Crumb
+          as="span"
+          parent={project.name}
+          title={active?.label ?? 'Overview'}
+        />
       </Topbar>
       <AtlasAnchor placement="canvas" />
       <div className="min-h-0 flex-1 overflow-auto">

@@ -60,7 +60,7 @@ export function LiveSettings({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar bordered>
-        <Crumb title="Settings" />
+        <Crumb as="span" title="Settings" />
       </Topbar>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="max-w-[1000px] px-8 py-10 max-sm:px-4">
