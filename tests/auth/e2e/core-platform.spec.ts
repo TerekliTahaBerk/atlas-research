@@ -173,7 +173,35 @@ test('independent researcher registers, verifies, creates, renames, logs out and
   await expect(page).toHaveURL(/\/login\?next=/);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  // Hold the destination document to reproduce a slow first page load after
+  // successful authentication. The form must not invite a second submission.
+  let releaseNavigation!: () => void;
+  const navigationGate = new Promise<void>((resolve) => {
+    releaseNavigation = resolve;
+  });
+  const destinationRequest = page.waitForRequest(
+    (request) => request.isNavigationRequest() && request.url() === projectUrl,
+  );
+  await page.route(projectUrl, async (route) => {
+    await navigationGate;
+    await route.continue();
+  });
+  const signingIn = page
+    .getByRole('button', { name: 'Sign in', exact: true })
+    .click();
+  try {
+    await destinationRequest;
+    await expect(page.getByRole('main').getByRole('status')).toContainText(
+      'Signed in. Opening your research',
+    );
+    await expect(
+      page.getByRole('button', { name: 'Please wait…', exact: true }),
+    ).toBeDisabled();
+  } finally {
+    releaseNavigation();
+    await signingIn;
+    await page.unroute(projectUrl);
+  }
   await expect(page).toHaveURL(projectUrl);
   await expect(
     page.getByRole('heading', { level: 1, name: 'Renamed research' }),

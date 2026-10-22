@@ -64,6 +64,8 @@ export function AuthScreen({
   const [name, setName] = useState('');
   const [confirmation, setConfirmation] = useState('');
   async function submit() {
+    if (busy) return;
+    let redirecting = false;
     setBusy(true);
     setFeedback('');
     setStatus('idle');
@@ -89,12 +91,18 @@ export function AuthScreen({
             : {}),
         },
       );
-      if (result.redirect)
+      if (result.redirect) {
+        setFeedback(
+          mode === 'signin'
+            ? 'Signed in. Opening your research…'
+            : 'Request completed. Opening the next page…',
+        );
         window.location.assign(
           result.redirect +
             (result.redirect === '/invite' ? window.location.hash : ''),
         );
-      else {
+        redirecting = true;
+      } else {
         setFeedback(result.message ?? 'Request completed.');
         setStatus('sent');
       }
@@ -104,7 +112,7 @@ export function AuthScreen({
       );
       setStatus('error');
     } finally {
-      setBusy(false);
+      if (!redirecting) setBusy(false);
       setPassword('');
       setConfirmation('');
     }
