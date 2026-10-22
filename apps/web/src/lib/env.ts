@@ -1,6 +1,6 @@
 import { z } from 'zod';
 const environment = z.object({
-  ATLAS_MODE: z.literal('preview').default('preview'),
+  ATLAS_MODE: z.enum(['preview', 'live']).default('preview'),
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
   DATABASE_URL: z
@@ -11,6 +11,11 @@ const environment = z.object({
     .string()
     .regex(/^postgres(ql)?:\/\//)
     .optional(),
+  ATLAS_ORIGIN: z.url().optional(),
+  ATLAS_RATE_SECRET: z.string().min(32).optional(),
+  ATLAS_CURSOR_SECRET: z.string().min(32).optional(),
+  ATLAS_GOOGLE_OAUTH: z.enum(['true', 'false']).default('false'),
+  ATLAS_DEV_INVITATION_LINKS: z.enum(['true', 'false']).default('false'),
 });
 export function validateEnvironment(input: Record<string, string | undefined>) {
   const result = environment.safeParse(input);
@@ -18,12 +23,44 @@ export function validateEnvironment(input: Record<string, string | undefined>) {
     throw new Error(
       `Invalid environment variables: ${result.error.issues.map((i) => i.path.join('.')).join(', ')}`,
     );
+  const env = result.data;
   if (
-    Boolean(result.data.NEXT_PUBLIC_SUPABASE_URL) !==
-    Boolean(result.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+    Boolean(env.NEXT_PUBLIC_SUPABASE_URL) !==
+    Boolean(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
   )
     throw new Error(
       'Supabase URL and publishable key must be configured together.',
     );
-  return result.data;
+  if (env.ATLAS_MODE === 'live') {
+    const required = [
+      'NEXT_PUBLIC_SUPABASE_URL',
+      'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+      'DATABASE_URL',
+      'ATLAS_ORIGIN',
+      'ATLAS_RATE_SECRET',
+      'ATLAS_CURSOR_SECRET',
+    ] as const;
+    const missing = required.filter((key) => !env[key]);
+    if (missing.length)
+      throw new Error(
+        `Missing live environment variables: ${missing.join(', ')}`,
+      );
+    const origin = new URL(env.ATLAS_ORIGIN!);
+    if (
+      origin.origin !== env.ATLAS_ORIGIN ||
+      (origin.protocol !== 'https:' &&
+        !['localhost', '127.0.0.1'].includes(origin.hostname))
+    )
+      throw new Error(
+        'ATLAS_ORIGIN must be an exact HTTPS origin or local loopback origin.',
+      );
+    if (env.DIRECT_URL && env.DIRECT_URL === env.DATABASE_URL)
+      throw new Error(
+        'Migration and runtime connections must use separate database credentials.',
+      );
+  }
+  return env;
+}
+export function isLive() {
+  return process.env.ATLAS_MODE === 'live';
 }

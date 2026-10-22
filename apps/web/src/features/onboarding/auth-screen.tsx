@@ -3,9 +3,16 @@ import { useId, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { Building2, CircleAlert, Info, MailCheck, SunMoon } from 'lucide-react';
+import { z } from 'zod';
+import { requestData } from '@/features/platform/client';
 import { cn } from '@atlas/ui/lib/utils';
-type Mode = 'signin' | 'signup' | 'reset';
+type Mode = 'signin' | 'signup' | 'reset' | 'password';
 const copy: Record<Mode, { title: string; sub: string; cta: string }> = {
+  password: {
+    title: 'Choose a new password',
+    sub: 'Use at least 12 characters.',
+    cta: 'Update password',
+  },
   signin: {
     title: 'Welcome back',
     sub: 'Sign in to continue your research.',
@@ -23,6 +30,7 @@ const copy: Record<Mode, { title: string; sub: string; cta: string }> = {
   },
 };
 const links: Record<Mode, { href: string; label: string }[]> = {
+  password: [{ href: '/login', label: 'Back to sign in' }],
   signin: [
     { href: '/register', label: 'Create an account' },
     { href: '/reset-password', label: 'Reset password' },
@@ -36,11 +44,71 @@ const inputCls =
  * Authentication previews (prototype auth overlay). Forms never submit to a
  * server: Phase 01 replaces them with verified Supabase flows.
  */
-export function AuthScreen({ mode }: { mode: Mode }) {
+export function AuthScreen({
+  mode,
+  live = false,
+  google = false,
+  notice,
+}: {
+  mode: Mode;
+  live?: boolean;
+  google?: boolean;
+  notice?: string;
+}) {
   const { resolvedTheme, setTheme } = useTheme();
   const [status, setStatus] = useState<'idle' | 'sent' | 'oauth' | 'error'>(
     'idle',
   );
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState(notice ?? '');
+  const [name, setName] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  async function submit() {
+    setBusy(true);
+    setFeedback('');
+    setStatus('idle');
+    try {
+      const result = await requestData(
+        '/api/v1/auth',
+        z.object({
+          message: z.string().optional(),
+          redirect: z.string().optional(),
+        }),
+        {
+          action: mode,
+          ...(mode !== 'password' ? { email } : {}),
+          ...(mode !== 'reset' ? { password } : {}),
+          ...(['signup', 'password'].includes(mode) ? { confirmation } : {}),
+          ...(mode === 'signup' ? { displayName: name } : {}),
+          ...(['signin', 'signup'].includes(mode)
+            ? {
+                returnTo:
+                  new URLSearchParams(window.location.search).get('next') ??
+                  '/app/home',
+              }
+            : {}),
+        },
+      );
+      if (result.redirect)
+        window.location.assign(
+          result.redirect +
+            (result.redirect === '/invite' ? window.location.hash : ''),
+        );
+      else {
+        setFeedback(result.message ?? 'Request completed.');
+        setStatus('sent');
+      }
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : 'Request failed. Try again.',
+      );
+      setStatus('error');
+    } finally {
+      setBusy(false);
+      setPassword('');
+      setConfirmation('');
+    }
+  }
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const ids = { name: useId(), email: useId(), password: useId() };
@@ -68,7 +136,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
           href="/app/home"
           className="h-7 rounded-md px-2.5 text-ctl leading-7 text-tx2 hover:bg-hov"
         >
-          Exit preview
+          {live ? 'Home' : 'Exit preview'}
         </Link>
       </header>
       <main className="flex flex-1 items-center justify-center p-5">
@@ -77,7 +145,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             {c.title}
           </h1>
           <p className="mb-6 text-ui text-tx2">{c.sub}</p>
-          {mode !== 'reset' ? (
+          {mode !== 'reset' && mode !== 'password' ? (
             <>
               <div className="mb-[18px] flex flex-col gap-2">
                 {[
@@ -103,7 +171,44 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                   <button
                     key={o.label}
                     type="button"
-                    onClick={() => setStatus('oauth')}
+                    disabled={
+                      live && (o.label !== 'Continue with Google' || !google)
+                    }
+                    title={
+                      live && (o.label !== 'Continue with Google' || !google)
+                        ? 'Provider is not configured'
+                        : undefined
+                    }
+                    onClick={async () => {
+                      if (!live) {
+                        setStatus('oauth');
+                        return;
+                      }
+                      setBusy(true);
+                      try {
+                        const result = await requestData(
+                          '/api/v1/auth',
+                          z.object({ redirect: z.string() }),
+                          {
+                            action: 'google',
+                            returnTo:
+                              new URLSearchParams(window.location.search).get(
+                                'next',
+                              ) ?? '/app/home',
+                          },
+                        );
+                        window.location.assign(result.redirect);
+                      } catch (error) {
+                        setFeedback(
+                          error instanceof Error
+                            ? error.message
+                            : 'Sign-in failed.',
+                        );
+                        setStatus('error');
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
                     className="flex h-[38px] items-center justify-center gap-[9px] rounded-lg border border-bd bg-el font-medium hover:bg-hov"
                   >
                     <span aria-hidden="true">{o.mark}</span>
@@ -123,6 +228,10 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
+              if (live) {
+                void submit();
+                return;
+              }
               setPassword('');
               setStatus(
                 mode === 'signin' && !email.includes('@') ? 'error' : 'sent',
@@ -138,30 +247,36 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 <input
                   id={ids.name}
                   autoComplete="name"
+                  required={live}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Taha Berk Terekli"
                   className={cn(inputCls, 'border-bd')}
                 />
               </label>
             ) : null}
-            <label
-              htmlFor={ids.email}
-              className="flex flex-col gap-[5px] text-xs text-tx2"
-            >
-              Email
-              <input
-                id={ids.email}
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@university.edu"
-                aria-invalid={status === 'error' || undefined}
-                className={cn(
-                  inputCls,
-                  status === 'error' ? 'border-danger' : 'border-bd',
-                )}
-              />
-            </label>
+            {mode !== 'password' ? (
+              <label
+                htmlFor={ids.email}
+                className="flex flex-col gap-[5px] text-xs text-tx2"
+              >
+                Email
+                <input
+                  id={ids.email}
+                  required={live}
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@university.edu"
+                  aria-invalid={status === 'error' || undefined}
+                  className={cn(
+                    inputCls,
+                    status === 'error' ? 'border-danger' : 'border-bd',
+                  )}
+                />
+              </label>
+            ) : null}
             {mode !== 'reset' ? (
               <div className="flex flex-col gap-[5px] text-xs text-tx2">
                 <span className="flex">
@@ -178,6 +293,8 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 </span>
                 <input
                   id={ids.password}
+                  required={live}
+                  minLength={live && mode !== 'signin' ? 12 : undefined}
                   type="password"
                   autoComplete={
                     mode === 'signup' ? 'new-password' : 'current-password'
@@ -192,8 +309,31 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 />
               </div>
             ) : null}
+            {live && (mode === 'signup' || mode === 'password') ? (
+              <label className="flex flex-col gap-[5px] text-xs text-tx2">
+                Confirm password
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={confirmation}
+                  onChange={(e) => setConfirmation(e.target.value)}
+                  className={cn(inputCls, 'border-bd')}
+                />
+              </label>
+            ) : null}
             <div role="status" aria-live="polite">
-              {status === 'error' ? (
+              {live && feedback ? (
+                <p
+                  className={cn(
+                    'text-xs',
+                    status === 'error' ? 'text-danger' : 'text-actx',
+                  )}
+                >
+                  {feedback}
+                </p>
+              ) : null}
+              {!live && status === 'error' ? (
                 <p className="flex items-start gap-[7px] text-xs text-danger">
                   <CircleAlert
                     aria-hidden="true"
@@ -203,7 +343,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                   credentials are checked.)
                 </p>
               ) : null}
-              {status === 'sent' ? (
+              {!live && status === 'sent' ? (
                 <p className="flex items-start gap-[7px] text-xs text-actx">
                   {mode === 'reset' ? (
                     <MailCheck
@@ -223,7 +363,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                       : 'Preview only — no authentication request was sent.'}
                 </p>
               ) : null}
-              {status === 'oauth' ? (
+              {!live && status === 'oauth' ? (
                 <p className="flex items-start gap-[7px] text-xs text-tx2">
                   <Info
                     aria-hidden="true"
@@ -236,9 +376,10 @@ export function AuthScreen({ mode }: { mode: Mode }) {
             </div>
             <button
               type="submit"
+              disabled={busy}
               className="mt-1 h-10 rounded-lg bg-tx text-[13.5px] font-medium text-canvas hover:opacity-90"
             >
-              {c.cta}
+              {busy ? 'Please wait…' : c.cta}
             </button>
           </form>
           <div className="mt-5 flex justify-center gap-4 text-ctl text-tx2">
@@ -247,14 +388,16 @@ export function AuthScreen({ mode }: { mode: Mode }) {
                 {l.label}
               </Link>
             ))}
-            {mode === 'signup' ? (
+            {!live && mode === 'signup' ? (
               <Link href="/onboarding" className="hover:text-tx">
                 See onboarding
               </Link>
             ) : null}
           </div>
           <p className="mt-7 text-center text-[11px] text-tx3">
-            Preview — no account is created and nothing is stored.
+            {live
+              ? 'Passwords are handled by Supabase Auth. Unavailable identity providers are disabled.'
+              : 'Preview — no account is created and nothing is stored.'}
           </p>
         </div>
       </main>

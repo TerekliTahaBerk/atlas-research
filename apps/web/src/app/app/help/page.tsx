@@ -1,8 +1,11 @@
+import { isLive } from '@/lib/env';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Topbar } from '@/features/shell/topbar';
 export const metadata = { title: 'Help' };
 const linkCls = 'text-actx underline-offset-2 hover:underline';
 export default function Page() {
+  if (isLive()) notFound();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar />

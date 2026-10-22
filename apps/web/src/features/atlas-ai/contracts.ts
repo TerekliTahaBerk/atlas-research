@@ -60,7 +60,7 @@ export const screenContexts: Record<ScreenKey, ScreenContext> = {
   manuscript: {
     placeholder: 'Ask Atlas to write or fix LaTeX — try /latex',
     label: 'Manuscript',
-    chips: [ref('ms-main', 'manuscript', 'main.tex')],
+    chips: [ref('ms-main.tex', 'manuscript', 'main.tex')],
     floating: false,
   },
   library: {
@@ -206,7 +206,7 @@ export const mentionGroups: { group: string; items: MentionItem[] }[] = [
     group: 'Manuscripts',
     items: [
       {
-        id: 'ms-main',
+        id: 'ms-main.tex',
         kind: 'manuscript',
         title: 'Sparse Evoformer · main.tex',
         sub: 'LaTeX',

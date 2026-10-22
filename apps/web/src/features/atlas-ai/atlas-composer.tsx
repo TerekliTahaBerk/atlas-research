@@ -92,10 +92,13 @@ export function AtlasComposer({
         : slash
           ? 'slash'
           : null;
-  const groups = kind === 'mention' ? filterMentions(mention?.[2] ?? '') : [];
+  const groups =
+    !atlas.live && kind === 'mention' ? filterMentions(mention?.[2] ?? '') : [];
   const mentionItems = groups.flatMap((g) => g.items);
   const commands =
-    kind === 'slash' ? commandsFor(atlas.screen, slash?.[1] ?? '') : [];
+    !atlas.live && kind === 'slash'
+      ? commandsFor(atlas.screen, slash?.[1] ?? '')
+      : [];
   const count = kind === 'mention' ? mentionItems.length : commands.length;
   const active = Math.min(index, Math.max(0, count - 1));
   const open = kind !== null;

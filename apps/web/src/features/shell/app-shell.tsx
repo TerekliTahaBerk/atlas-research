@@ -6,6 +6,7 @@ import { AtlasProvider, useAtlas } from '@/features/atlas-ai/atlas-provider';
 import { AtlasLayer } from '@/features/atlas-ai/atlas-surface';
 import { PricingDialog } from '@/features/overlays/pricing-dialog';
 import { CommandPalette } from './command-palette';
+import { usePlatformOptional } from '@/features/platform/platform-context';
 import { PreviewStoreProvider } from './preview-store';
 import { ShellProvider, useShell } from './shell-context';
 import { ShortcutsDialog } from './shortcuts-dialog';
@@ -15,10 +16,11 @@ import { Sidebar } from './sidebar';
  * canvas (6px margin, 10px radius), shell-level Atlas layer and overlays.
  */
 export function AppShell({ children }: { children: ReactNode }) {
+  const live = usePlatformOptional() !== null;
   return (
     <ShellProvider>
       <PreviewStoreProvider>
-        <AtlasProvider>
+        <AtlasProvider live={live}>
           <ShellFrame>{children}</ShellFrame>
         </AtlasProvider>
       </PreviewStoreProvider>
@@ -110,7 +112,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
               Workspace navigation
             </DialogPrimitive.Title>
             <DialogPrimitive.Description className="sr-only">
-              Navigate the sample workspace and project.
+              Navigate your workspaces and projects.
             </DialogPrimitive.Description>
             <Sidebar drawer onNavigate={() => shell.setDrawerOpen(false)} />
           </DialogPrimitive.Content>

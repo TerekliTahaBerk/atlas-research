@@ -50,3 +50,4 @@ export type TenantScope = Readonly<{
   workspaceId: string;
   projectId?: string;
 }>;
+export * from './platform';

@@ -18,7 +18,7 @@ jobs:
         env:
           POSTGRES_USER: atlas
           POSTGRES_PASSWORD: atlas_ci_only
-          POSTGRES_DB: atlas_ci
+          POSTGRES_DB: atlas_p01_test_ci
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
@@ -26,7 +26,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DIRECT_URL: postgresql://atlas:atlas_ci_only@127.0.0.1:5432/atlas_ci
+      DIRECT_URL: postgresql://atlas:atlas_ci_only@127.0.0.1:5432/atlas_p01_test_ci
+      ATLAS_TEST_ADMIN_URL: postgresql://atlas:atlas_ci_only@127.0.0.1:5432/atlas_p01_test_ci
+      ATLAS_TEST_DATABASE_URL: postgresql://atlas_p01_test_runtime:atlas_runtime_ci_only@127.0.0.1:5432/atlas_p01_test_ci
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,6 +46,9 @@ jobs:
       - run: pnpm test
       - run: pnpm --filter @atlas/database exec prisma migrate deploy
       - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -f tests/database/constraints.sql
+      - name: Create isolated non-owner test role
+        run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE atlas_p01_test_runtime LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_runtime_ci_only'; GRANT atlas_runtime TO atlas_p01_test_runtime;"
+      - run: pnpm test:integration
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
@@ -55,3 +60,41 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  isolated-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ATLAS_MODE: live
+      ATLAS_ORIGIN: http://127.0.0.1:3102
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: atlas-disposable-local-publishable-key
+      DATABASE_URL: postgresql://atlas_auth_runtime:atlas_runtime_test_only@127.0.0.1:55432/atlas_auth_test
+      DIRECT_URL: postgresql://atlas_test_migrator:atlas_local_test_only@127.0.0.1:55432/atlas_auth_test
+      ATLAS_RATE_SECRET: atlas-disposable-test-rate-secret-32-characters
+      ATLAS_CURSOR_SECRET: atlas-disposable-test-cursor-secret-32-characters
+      ATLAS_DEV_INVITATION_LINKS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start disposable Auth (startup diagnostics contain no user sessions)
+        run: |
+          if ! docker compose -f tests/auth/compose.yml up -d --wait; then
+            docker compose -f tests/auth/compose.yml logs --no-color auth
+            exit 1
+          fi
+      - run: pnpm --filter @atlas/database exec prisma migrate deploy
+      - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c 'GRANT atlas_runtime TO atlas_auth_runtime;'
+      - run: pnpm db:generate
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:auth:e2e
+      # No auth traces/screenshots/mailbox/log upload: tokens remain ephemeral.
+      - if: always()
+        run: docker compose -f tests/auth/compose.yml down --volumes

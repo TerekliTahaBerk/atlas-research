@@ -49,6 +49,54 @@ afterEach(() => {
   setReducedMotion(false);
 });
 describe('Atlas composer mentions and commands', () => {
+  it('preserves explicit chips when a late editor reapplies the same ambient resource', async () => {
+    function LateContext() {
+      const atlas = useAtlas();
+      return (
+        <>
+          <button
+            onClick={() =>
+              atlas.addChip({
+                id: 'p1',
+                kind: 'paper',
+                title: 'Explicit paper',
+              })
+            }
+          >
+            Add explicit
+          </button>
+          <button
+            onClick={() =>
+              atlas.setContext([
+                { id: 'ms-main.tex', kind: 'manuscript', title: 'main.tex' },
+              ])
+            }
+          >
+            Editor mounted
+          </button>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(
+      wrap(
+        <>
+          <LateContext />
+          <AtlasSurface placement="page" />
+        </>,
+        'manuscript',
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Add explicit' }));
+    await user.click(screen.getByRole('button', { name: 'Editor mounted' }));
+    expect(
+      screen.getByRole('button', { name: 'Remove Explicit paper' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Remove main.tex' }),
+    ).toBeVisible();
+  });
+
   it('never promises automatic saving in empty preview history', () => {
     render(
       wrap(

@@ -1,0 +1,71 @@
+# Disposable CI/local Auth harness. Never point this at existing data or hosted services.
+name: atlas-phase01-auth-test
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: atlas_test_migrator
+      POSTGRES_PASSWORD: atlas_local_test_only
+      POSTGRES_DB: atlas_auth_test
+    ports: ['127.0.0.1:55432:5432']
+    volumes: ['./init.sql:/docker-entrypoint-initdb.d/atlas.sql:ro']
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U atlas_test_migrator -d atlas_auth_test']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    tmpfs: ['/var/lib/postgresql/data']
+  mail:
+    image: axllent/mailpit:v1.27.8
+    ports: ['127.0.0.1:8025:8025']
+  auth:
+    image: supabase/gotrue:v2.197.0
+    depends_on:
+      db: { condition: service_healthy }
+      mail: { condition: service_started }
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://127.0.0.1:54321
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://atlas_test_auth:atlas_auth_test_only@db:5432/atlas_auth_test
+      GOTRUE_SITE_URL: http://127.0.0.1:3102
+      GOTRUE_URI_ALLOW_LIST: http://127.0.0.1:3102/auth/callback**
+      GOTRUE_DISABLE_SIGNUP: 'false'
+      GOTRUE_JWT_SECRET: atlas-disposable-auth-jwt-secret-at-least-thirty-two-characters
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'true'
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: 'false'
+      GOTRUE_MAILER_AUTOCONFIRM: 'false'
+      GOTRUE_SMTP_ADMIN_EMAIL: auth@atlas.example
+      GOTRUE_SMTP_HOST: mail
+      GOTRUE_SMTP_PORT: 1025
+      GOTRUE_SMTP_SENDER_NAME: Atlas isolated test
+      GOTRUE_SMTP_MAX_FREQUENCY: 1s
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 100
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:9999/health',
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 40
+  gateway:
+    image: nginx:1.28-alpine
+    depends_on:
+      auth: { condition: service_healthy }
+    ports: ['127.0.0.1:54321:80']
+    volumes: ['./nginx.conf:/etc/nginx/conf.d/default.conf:ro']

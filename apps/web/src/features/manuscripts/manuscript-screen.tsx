@@ -147,7 +147,7 @@ export function ManuscriptScreen() {
     atlas.ask({
       mode: 'open',
       chips: [
-        { id: 'ms-main', kind: 'manuscript', title: 'main.tex' },
+        { id: 'ms-main.tex', kind: 'manuscript', title: 'main.tex' },
         { id: 'problems', kind: 'problems', title: 'Problems (3)' },
       ],
       prompt: '/latex fix the undefined \\methodname and define M before Eq. 1',

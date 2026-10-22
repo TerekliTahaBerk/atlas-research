@@ -22,6 +22,7 @@ import {
 import { useAtlas } from '@/features/atlas-ai/atlas-provider';
 import { papers } from '@/lib/preview/research';
 import { documents, tasks } from '@/lib/preview/workspace';
+import { usePlatformOptional } from '@/features/platform/platform-context';
 import { allDestinations, moduleHref } from './navigation';
 interface Result {
   id: string;
@@ -46,6 +47,7 @@ export function CommandPalette({
   returnFocus: () => void;
 }) {
   const router = useRouter();
+  const platform = usePlatformOptional();
   const atlas = useAtlas();
   const { resolvedTheme, setTheme } = useTheme();
   const [query, setQuery] = useState('');
@@ -57,6 +59,32 @@ export function CommandPalette({
     const has = (s: string) => !q || s.toLowerCase().includes(q);
     const go = (href: string) => () => router.push(href);
     const out: Result[] = [];
+    if (platform) {
+      for (const item of [
+        { id: 'home', name: 'Home', href: '/app/home' },
+        { id: 'settings', name: 'Settings', href: '/app/settings/profile' },
+        ...platform.workspaces.map((w) => ({
+          id: w.id,
+          name: w.name,
+          href: `/app/workspaces/${w.id}`,
+        })),
+        ...platform.projects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          href: `/app/projects/${p.id}/overview`,
+        })),
+      ]) {
+        if (has(item.name))
+          out.push({
+            id: item.id,
+            group: 'Navigation',
+            label: item.name,
+            icon: FileText,
+            run: () => window.location.assign(item.href),
+          });
+      }
+      return out;
+    }
     allDestinations
       .filter((d) => has(d.label))
       .slice(0, q ? 8 : 5)
@@ -131,7 +159,7 @@ export function CommandPalette({
       },
     );
     return out;
-  }, [atlas, query, resolvedTheme, router, setTheme]);
+  }, [atlas, query, resolvedTheme, router, setTheme, platform]);
   const active = Math.min(index, Math.max(0, results.length - 1));
   function run(r: Result | undefined) {
     if (!r) return;
