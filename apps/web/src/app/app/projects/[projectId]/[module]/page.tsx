@@ -12,6 +12,9 @@ import {
 import { members } from '@/features/platform/server/services';
 import { LiveFrame } from '@/features/platform/live-frame';
 import { LiveProject } from '@/features/platform/live-project';
+import { LiveResearch } from '@/features/research/live-research';
+import { LiveLibrary } from '@/features/library/live-library';
+import { LiveReader } from '@/features/reader/live-reader';
 export async function generateMetadata({
   params,
 }: {
@@ -40,6 +43,27 @@ export default async function Page({
   const state = await pageState(project.workspaceId);
   if (!state.projects.some((p) => p.id === project.id))
     state.projects.push(project);
+  // Phase 02 modules use live research services for readable projects.
+  const research =
+    !project.archived && project.capabilities.includes('project.read');
+  if (research && selected.slug === 'research')
+    return (
+      <LiveFrame state={state}>
+        <LiveResearch project={project} />
+      </LiveFrame>
+    );
+  if (research && (selected.slug === 'library' || selected.slug === 'reader'))
+    return (
+      <LiveFrame state={state}>
+        <Suspense fallback={<WorkspaceLoading />}>
+          {selected.slug === 'library' ? (
+            <LiveLibrary project={project} />
+          ) : (
+            <LiveReader project={project} />
+          )}
+        </Suspense>
+      </LiveFrame>
+    );
   const initialMembers = project.capabilities.includes('project.read')
     ? await members(await pageActor(), 'project', project.id)
     : { items: [], nextCursor: null };
