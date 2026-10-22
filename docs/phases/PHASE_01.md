@@ -1,6 +1,6 @@
 # Phase 01 — Core platform
 
-Status: implemented core under verification; hosted Auth/OAuth/pooler and production invitation delivery gates remain open. See [implementation report](PHASE_01_IMPLEMENTATION_REPORT.md).
+Status: implemented core under verification; hosted development signup, confirmation, onboarding, persisted-project return login and pooler checks pass; hosted recovery/OAuth, deployed security and production invitation delivery gates remain open. See [implementation report](PHASE_01_IMPLEMENTATION_REPORT.md).
 
 ## 1. Objective
 
@@ -71,7 +71,7 @@ Library, AI, docs/tasks and messaging all depend on these guards. Future enterpr
 
 ## 15. Risks and mitigation
 
-Auth cookie and pooled RLS semantics may diverge; test the actual hosted Supabase pooler and session refresh. Disposable GoTrue/PostgreSQL tests pass; the approved hosted development target now has reviewed migrations, a non-owner runtime and passing read-only Prisma/pooler checks; actual hosted email/OAuth and deployed security remain open. Production invitation creation remains gated until approved delivery exists.
+Auth cookie and pooled RLS semantics may diverge; test the actual hosted Supabase pooler and session refresh. Disposable GoTrue/PostgreSQL tests pass; the approved hosted development target now has reviewed migrations, a non-owner runtime and passing read-only Prisma/pooler checks; actual hosted signup/email confirmation/onboarding and return login pass; hosted recovery/OAuth and deployed security remain open. Production invitation creation remains gated until approved delivery exists.
 
 ## 16. Suggested issue breakdown for coding agents
 
