@@ -12,4 +12,5 @@ test-results/
 packages/database/src/generated/
 .DS_Store
 .pnpm-store/
+.qa-artifacts/
 apps/web/next-env.d.ts

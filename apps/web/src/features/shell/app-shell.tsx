@@ -28,6 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 function ShellFrame({ children }: { children: ReactNode }) {
   const shell = useShell();
   const atlas = useAtlas();
+  const { mode: atlasMode, setMode: setAtlasMode } = atlas;
   const {
     setSearchOpen,
     setShortcutsOpen,
@@ -44,9 +45,20 @@ function ShellFrame({ children }: { children: ReactNode }) {
         target?.isContentEditable ||
         ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '');
       if (mod && key === 'k') {
+        if (
+          document.querySelector(
+            '[role="dialog"][data-state="open"]:not([data-atlas-focus])',
+          ) &&
+          !shell.drawerOpen &&
+          !searchOpen
+        )
+          return;
         event.preventDefault();
         if (searchOpen) setSearchOpen(false);
-        else openSearch();
+        else {
+          if (atlasMode === 'focus') setAtlasMode('compact');
+          openSearch();
+        }
       } else if (mod && key === '\\') {
         event.preventDefault();
         toggleSidebar();
@@ -56,7 +68,16 @@ function ShellFrame({ children }: { children: ReactNode }) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openSearch, searchOpen, setSearchOpen, setShortcutsOpen, toggleSidebar]);
+  }, [
+    atlasMode,
+    setAtlasMode,
+    shell.drawerOpen,
+    openSearch,
+    searchOpen,
+    setSearchOpen,
+    setShortcutsOpen,
+    toggleSidebar,
+  ]);
   const sidebarVisible = !shell.narrow && !shell.sidebarCollapsed;
   const panel = atlas.mode === 'panel' && !shell.narrow;
   return (
@@ -99,7 +120,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
         id="main-content"
         tabIndex={-1}
         className={cn(
-          'atlas-canvas aic-pad relative my-1.5 flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-bd2 bg-canvas outline-none transition-[margin] duration-200',
+          'atlas-canvas aic-pad relative my-1.5 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-bd2 bg-canvas outline-none transition-[margin] duration-200',
           sidebarVisible ? 'ml-0' : 'ml-1.5',
           panel ? 'mr-[392px]' : 'mr-1.5',
         )}

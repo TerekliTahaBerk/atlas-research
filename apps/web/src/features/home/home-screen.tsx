@@ -270,13 +270,16 @@ export function HomeScreen() {
                       className="relative flex flex-col gap-3 rounded-2xl border border-transparent bg-card p-3 hover:border-bd2"
                     >
                       <div className="flex h-[132px] flex-col gap-[7px] overflow-hidden rounded-lg bg-el px-4 py-3.5">
-                        <span className="text-[10.5px] tracking-[0.02em] text-tx3">
+                        <span className="shrink-0 text-[10.5px] tracking-[0.02em] text-tx3">
                           {p.counts}
                         </span>
-                        <span className="font-serif text-[17px] leading-[1.2] text-tx2">
+                        <span className="line-clamp-3 shrink-0 font-serif text-[17px] leading-[1.2] text-tx2">
                           {p.description}
                         </span>
-                        <span className="text-[11px] leading-normal text-tx3">
+                        <span
+                          className="truncate text-[11px] leading-normal text-tx3"
+                          title={p.next}
+                        >
                           {p.next}
                         </span>
                       </div>

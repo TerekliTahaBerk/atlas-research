@@ -296,6 +296,7 @@ export function AtlasAnchor({
 /** Shell-level layer: focus mode (modal, dimmed) and docked panel. */
 export function AtlasLayer() {
   const atlas = useAtlas();
+  const returnFocus = useRef<HTMLElement | null>(null);
   const narrow = useMediaQuery('(max-width: 899px)');
   const anchored =
     screenContexts[atlas.screen].floating ||
@@ -314,10 +315,24 @@ export function AtlasLayer() {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-[68] animate-atlas-fade bg-dim backdrop-blur-[7px]" />
           <DialogPrimitive.Content
+            data-atlas-focus=""
             aria-describedby={undefined}
             onOpenAutoFocus={(e) => {
               e.preventDefault();
+              returnFocus.current =
+                document.activeElement as HTMLElement | null;
               atlas.focusInput();
+            }}
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+              const target = returnFocus.current;
+              if (
+                target !== document.body &&
+                target?.isConnected &&
+                target.getClientRects().length
+              )
+                target.focus();
+              else atlas.focusInput();
             }}
             onEscapeKeyDown={(e) => {
               if (atlas.menuOpen.current) {

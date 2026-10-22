@@ -1,5 +1,5 @@
 'use client';
-import type { ComponentProps, ReactNode } from 'react';
+import { useRef, type ComponentProps, type ReactNode } from 'react';
 import { Check, ChevronRight } from 'lucide-react';
 import {
   Dialog as DialogPrimitive,
@@ -203,6 +203,8 @@ export function ModalContent({
   blur = false,
   position = 'center',
   overlayClassName,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   children,
   ...props
 }: ComponentProps<typeof DialogPrimitive.Content> & {
@@ -210,6 +212,7 @@ export function ModalContent({
   position?: 'center' | 'top';
   overlayClassName?: string;
 }) {
+  const returnFocus = useRef<HTMLElement | null>(null);
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
@@ -220,6 +223,20 @@ export function ModalContent({
         )}
       />
       <DialogPrimitive.Content
+        onOpenAutoFocus={(event) => {
+          returnFocus.current = document.activeElement as HTMLElement | null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          if (onCloseAutoFocus) {
+            onCloseAutoFocus(event);
+            return;
+          }
+          // Controlled dialogs often have an invoker outside Dialog.Root.
+          // Radix cannot restore that invoker through its Trigger context.
+          event.preventDefault();
+          if (returnFocus.current?.isConnected) returnFocus.current.focus();
+        }}
         className={cn(
           'fixed left-1/2 z-[81] -translate-x-1/2 border border-bd bg-pop text-tx shadow-pop outline-none',
           position === 'center'

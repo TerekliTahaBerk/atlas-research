@@ -37,8 +37,10 @@ test.describe('Atlas AI modes share one conversation', () => {
     const box = await panel.boundingBox();
     expect(Math.round(box!.width)).toBe(380);
     // The canvas reflows rather than sitting under the panel.
-    const main = await page.locator('#main-content').boundingBox();
-    expect(main!.x + main!.width).toBeLessThanOrEqual(box!.x + 1);
+    await expect(async () => {
+      const main = await page.locator('#main-content').boundingBox();
+      expect(main!.x + main!.width).toBeLessThanOrEqual(box!.x + 1);
+    }).toPass();
     await panel.getByRole('button', { name: 'Close Atlas panel' }).click();
     await expect(panel).toBeHidden();
     await expect(assistant(page).first()).toHaveAttribute(
@@ -125,7 +127,9 @@ test('share popover is honest about invitations and restores focus', async ({
   await trigger.click();
   const pop = page.getByRole('dialog', { name: 'Share Sparse Evoformer' });
   await expect(pop).toBeVisible();
-  expect(Math.round((await pop.boundingBox())!.width)).toBe(380);
+  await expect(async () => {
+    expect(Math.round((await pop.boundingBox())!.width)).toBe(380);
+  }).toPass();
   await pop
     .getByRole('textbox', { name: 'Invite people by email' })
     .fill('someone@example.invalid');

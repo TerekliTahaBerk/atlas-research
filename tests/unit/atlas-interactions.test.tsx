@@ -5,7 +5,10 @@ import { TooltipProvider } from '@atlas/ui/components/tooltip';
 import { ToastProvider } from '../../apps/web/src/components/atlas/toast';
 import { AtlasComposer } from '../../apps/web/src/features/atlas-ai/atlas-composer';
 import { AtlasSurface } from '../../apps/web/src/features/atlas-ai/atlas-surface';
-import { AtlasProvider } from '../../apps/web/src/features/atlas-ai/atlas-provider';
+import {
+  AtlasProvider,
+  useAtlas,
+} from '../../apps/web/src/features/atlas-ai/atlas-provider';
 import {
   commandsFor,
   filterMentions,
@@ -14,6 +17,7 @@ import {
 import type { ScreenKey } from '../../apps/web/src/features/shell/navigation';
 import { PreviewStoreProvider } from '../../apps/web/src/features/shell/preview-store';
 import { ChannelsScreen } from '../../apps/web/src/features/channels/channels-screen';
+import { VersionHistoryDialog } from '../../apps/web/src/features/overlays/version-history-dialog';
 function wrap(children: React.ReactNode, screen: ScreenKey = 'overview') {
   return (
     <TooltipProvider>
@@ -45,6 +49,55 @@ afterEach(() => {
   setReducedMotion(false);
 });
 describe('Atlas composer mentions and commands', () => {
+  it('never promises automatic saving in empty preview history', () => {
+    render(
+      wrap(
+        <VersionHistoryDialog
+          open
+          onOpenChange={() => {}}
+          title="Sample document"
+          empty
+        />,
+      ),
+    );
+    expect(
+      screen.getByText(
+        'No saved versions in this sample. Local edits are not saved.',
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/saved automatically/i)).not.toBeInTheDocument();
+  });
+  it('uses newly attached inline context in the sample reply, rather than the previous ambient context', async () => {
+    setReducedMotion(true);
+    function InlineAction() {
+      const atlas = useAtlas();
+      return (
+        <button
+          onClick={() =>
+            atlas.ask({
+              prompt: '/summarize',
+              chips: [{ id: 'd2', kind: 'document', title: 'Lab meeting' }],
+            })
+          }
+        >
+          Summarize selection
+        </button>
+      );
+    }
+    const user = userEvent.setup();
+    render(
+      wrap(
+        <>
+          <InlineAction />
+          <AtlasSurface placement="page" />
+        </>,
+      ),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Summarize selection' }),
+    );
+    expect(screen.getByText('Summary of Lab meeting.')).toBeVisible();
+  });
   it('attaches a structured mention with the keyboard and removes it accessibly', async () => {
     const user = userEvent.setup();
     render(wrap(<AtlasSurface placement="page" />));

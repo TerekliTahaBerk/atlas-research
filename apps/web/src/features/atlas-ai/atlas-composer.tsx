@@ -102,11 +102,11 @@ export function AtlasComposer({
   const { setMenuOpen } = atlas;
   useEffect(() => {
     setMenuOpen(open);
+    return () => setMenuOpen(false);
   }, [open, setMenuOpen]);
   const { registerInput } = atlas;
   useEffect(() => {
-    registerInput(inputRef.current);
-    return () => registerInput(null);
+    return registerInput(inputRef.current);
   }, [registerInput]);
   useLayoutEffect(() => {
     if (!open) return;
