@@ -1,5 +1,13 @@
 # Phase 01 UI integration handoff
 
+## Phase 01 integration delivered
+
+Live adapters now connect the existing authentication/onboarding forms and approved shell geometry to verified server services. `features/platform/live-*` uses shared tokens, topbar, modal/menu primitives and capability projections for actual profiles, organizations, workspaces, projects and members. Theme/mobile drawer/keyboard controls remain. Server onboarding drafts survive interruption; invalid requests retain typed values and show request IDs. Personal setup is optional-project and independent of lab membership.
+
+Live Home/project cards contain actual authorized project records and honest empty/archive states. Organization/workspace selection is explicit and authorized; archived/revoked resources cannot be used as a fixture bypass. Profile settings save permitted fields; avatar upload/billing are honestly unavailable. Future modules have authorized project routes with unavailable-state copy, while the full synthetic Documents/Manuscripts/graph/AI design demonstrations remain isolated in preview mode. Live Atlas AI keeps the existing interaction placements/modes but has no sample messages/citations or provider calls; fixture mention menus are disabled. No sample research is presented as belonging to a real workspace.
+
+All existing 101 browser regressions passed locally at the recorded implementation revision. Local Auth CI, hosted provider/pooler configuration and production invitation delivery have separate evidence/gates in the implementation report.
+
 This is an integration boundary document, not implementation of Phase 01. The reviewed UI remains an unauthenticated, synthetic preview. Use [ARCHITECTURE](../ARCHITECTURE.md), [SECURITY](../SECURITY.md), [API_CONTRACTS](../API_CONTRACTS.md), [DATABASE](../DATABASE.md), and the [Phase 01 plan](../phases/PHASE_01.md) as authoritative server contracts. Preserve the approved visual system and the regressions in this phase.
 
 ## Identity and route ownership

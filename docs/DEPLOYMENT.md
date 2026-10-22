@@ -1,5 +1,11 @@
 # Deployment preparation
 
+## Phase 01 activation
+
+The live platform requires `ATLAS_MODE=live` at both build and runtime, an isolated Atlas Supabase environment, exact Auth callback allowlists and a dedicated non-owner `atlas_runtime` database login. See [environment setup and verification gates](identity/ENVIRONMENTS.md) and `.env.example`. Keep `DIRECT_URL` only in reviewed migration jobs; web builds do not migrate. Apply the three reviewed migrations through Prisma against an explicitly named development target first. Validate the auth identity FK, runtime grants, RLS under the actual hosted pooler and transaction-local actor cleanup before enabling live traffic.
+
+Do not enable Google without provider credentials or production invitation creation without an approved delivery mechanism. Preview mode remains a credential-free design environment. No Phase 01 Vercel deployment, production promotion or billing resource was created by this implementation. The historical foundation procedure below is not a record of Phase 01 deployment.
+
 Intended host: a **new Atlas Vercel project**, repository TerekliTahaBerk/atlas-research, Root Directory `apps/web`, Next.js framework, Node 24.x. `apps/web/vercel.json` installs from workspace root with frozen lockfile and runs the root build. Include files outside root directory in Vercel project settings so workspace packages are available. Never select an existing Scholara project, database, integration, or environment.
 
 ## Preview procedure

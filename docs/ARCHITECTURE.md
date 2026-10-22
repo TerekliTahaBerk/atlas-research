@@ -1,8 +1,14 @@
 # System architecture
 
+## Phase 01 implemented boundary
+
+Web controllers validate and verify sessions, then call `features/platform/server` domain services. Services own actor-scoped Prisma transactions and typed DTOs. The database owns the central capability evaluator, constrained transactional commands and audit invariants. See [ADR 0013](decisions/0013-phase-01-actor-context.md), [authorization](identity/AUTHORIZATION.md), and [API contracts](API_CONTRACTS.md). Core/AI retain no database/UI dependencies. Only the server imports the database adapter.
+
+`ATLAS_MODE` separates the credential-free design demo from the real platform. Live server loaders protect routes and reject fixtures; client presentation adapters preserve the shell/tokens and use authorized records. Future-module views are explicitly unavailable in live mode; the separate preview environment retains the full approved demonstrations. A loading boundary now sits after resource validation to preserve genuine 404 status.
+
 ## Decision and package boundaries
 
-One Next.js App Router application, a modular monolith with feature-oriented server services. Routes validate/authorize and call services; services own domain transactions and repository access. `ui` depends on React/Radix; `core` depends on Zod; `ai` is pure TypeScript contracts; `database` owns Prisma/Postgres. No domain imports UI, and no browser module imports database or server secrets. Only preview components and in-memory UI demonstrations exist through Phase 00.5; server domain services below are planned.
+One Next.js App Router application, a modular monolith with feature-oriented server services. Routes validate/authorize and call services; services own domain transactions and repository access. `ui` depends on React/Radix; `core` depends on Zod; `ai` is pure TypeScript contracts; `database` owns Prisma/Postgres. No domain imports UI, and no browser module imports database or server secrets. Phase 01 identity/tenant services are implemented as described above; research-domain services below remain planned.
 
 ```mermaid
 flowchart LR

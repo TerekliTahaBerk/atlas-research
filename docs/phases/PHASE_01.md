@@ -1,6 +1,6 @@
 # Phase 01 — Core platform
 
-Status: planned; not implemented
+Status: implemented core under verification; hosted Auth/OAuth/pooler and production invitation delivery gates remain open. See [implementation report](PHASE_01_IMPLEMENTATION_REPORT.md).
 
 ## 1. Objective
 
@@ -8,7 +8,7 @@ Deliver core platform as the phase outcome. Authentication, profile linkage, per
 
 ## 2. Dependencies
 
-Phase 00 foundation and Phase 00.5 UI contracts reviewed; new Atlas Supabase development/staging projects; verified auth redirect/domain configuration.
+Phase 00 foundation and Phase 00.5 UI contracts reviewed; explicitly identified Atlas development target; verified auth redirect/domain configuration. Hosted staging/production activation remains separate.
 
 ## 3. Exact scope
 
@@ -27,13 +27,13 @@ Paper integrations, AI, rich editor, messaging, payments, university administrat
 5. Add hashed expiring single-use invitations, atomic acceptance, role ceilings, last-owner transaction locks and membership audit events.
 6. Add non-owner runtime DB/RLS policies, server DTO routes, distributed rate limits and cross-tenant/pooler tests before enabling live mode.
 
-## 6. Proposed files and directories
+## 6. Implemented files and directories
 
-apps/web/src/features/{identity,organizations,workspaces,projects,memberships}/server; app/{login,register,onboarding}; app/api/v1; packages/database/prisma/migrations; tests/integration/auth.
+`apps/web/src/features/identity` contains Auth adapters/services and `features/platform` contains tenant services, page loaders and live presentation. Routes live in `app/{login,register,onboarding,auth/callback,api/v1,app}`; domain contracts in `packages/core/src/platform.ts`; SQL in `packages/database/prisma/migrations`; tests in `tests/{unit,integration,auth,e2e}`. Small tenant services share the platform domain rather than introducing empty packages.
 
 ## 7. Data model changes
 
-Invitation (tokenHash, scope, role, expiresAt, consumedAt); AuditEvent; personal owner/provisioning key; profile auth FK; optimistic versions; active-membership policies and role grants.
+Invitation (tokenHash, scope, role, expiresAt, acceptedAt/revokedAt); AuditEvent; RateBucket; personal owner/provisioning keys; profile auth FK, onboarding completion/draft and research attributes; optimistic versions; active-membership policies and role grants.
 
 ## 8. Required APIs
 
@@ -53,11 +53,13 @@ Email/token callbacks in isolated test environment; idempotent onboarding concur
 
 ## 12. Acceptance criteria
 
-- [ ] A new researcher gets exactly one personal org/workspace after replayed bootstrap requests.
-- [ ] Invitations cannot replay, exceed inviter authority or cross tenant scope.
-- [ ] Removed memberships deny API, direct SQL and deep links without leaking names.
-- [ ] Last-owner deletion/demotion races preserve one active owner.
-- [ ] No sample identifier bypass can reach live services.
+- [x] A new researcher gets exactly one personal org/workspace after replayed bootstrap requests (real PostgreSQL concurrency and Auth browser tests).
+- [x] Invitations cannot replay, exceed inviter authority or cross tenant scope (real SQL lifecycle/role tests and Auth collaboration journey).
+- [x] Removed memberships deny API/direct SQL; unauthorized deep links conceal names (SQL, HTTP and actual Auth browser coverage).
+- [x] Last-owner deletion/demotion races preserve one active owner (organization/project concurrency tests).
+- [x] No sample identifier bypass can reach live services (strict contracts and live route guards).
+
+These checks describe the disposable environments in the implementation report. Hosted configuration, pooler, email/OAuth and production invitation delivery remain release gates.
 
 ## 13. Definition of Done
 
@@ -69,7 +71,7 @@ Library, AI, docs/tasks and messaging all depend on these guards. Future enterpr
 
 ## 15. Risks and mitigation
 
-Auth cookie and pooled RLS semantics may diverge; test actual Supabase pooler and session refresh. Provisioning is blocked until isolated account resources are available.
+Auth cookie and pooled RLS semantics may diverge; test the actual hosted Supabase pooler and session refresh. Disposable GoTrue/PostgreSQL tests pass; the approved hosted development target still requires secure local database credentials and reviewed activation. Production invitation creation remains gated until approved delivery exists.
 
 ## 16. Suggested issue breakdown for coding agents
 

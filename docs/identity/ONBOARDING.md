@@ -1,0 +1,9 @@
+# Personal setup and onboarding
+
+A verified user can use Atlas without joining a lab. The approved seven-step design captures display name, optional research role/interests, a personal workspace name and optional first project name. Shared organizations are created later in Settings. Template choices do not generate research artifacts. Collaborators are invited only after an actual authorized target exists.
+
+`onboarding.save` persists a bounded validated draft on the actor's own profile. It creates no organization/project. Returning to onboarding reloads the server draft, including the last completed step; valid Back/Continue navigation retains values. Only appearance/sidebar preferences enter browser storage. Failed requests preserve entered values and show a durable error/request ID.
+
+Final `bootstrap` atomically creates or finds the profile, personal organization, OWNER organization membership, default personal workspace and ADMIN workspace membership; it optionally creates one initial private project and its OWNER grant. Database uniqueness on personal owner identities and the hierarchy transaction lock protect concurrent retries. The profile is marked complete in the same transaction. Repeated completion never creates another initial project. A rollback leaves the previous saved draft available; no half-created hierarchy is committed. Skip performs real personal provisioning with the current validated values, rather than bypassing onboarding.
+
+Profile IDs come only from Supabase's verified identity. Profile display/research attributes confer no permission. Email is read from Auth; avatar uploads are explicitly unavailable. On Supabase, the migration adds the profile-to-auth.users FK; plain PostgreSQL tests preserve portability and trust only the server actor boundary.

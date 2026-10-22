@@ -1,6 +1,18 @@
 # API contracts and service boundaries
 
-Status: design contracts only. Phase 00 exposes no product API endpoints. `packages/core` contains Zod project/page schemas, error categories/statuses, ApiResult, and TenantScope; this scope type is descriptive, not proof of authorization.
+## Phase 01 implemented interfaces
+
+The implementation uses one typed command interface rather than duplicating REST and Server Action mutations. `POST /api/v1/commands` accepts the strict `platformCommand` discriminated union from `packages/core/src/platform.ts`. Commands: `onboarding.save`, `bootstrap`, `profile.update`, `organization.create/update/archive`, `workspace.create/update/archive`, `project.create/update/archive/restore`, `invitation.create/revoke/accept`, `membership.set/remove`. Container/member edits require `expectedVersion`; project creation requires a UUID `idempotencyKey`. IDs/scopes/actors cannot be reassigned through extra body fields. Roles are validated per scope.
+
+`POST /api/v1/auth` accepts signup/signin/reset/password/logout/google with action-specific validation. `GET /api/v1/me?workspaceId=&cursor=` returns the actor profile/email, accessible organization/workspace projections and a project page. Project cursors are signed and bound to actor/workspace. `GET /api/v1/projects/:id` returns authorized metadata/capabilities; `GET /api/v1/{organizations,workspaces,projects}/:id/members` returns authorized members; `GET /api/v1/invitations` lists administrable invitations. No Phase 02 endpoint exists. The representative future endpoints below remain future contracts unless explicitly listed here.
+
+Controllers enforce JSON size (32 KiB streamed bound), same-origin mutation checks, verified sessions, distributed quotas, no-store, safe UUID request IDs and normalized errors. Services and SQL independently check scope/capabilities. Missing and inaccessible private resources share 404/unavailable responses. SQL/provider details are never forwarded. Rate failures include Retry-After. Production invite creation fails closed without configured delivery; local links explicitly say no email was sent.
+
+Organization/workspace directories, memberships and invitations use signed actor/scope-bound cursors with 100-row pages; project pages contain 30 rows. GET `/api/v1/organizations?cursor=` and `/api/v1/workspaces?cursor=` continue navigation directories. Member and invitation list responses are `{items,nextCursor}`. Requested authorized contexts beyond the initial navigation page are loaded through fixed-ID RLS lookups. All pages recheck live access.
+
+Status: Phase 01 interfaces listed above are implemented; later research endpoints remain design contracts. `packages/core` contains Zod project/page schemas, error categories/statuses, ApiResult, and TenantScope; this scope type is descriptive, not proof of authorization.
+
+`POST /api/v1/context` accepts `{workspaceId,projectId?}` after fresh resource/parent authorization and saves an actor-bound HttpOnly navigation cookie. It grants no access. Page loaders reauthorize every hint, discard inaccessible recent projects, and fall back from a revoked preferred workspace. The last project is retained when returning to Home in the same workspace; switching workspaces clears that selection. `/api/v1/me` also accepts `organizationId` for intentional organization selection.
 
 ## Request standard
 
@@ -21,11 +33,11 @@ Success: `{ data: T, requestId: string }`; page data: `{ items: T[], nextCursor:
 
 ## Pagination, filters, limits
 
-Opaque signed cursor encodes `(createdAt,id)`, fixed filters, resource scope and order; enforce actor scope again each request. Core `pageQuery` currently permits a UUID cursor placeholder for service contract prototyping; replace with validated opaque cursor schema when pagination endpoints ship. Limit default 30, max 100. Never accept arbitrary SQL column/filter strings. Whitelist query/state/type/date filters. Do not return total counts unless needed and authorized. Searches use provider-specific opaque cursors, not cross-provider offsets.
+Phase 01 uses HMAC-signed `{id,actorId,scope}` cursors with a fixed UUID order and the page sizes above. Membership cursors use the profile UUID. Tampered, different-actor and different-scope cursors fail; each query rechecks current RLS. The generic core `pageQuery` belongs to future service contracts and is not used by these endpoints. Never accept arbitrary SQL column/filter strings. Future date-ordered research lists may use `(createdAt,id)` and provider searches use provider-specific cursors.
 
-Distributed rate limits are planned before exposed APIs: actor + workspace + operation, stricter anonymous IP/auth rules, provider budgets, AI spend reservations. Initial candidate limits (hypotheses): reads 120/min, writes 30/min, search 20/min, AI 5/min with concurrent-run cap 2. Revisit by measurement. In-memory rate limiting alone is insufficient on Vercel.
+Phase 01 uses atomic PostgreSQL buckets: authenticated reads 120/min, writes 30/min, navigation preferences 120/min; Auth has a global 300/min limit plus 10/15min per email digest or email-less action. Provider limits remain additional. These conservative initial quotas need capacity review before public release. Future search/model quotas and spend reservations are not implemented. In-memory limiting alone is insufficient on Vercel.
 
-Mutations that can be replayed accept Idempotency-Key (UUID). Unique actor/scope/operation/key with payload hash, expiry, and result pointer; identical replay returns prior result, changed payload returns CONFLICT. DB transaction commits state and idempotency result together. Editing uses expectedVersion/If-Match. No automatic failover of ambiguous paid AI writes.
+Phase 01 project creation accepts the body UUID `idempotencyKey`, unique per verified creator. An identical active-project replay returns the existing record; changed name/visibility/parent conflicts. Personal bootstrap is idempotent through owner uniqueness and a single transaction. Container/member editing uses body `expectedVersion`. Other commands are not claimed to have a general replay registry. Future irreversible tool calls require their own idempotency policy and bounded retries.
 
 Version path `/api/v1`; additive optional fields remain compatible; breaking contract changes need new API version and migration plan. Internal services are typed functions and do not call HTTP routes. Validate provider outputs separately. CSRF protection: same-origin mutations, origin checks, secure cookies; never mutate via GET.
 

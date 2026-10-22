@@ -1,5 +1,13 @@
 # Testing strategy
 
+## Phase 01 validation
+
+`pnpm test:integration` uses `vitest.integration.config.ts`: real PostgreSQL migrations/runtime RLS/transactions and explicitly labeled mocked-SDK HTTP/session-boundary tests. It fails without explicit local disposable URLs; the database name must begin `atlas_p01_test`. Domain requests use a separate unprivileged login; admin credentials are fixture-only. Tests cover provisioning races, interrupted drafts/retries, idempotent project creation, visibility/role ceilings, parent constraints, invitation concurrency/replay/revoke/expiry/current inviter authority, last-owner races, version conflicts, archiving/recovery, parent revoke, reused-connection cleanup and distributed limits, late-transaction rollback, both organization/project owner races, and large-list signed cursor isolation.
+
+`pnpm test:auth:e2e` runs real signup/email confirmation/login/logout/recovery and collaboration against disposable GoTrue plus Mailpit, using the approved live screens and real SQL. Start only the loopback `tests/auth/compose.yml` harness; apply migrations and grant `atlas_runtime` to its runtime login. Hosted Supabase is not used. The separate GitHub Actions job starts and destroys this harness. Auth traces/screenshots/video/mailbox artifacts are disabled to avoid token leakage. These tests do not prove hosted OAuth, SMTP or pooler operation.
+
+The existing 101-test design suite stays in preview mode and retains screenshot, geometry, accessibility, interaction and no-fake-network assertions. A late manuscript mount now uses the same canonical context ID as the initial provider and preserves explicitly added references when the same ambient resource is reapplied. Unknown-resource 404s are resolved before the streaming loading boundary. No accessibility rule or permission test is weakened.
+
 ## Executable checks
 
 `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:validate`, `pnpm format:check`; then `pnpm exec playwright install chromium` once and `pnpm test:e2e`. Containers that ship a different Chromium can set `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; CI leaves it unset. Playwright launches a production app on 127.0.0.1:3100; it must be built first. Standard CI runs all checks. Browser plugin is not installed in this session, so regular Playwright Chromium is the recorded browser QA path.
