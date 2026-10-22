@@ -335,6 +335,10 @@ describe('search orchestration', () => {
     expect(merged.semanticScholarId).toBe('f1'.repeat(20));
     // OpenAlex values win on conflict; its count is kept, not averaged.
     expect(merged.citationCount).toBe(412);
+    // Both providers list the same open-access URL: one external location.
+    expect(merged.pdfLocations.map((l) => [l.provider, l.url])).toEqual([
+      ['openalex', 'https://example.org/fixture/0001.pdf'],
+    ]);
     expect(result.nextCursor).not.toBeNull();
   });
   it('returns partial results and reports the failed provider', async () => {

@@ -169,7 +169,13 @@ export function mergeOnDoi(
       license: pick(first.openAccess.license, second.openAccess.license),
     },
     landingPageUrl: pick(first.landingPageUrl, second.landingPageUrl),
-    pdfLocations: [...first.pdfLocations, ...second.pdfLocations].slice(0, 10),
+    // The same open-access URL reported by both providers is one location.
+    pdfLocations: [...first.pdfLocations, ...second.pdfLocations]
+      .filter(
+        (location, index, all) =>
+          all.findIndex((other) => other.url === location.url) === index,
+      )
+      .slice(0, 10),
     provenance: [...first.provenance, ...second.provenance].slice(0, 4),
   };
 }
