@@ -48,6 +48,15 @@ const tplIcons = {
   thesis: BookMarked,
   exp: FlaskConical,
 } as const;
+const liveStepDescriptions = [
+  'Create your personal workspace and optionally a private research project.',
+  'Optional profile context. It does not change your permissions.',
+  'Optional research interests saved to your profile. Discovery comes in a later phase.',
+  'Your personal environment works without an institution or team.',
+  'An optional empty project. Templates do not generate research content.',
+  'Invite collaborators from an existing workspace or project after setup.',
+  'Confirm these details to create your personal organization and workspace.',
+] as const;
 function OptionCard({
   selected,
   onSelect,
@@ -97,8 +106,8 @@ function OptionCard({
   );
 }
 /**
- * Seven-step onboarding preview (prototype onboarding overlay). Choices
- * stay in component state; nothing is created, invited or stored.
+ * Approved onboarding presentation. Live mode saves drafts and provisions
+ * personal containers; preview mode keeps its explicit local walkthrough.
  */
 export function OnboardingScreen({
   live = false,
@@ -114,7 +123,7 @@ export function OnboardingScreen({
     live ? (draft?.step ?? 0) : Number.isFinite(initial) ? initial : 0,
   );
   const [role, setRole] = useState<string>(
-    draft?.researchRole ?? 'PhD researcher',
+    draft?.researchRole ?? (live ? 'Independent' : 'PhD researcher'),
   );
   const [fields, setFields] = useState<string[]>(
     draft?.researchInterests ??
@@ -133,7 +142,13 @@ export function OnboardingScreen({
       ? []
       : ['ayse.demir@kayalab.example', 'mehmet.kaya@kayalab.example', ''],
   );
-  const s = onboardingSteps[step] ?? onboardingSteps[0];
+  const previewStep = onboardingSteps[step] ?? onboardingSteps[0];
+  const s = live
+    ? {
+        title: step === 6 ? 'Finish your personal setup' : previewStep.title,
+        sub: liveStepDescriptions[step] ?? liveStepDescriptions[0],
+      }
+    : previewStep;
   const [displayName, setDisplayName] = useState(
     draft?.displayName ?? 'Researcher',
   );
@@ -448,7 +463,9 @@ export function OnboardingScreen({
                 ],
                 [
                   'First project',
-                  `${projectName} · ${onboardingTemplates.find((t) => t.key === tpl)?.label ?? ''}`,
+                  live
+                    ? projectName.trim() || 'None for now'
+                    : `${projectName} · ${onboardingTemplates.find((t) => t.key === tpl)?.label ?? ''}`,
                 ],
                 [
                   'Invited',
