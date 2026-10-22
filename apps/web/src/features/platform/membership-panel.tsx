@@ -46,7 +46,15 @@ export function MembershipPanel({
       memberPageDto,
     );
     setMembers((previous) =>
-      cursor ? [...previous, ...page.items] : page.items,
+      cursor
+        ? [
+            ...previous,
+            ...page.items.filter(
+              (item) =>
+                !previous.some((old) => old.profileId === item.profileId),
+            ),
+          ]
+        : page.items,
     );
     setNextCursor(page.nextCursor);
   }
@@ -56,7 +64,14 @@ export function MembershipPanel({
       invitationPageDto,
     );
     setInvites((previous) =>
-      cursor ? [...previous, ...page.items] : page.items,
+      cursor
+        ? [
+            ...previous,
+            ...page.items.filter(
+              (item) => !previous.some((old) => old.id === item.id),
+            ),
+          ]
+        : page.items,
     );
     setInviteCursor(page.nextCursor);
   }
@@ -72,25 +87,6 @@ export function MembershipPanel({
             <span className="min-w-0 flex-1 truncate" title={member.profileId}>
               Researcher {member.profileId.slice(0, 8)}
             </span>
-            {nextCursor ? (
-              <button
-                type="button"
-                className="mt-3 text-xs text-actx underline"
-                onClick={async () => {
-                  try {
-                    await refresh(nextCursor);
-                  } catch (error) {
-                    setMessage(
-                      error instanceof Error
-                        ? error.message
-                        : 'Unable to load members.',
-                    );
-                  }
-                }}
-              >
-                More members
-              </button>
-            ) : null}
             {canManage ? (
               <>
                 <label
@@ -175,6 +171,30 @@ export function MembershipPanel({
           </li>
         ))}
       </ul>
+      {nextCursor ? (
+        <button
+          type="button"
+          disabled={busy}
+          className="mt-3 text-xs text-actx underline"
+          onClick={async () => {
+            setBusy(true);
+            setMessage('');
+            try {
+              await refresh(nextCursor);
+            } catch (error) {
+              setMessage(
+                error instanceof Error
+                  ? error.message
+                  : 'Unable to load members.',
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          More members
+        </button>
+      ) : null}
       {canManage ? (
         <>
           <h3 className="mt-6 mb-2 font-medium">Invite a collaborator</h3>
