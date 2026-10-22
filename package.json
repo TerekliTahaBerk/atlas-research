@@ -22,7 +22,9 @@
     "format:check": "prettier --check .",
     "db:validate": "pnpm --filter @atlas/database validate",
     "db:generate": "pnpm --filter @atlas/database generate",
-    "db:migrate": "pnpm --filter @atlas/database migrate"
+    "db:migrate": "pnpm --filter @atlas/database migrate",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:auth:e2e": "playwright test --config playwright.auth.config.ts"
   },
   "devDependencies": {
     "eslint": "9.39.5",
@@ -43,6 +45,7 @@
     "@types/react-dom": "19.3.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "@atlas/ui": "workspace:*"
+    "@atlas/ui": "workspace:*",
+    "zod": "4.6.7"
   }
 }
