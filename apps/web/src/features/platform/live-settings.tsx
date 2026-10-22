@@ -1,8 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { TenantDirectory } from './tenant-directory';
 import { useState } from 'react';
-import type { z } from 'zod';
-import type { PlatformState, memberDto, PlatformCommand } from '@atlas/core';
+import type { PlatformState, MemberPage, PlatformCommand } from '@atlas/core';
 import { Topbar, Crumb } from '@/features/shell/topbar';
 import { ThemeMenu } from '@/features/shell/theme-menu';
 import { MembershipPanel } from './membership-panel';
@@ -16,8 +16,8 @@ export function LiveSettings({
 }: {
   state: PlatformState;
   section: string;
-  orgMembers: z.infer<typeof memberDto>[];
-  workspaceMembers: z.infer<typeof memberDto>[];
+  orgMembers: MemberPage;
+  workspaceMembers: MemberPage;
 }) {
   const router = useRouter();
   const selected = state.workspaces.find((w) => w.id === state.workspaceId);
@@ -154,6 +154,7 @@ export function LiveSettings({
           ) : null}
           {section === 'workspace' ? (
             <>
+              <TenantDirectory state={state} />
               <div className="flex flex-wrap gap-2">
                 {state.workspaces.map((w) => (
                   <a

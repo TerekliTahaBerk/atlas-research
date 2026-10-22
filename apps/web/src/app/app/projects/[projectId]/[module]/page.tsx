@@ -42,7 +42,7 @@ export default async function Page({
     state.projects.push(project);
   const initialMembers = project.capabilities.includes('project.read')
     ? await members(await pageActor(), 'project', project.id)
-    : [];
+    : { items: [], nextCursor: null };
   return (
     <LiveFrame state={state}>
       <LiveProject

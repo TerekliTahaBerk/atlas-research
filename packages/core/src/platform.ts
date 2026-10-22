@@ -167,6 +167,8 @@ export const platformState = z.object({
   workspaceId: id.nullable(),
   organizationId: id.nullable(),
   nextCursor: z.string().nullable(),
+  organizationsCursor: z.string().nullable(),
+  workspacesCursor: z.string().nullable(),
 });
 export type PlatformState = z.infer<typeof platformState>;
 export type ProjectDto = z.infer<typeof projectDto>;
@@ -190,3 +192,21 @@ export const mutationResult = z.object({
   invitationLink: z.string().optional(),
 });
 export type MutationResult = z.infer<typeof mutationResult>;
+
+export const memberPageDto = z.object({
+  items: z.array(memberDto),
+  nextCursor: z.string().nullable(),
+});
+export type MemberPage = z.infer<typeof memberPageDto>;
+export const organizationPageDto = z.object({
+  items: z.array(organizationDto),
+  nextCursor: z.string().nullable(),
+});
+export const workspacePageDto = z.object({
+  items: z.array(workspaceDto),
+  nextCursor: z.string().nullable(),
+});
+export const invitationPageDto = z.object({
+  items: z.array(invitationDto),
+  nextCursor: z.string().nullable(),
+});

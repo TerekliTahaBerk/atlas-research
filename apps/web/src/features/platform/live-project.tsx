@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { type ProjectDto, type memberDto } from '@atlas/core';
-import type { z } from 'zod';
+import { type ProjectDto, type MemberPage } from '@atlas/core';
 import { Topbar, Crumb } from '@/features/shell/topbar';
 import {
   AtlasAnchor,
@@ -17,7 +16,7 @@ export function LiveProject({
   module = 'overview',
 }: {
   project: ProjectDto;
-  initialMembers: z.infer<typeof memberDto>[];
+  initialMembers: MemberPage;
   module?: string;
 }) {
   const [name, setName] = useState(project.name);

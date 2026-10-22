@@ -9,6 +9,7 @@ import {
 } from '@/features/platform/server/http';
 import {
   executeCommand,
+  directory,
   getProject,
   invitations,
   loadState,
@@ -45,6 +46,16 @@ export async function GET(
     await rateLimit('read', actor.id, 120);
     const path = (await context.params).path;
     const url = new URL(request.url);
+    const listCursor = z
+      .string()
+      .max(1024)
+      .optional()
+      .parse(url.searchParams.get('cursor') ?? undefined);
+    if (
+      path.length === 1 &&
+      (path[0] === 'organizations' || path[0] === 'workspaces')
+    )
+      return directory(actor, path[0], listCursor);
     if (path.join('/') === 'me') {
       const workspaceId = z
         .uuid()
@@ -61,9 +72,9 @@ export async function GET(
       return getProject(actor, z.uuid().parse(path[1]));
     if (path.length === 3 && path[2] === 'members') {
       const scope = scopeType.parse(path[0]?.replace(/s$/, ''));
-      return members(actor, scope, z.uuid().parse(path[1]));
+      return members(actor, scope, z.uuid().parse(path[1]), listCursor);
     }
-    if (path.join('/') === 'invitations') return invitations(actor);
+    if (path.join('/') === 'invitations') return invitations(actor, listCursor);
     throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
   });
 }

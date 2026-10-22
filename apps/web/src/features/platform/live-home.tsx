@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { TenantDirectory } from './tenant-directory';
 import { useState } from 'react';
 import { Plus, FolderKanban, LayoutGrid, List } from 'lucide-react';
 import { type PlatformState } from '@atlas/core';
@@ -53,18 +54,7 @@ export function LiveHome({
               ? `${state.organizations.find((o) => o.id === selected.organizationId)?.name ?? ''} · ${selected.name}`
               : 'Choose or create a workspace to begin.'}
           </p>
-          <div className="mb-6 flex flex-wrap gap-2">
-            {state.workspaces.map((w) => (
-              <a
-                key={w.id}
-                href={`/app/workspaces/${w.id}`}
-                aria-current={w.id === state.workspaceId ? 'page' : undefined}
-                className="rounded-lg border border-bd px-3 py-2 text-xs text-tx2 hover:bg-hov"
-              >
-                {w.name}
-              </a>
-            ))}
-          </div>
+          <TenantDirectory state={state} />
           <div className="mb-3 flex items-center gap-2">
             <h2 className="font-serif text-2xl font-medium">Projects</h2>
             <span className="rounded bg-el px-1.5 text-xs text-tx3">
