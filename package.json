@@ -24,7 +24,8 @@
     "db:generate": "pnpm --filter @atlas/database generate",
     "db:migrate": "pnpm --filter @atlas/database migrate",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:auth:e2e": "playwright test --config playwright.auth.config.ts"
+    "test:auth:e2e": "playwright test --config playwright.auth.config.ts",
+    "test:hosted": "node --env-file=apps/web/.env.local node_modules/vitest/vitest.mjs run --config vitest.hosted.config.ts"
   },
   "devDependencies": {
     "eslint": "9.39.5",
