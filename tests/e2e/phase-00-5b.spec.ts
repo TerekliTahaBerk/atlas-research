@@ -188,6 +188,11 @@ test('active artifact changes replace stale Atlas context', async ({
   await expect(
     page.getByRole('button', { name: /^Remove Related work/ }),
   ).toBeVisible();
+  expect(
+    await page
+      .locator('.aic-wide')
+      .evaluate((el) => getComputedStyle(el).getPropertyValue('--aic').trim()),
+  ).toBe('0px');
   await page
     .getByRole('link', { name: 'Lab meeting · Oct 20', exact: true })
     .first()

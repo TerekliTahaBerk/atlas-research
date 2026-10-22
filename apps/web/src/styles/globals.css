@@ -438,6 +438,12 @@
       display: none !important;
     }
   }
+  /* Docking removes the floating composer, so its stacked reservation
+     must also disappear from the narrower document/research canvas. */
+  .atlas-canvas[data-atlas-mode='panel'] > *,
+  .atlas-canvas[data-atlas-mode='panel'] .aic-wide {
+    --aic: 0px;
+  }
   .shimmer-text {
     background: linear-gradient(
       90deg,

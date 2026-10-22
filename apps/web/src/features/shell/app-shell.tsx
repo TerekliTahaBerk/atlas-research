@@ -118,6 +118,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
       </DialogPrimitive.Root>
       <main
         id="main-content"
+        data-atlas-mode={atlas.mode}
         tabIndex={-1}
         className={cn(
           'atlas-canvas aic-pad relative my-1.5 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-bd2 bg-canvas outline-none transition-[margin] duration-200',
