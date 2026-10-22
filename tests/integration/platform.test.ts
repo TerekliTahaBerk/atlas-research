@@ -12,6 +12,7 @@ import {
 import {
   withActor,
   runtimeDatabase,
+  checkRuntime,
 } from '../../apps/web/src/features/platform/server/database';
 import { rateLimit } from '../../apps/web/src/features/platform/server/limiter';
 import { publicError } from '../../apps/web/src/features/platform/server/errors';
@@ -166,6 +167,27 @@ describe.sequential('real non-owner PostgreSQL platform boundary', () => {
     await expect(
       db.$executeRaw`INSERT INTO profiles(id,display_name,updated_at) VALUES(${randomUUID()}::uuid,'Forged',now())`,
     ).rejects.toThrow();
+  });
+  it('rejects a runtime that owns another public table even when profiles has a different owner', async () => {
+    const role = decodeURIComponent(new URL(runtime!).username);
+    if (!/^[a-z_][a-z0-9_]*$/.test(role))
+      throw new Error('Unexpected local test role.');
+    await expect(
+      admin.$transaction(async (tx) => {
+        // Test-only DDL against the loopback target validated above. Quote the
+        // allowlisted role identifier; roll every grant/ownership change back.
+        await tx.$executeRawUnsafe(
+          `GRANT CREATE ON SCHEMA public TO "${role}"`,
+        );
+        await tx.$executeRawUnsafe(`ALTER TABLE projects OWNER TO "${role}"`);
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE "${role}"`);
+        await expect(checkRuntime(tx)).rejects.toMatchObject({
+          code: 'INTERNAL_ERROR',
+        });
+        throw new Error('ROLLBACK_OWNER_PROBE');
+      }),
+    ).rejects.toThrow('ROLLBACK_OWNER_PROBE');
+    expect((await getProject(a, project)).id).toBe(project);
   });
   it('resets transaction-local identity on reused connections', async () => {
     for (let n = 0; n < 4; n++) {
