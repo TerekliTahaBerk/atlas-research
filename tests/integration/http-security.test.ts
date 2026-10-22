@@ -14,6 +14,7 @@ import { authenticate } from '../../apps/web/src/features/identity/server/auth-s
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   signInWithPassword: vi.fn(),
+  signOut: vi.fn(),
   rate: vi.fn(),
 }));
 vi.mock('../../apps/web/src/features/platform/server/limiter', () => ({
@@ -24,6 +25,7 @@ vi.mock('../../apps/web/src/features/identity/server/supabase', () => ({
     auth: {
       getUser: mocks.getUser,
       signInWithPassword: mocks.signInWithPassword,
+      signOut: mocks.signOut,
     },
   }),
 }));
@@ -56,6 +58,22 @@ describe('HTTP and session security, SDK boundary mocked', () => {
       expect(mocks.rate).not.toHaveBeenCalled();
     },
   );
+  it('keys sign-out quotas by the verified user rather than one shared action bucket', async () => {
+    mocks.rate.mockReset();
+    mocks.signOut.mockResolvedValue({ error: null });
+    const first = randomUUID();
+    const second = randomUUID();
+    for (const id of [first, second]) {
+      mocks.getUser.mockResolvedValueOnce({ data: { user: { id } } });
+      await expect(authenticate({ action: 'logout' })).resolves.toEqual({
+        redirect: '/login',
+      });
+    }
+    const keys = mocks.rate.mock.calls
+      .filter(([operation]) => operation === 'auth-action')
+      .map(([, key]) => key);
+    expect(keys).toEqual([`logout:${first}`, `logout:${second}`]);
+  });
   it('requires an exact configured origin for mutations', () => {
     vi.stubEnv('ATLAS_ORIGIN', 'http://127.0.0.1:3102');
     expect(() =>
