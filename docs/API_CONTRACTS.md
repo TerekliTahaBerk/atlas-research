@@ -1,5 +1,13 @@
 # API contracts and service boundaries
 
+## Phase 02 implemented interfaces
+
+Research mutations use the existing `POST /api/v1/commands`: `paper.save` (provider identity only; server re-fetches metadata), `paper.create` (private title), `paper.update` (reading status), `paper.archive`, `collection.create/update/archive`, `collection.paper.add/remove`, `tag.create`, `paper.tag.add/remove`, `annotation.create/update/delete` (`researchCommand` in `packages/core/src/research.ts`). Creates require UUID `idempotencyKey` (actor-scoped, payload-hashed: replay returns the original result, changed payloads return 409); edits require `expectedVersion`.
+
+Reads (authenticated, 120/min, private no-store): `GET /api/v1/projects/:id/research` ([search contract](research/SEARCH_CONTRACTS.md)), `GET /api/v1/projects/:id/papers` (signed 50-row pages with collections/tags), `GET /api/v1/papers/:id`, `GET /api/v1/sources/:id/annotations`, `GET /api/v1/sources/:id/access` (60-second grant, `READY` only, 409 otherwise), `GET /api/v1/uploads/:id/status`.
+
+Files: `POST /api/v1/projects/:id/uploads` (intent + single-object signed upload grant), `POST /api/v1/uploads/:id/finalize` (server verifies the stored bytes). Exports: `GET /api/v1/papers/:id/export` and `GET /api/v1/projects/:id/export?collectionId=` with `format=bibtex|ris` return attachments. Scanner: `POST /api/v1/internal/scanner/{claim,complete}` accept only HMAC-signed server-to-server requests; browsers cannot use them. Details: [library model](library/LIBRARY_MODEL.md), [PDF storage](library/PDF_STORAGE_SECURITY.md), [citation export](library/CITATION_EXPORT.md). Other future endpoints below remain design contracts.
+
 ## Phase 01 implemented interfaces
 
 The implementation uses one typed command interface rather than duplicating REST and Server Action mutations. `POST /api/v1/commands` accepts the strict `platformCommand` discriminated union from `packages/core/src/platform.ts`. Commands: `onboarding.save`, `bootstrap`, `profile.update`, `organization.create/update/archive`, `workspace.create/update/archive`, `project.create/update/archive/restore`, `invitation.create/revoke/accept`, `membership.set/remove`. Container/member edits require `expectedVersion`; project creation requires a UUID `idempotencyKey`. IDs/scopes/actors cannot be reassigned through extra body fields. Roles are validated per scope.

@@ -1,6 +1,6 @@
 # Phase 02 — Research discovery and library
 
-Status: planned; not implemented
+Status: implemented on the Phase 02 branch with disposable-environment evidence. **Not complete:** live provider access from the development session, hosted migration/Storage activation and a production malware scanner are external gates. See the [implementation report](PHASE_02_IMPLEMENTATION_REPORT.md).
 
 ## 1. Objective
 
@@ -27,9 +27,9 @@ Grounded AI generation, broad web scraping, editor/task workflows, publisher pay
 5. Implement project collections and annotation anchors against immutable source versions; preserve quote/page/offset and deleted-source behavior.
 6. Add sandboxed asynchronous parsing contract/outbox when processing begins, public metadata cache boundaries and authorized source citation export.
 
-## 6. Proposed files and directories
+## 6. Implemented files and directories
 
-features/{discovery,library}/server; app/api/v1/projects/[id]/{research,papers,uploads,collections}; components/pdf-reader; packages/database migrations; tests/integration/library.
+`apps/web/src/features/discovery/server` (adapters, HTTP boundary, orchestration, quotas), `apps/web/src/features/library/server` (library, sources/uploads/scanner, Storage, routes), live screens `features/research/live-research.tsx`, `features/library/live-library.tsx`, `features/reader/{live-reader.tsx,anchors.ts,pdf-engine.ts}`, contracts `packages/core/src/{research,citation}.ts`, `ResearchReference` in `packages/ai`, migration `packages/database/prisma/migrations/20261023100000_research_library`, tests `tests/{unit,integration,auth/e2e,fixtures,hosted}`. Routes stay in the existing `/api/v1/[...path]` handler (no second mutation system).
 
 ## 7. Data model changes
 
@@ -53,11 +53,13 @@ Provider contract fixtures; DOI/retry race tests; duplicate upload finalization;
 
 ## 12. Acceptance criteria
 
-- [ ] Repeated DOI/provider save produces one paper association per project.
-- [ ] No private file or annotation becomes globally accessible through bibliographic metadata.
-- [ ] Provider failures show retry state without fake results.
-- [ ] Reading and citations retain exact immutable source/version/page context.
-- [ ] Failed extraction is retryable and cannot corrupt a ready source version.
+- [x] Repeated DOI/provider save produces one paper association per project (concurrent saves, idempotent replay; real PostgreSQL).
+- [x] No private file or annotation becomes globally accessible through bibliographic metadata (RLS, raw SQL, second-account browser checks).
+- [x] Provider failures show retry state without fake results (unit + browser partial-failure journey; fixtures, not live providers).
+- [x] Reading retains exact immutable source/version/page context (anchors bound to versions, immutability triggers, reload journey). Citation records for AI are Phase 03.
+- [x] Failed scanning is retryable with a bounded budget and cannot corrupt a ready version (scan leases/retry tests; READY is terminal). Extraction itself is Phase 03.
+
+Evidence covers disposable environments only; hosted activation is pending approval.
 
 ## 13. Definition of Done
 
