@@ -1,141 +1,169 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@atlas/ui/components/tooltip';
+import { ToastProvider } from '../../apps/web/src/components/atlas/toast';
 import { AtlasComposer } from '../../apps/web/src/features/atlas-ai/atlas-composer';
-import { SourceCard } from '../../apps/web/src/features/atlas-ai/ai-response';
-import { getPickerItems } from '../../apps/web/src/features/atlas-ai/contracts';
+import { AtlasSurface } from '../../apps/web/src/features/atlas-ai/atlas-surface';
+import { AtlasProvider } from '../../apps/web/src/features/atlas-ai/atlas-provider';
 import {
-  AtlasProvider,
-  AssistantExperience,
-} from '../../apps/web/src/features/atlas-ai/atlas-provider';
+  commandsFor,
+  filterMentions,
+  mentionGroups,
+} from '../../apps/web/src/features/atlas-ai/contracts';
+import type { ScreenKey } from '../../apps/web/src/features/shell/navigation';
+import { PreviewStoreProvider } from '../../apps/web/src/features/shell/preview-store';
 import { ChannelsScreen } from '../../apps/web/src/features/channels/channels-screen';
-import { OnboardingPreview } from '../../apps/web/src/features/onboarding/onboarding-preview';
-function wrap(children: React.ReactNode) {
+function wrap(children: React.ReactNode, screen: ScreenKey = 'overview') {
   return (
     <TooltipProvider>
-      <AtlasProvider>{children}</AtlasProvider>
+      <ToastProvider>
+        <PreviewStoreProvider>
+          <AtlasProvider screen={screen}>{children}</AtlasProvider>
+        </PreviewStoreProvider>
+      </ToastProvider>
     </TooltipProvider>
   );
 }
-describe('Atlas UI interaction boundaries', () => {
-  it('attaches a sample mention with the keyboard and removes it accessibly', async () => {
+function setReducedMotion(reduce: boolean) {
+  vi.mocked(window.matchMedia).mockImplementation(
+    (query: string) =>
+      ({
+        matches: reduce && query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }) as unknown as MediaQueryList,
+  );
+}
+afterEach(() => {
+  vi.useRealTimers();
+  setReducedMotion(false);
+});
+describe('Atlas composer mentions and commands', () => {
+  it('attaches a structured mention with the keyboard and removes it accessibly', async () => {
     const user = userEvent.setup();
-    const submit = vi.fn();
-    render(wrap(<AtlasComposer onSubmit={submit} />));
+    render(wrap(<AtlasSurface placement="page" />));
     const input = screen.getByRole('combobox', { name: 'Ask Atlas' });
-    await user.type(input, '@Literature');
-    expect(
-      screen.getByRole('listbox', { name: 'Mention suggestions' }),
-    ).toBeVisible();
+    await user.type(input, '@Chen');
+    const list = screen.getByRole('listbox', { name: 'Mention suggestions' });
+    expect(within(list).getAllByRole('option')).toHaveLength(1);
     await user.keyboard('{Enter}');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: 'Remove Literature review' }),
-    );
-    await user.type(input, 'A question');
-    await user.keyboard('{Enter}');
-    expect(submit).toHaveBeenCalledWith('A question', []);
+    expect(input).toHaveValue('');
+    const remove = screen.getByRole('button', {
+      name: 'Remove Chen & Duarte, 2023',
+    });
+    await user.click(remove);
+    expect(
+      screen.queryByRole('button', { name: 'Remove Chen & Duarte, 2023' }),
+    ).not.toBeInTheDocument();
   });
-  it('moves the active mention and selects the highlighted option', async () => {
+  it('moves the active option with the arrow keys and wraps', async () => {
     const user = userEvent.setup();
-    render(wrap(<AtlasComposer onSubmit={vi.fn()} />));
+    render(wrap(<AtlasComposer />));
     const input = screen.getByRole('combobox', { name: 'Ask Atlas' });
     await user.type(input, '@');
-    await user.keyboard('{ArrowDown}{Enter}');
-    expect(
-      screen.getByRole('button', {
-        name: 'Remove Designing for thoughtful human–AI collaboration',
-      }),
-    ).toBeVisible();
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{ArrowDown}');
+    expect(options[1]).toHaveAttribute('aria-selected', 'true');
+    expect(input).toHaveAttribute('aria-activedescendant', options[1]?.id);
+    await user.keyboard('{ArrowUp}{ArrowUp}');
+    expect(screen.getAllByRole('option').at(-1)).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
-  it('dismisses commands on Escape without submitting or erasing a draft', async () => {
+  it('dismisses a menu on Escape without submitting or erasing the draft', async () => {
     const user = userEvent.setup();
-    const submit = vi.fn();
-    render(wrap(<AtlasComposer context="document" onSubmit={submit} />));
+    render(wrap(<AtlasSurface placement="page" />, 'doc'));
     const input = screen.getByRole('combobox', { name: 'Ask Atlas' });
-    await user.type(input, '/rewrite');
+    const before = screen.getAllByRole('article').length;
+    await user.type(input, '/rew');
     expect(
       screen.getByRole('listbox', { name: 'Slash commands' }),
     ).toBeVisible();
     await user.keyboard('{Escape}');
-    expect(input).toHaveValue('/rewrite');
+    expect(input).toHaveValue('/rew');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    expect(submit).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('article')).toHaveLength(before);
   });
-  it('keeps future entities unavailable and commands specific to context', () => {
-    expect(getPickerItems('/', 'latex', 'tasks')).toEqual([]);
-    expect(getPickerItems('/', 'latex', 'manuscript')).toHaveLength(1);
-    expect(
-      getPickerItems('@', 'Datasets', 'global')[0]?.reference?.future,
-    ).toBe(true);
-  });
-  it('never displays verified status without all provenance fields', () => {
-    render(
-      <SourceCard
-        source={{
-          id: 'untrusted-status',
-          title: 'Incomplete source',
-          status: 'verified',
-        }}
-      />,
+  it('offers commands specific to the active surface', () => {
+    const ids = (s: ScreenKey) => commandsFor(s, '').map((c) => c.id);
+    expect(ids('manuscript')).toEqual(
+      expect.arrayContaining(['latex', 'cite', 'rewrite']),
     );
-    expect(screen.getByText('Unavailable provenance')).toBeVisible();
-    expect(screen.queryByText('Verified passage')).not.toBeInTheDocument();
+    expect(ids('tasks')).not.toContain('latex');
+    expect(ids('tasks')).not.toContain('rewrite');
+    expect(ids('tasks')).toContain('create-task');
+    expect(commandsFor('manuscript', 'lat').map((c) => c.id)).toEqual([
+      'latex',
+    ]);
   });
-  it('labels the fixed sample answer and treats writes as proposals', async () => {
-    const user = userEvent.setup();
-    render(wrap(<AssistantExperience request={{ prompt: 'A question' }} />));
-    expect(screen.getByText('Prewritten answer · not AI output')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Create task' }));
-    expect(screen.getByText('Create task · proposed action')).toBeVisible();
-    expect(
-      screen.getByText('Preview only: this action cannot execute.'),
-    ).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Dismiss proposal' }));
-    expect(screen.getByText('Prewritten answer · not AI output')).toBeVisible();
+  it('covers every structured entity type with stable IDs', () => {
+    const kinds = new Set(
+      mentionGroups.flatMap((g) => g.items.map((i) => i.kind)),
+    );
+    for (const kind of [
+      'paper',
+      'document',
+      'task',
+      'person',
+      'project',
+      'channel',
+      'manuscript',
+      'experiment',
+    ])
+      expect(kinds).toContain(kind);
+    const ids = mentionGroups.flatMap((g) => g.items.map((i) => i.id));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(filterMentions('zzz-no-match')).toEqual([]);
   });
-  it('adds a clearly local channel message and a local thread reply', async () => {
+});
+describe('Atlas sample responses', () => {
+  it('labels a reply as a sample and shows the final state at once under reduced motion', async () => {
+    setReducedMotion(true);
     const user = userEvent.setup();
-    render(wrap(<ChannelsScreen />));
+    render(wrap(<AtlasSurface placement="page" />));
+    const input = screen.getByRole('combobox', { name: 'Ask Atlas' });
+    const before = screen.getAllByText('Sample response').length;
+    await user.type(input, 'What is the main risk?{Enter}');
+    expect(screen.getByText('What is the main risk?')).toBeVisible();
+    expect(screen.getAllByText('Sample response')).toHaveLength(before + 1);
+    expect(screen.getByRole('button', { name: 'Send (Enter)' })).toBeVisible();
+  });
+  it('plays a labeled preview sequence that can be stopped', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(wrap(<AtlasSurface placement="page" />));
     await user.type(
-      screen.getByRole('combobox', { name: 'Local channel message' }),
+      screen.getByRole('combobox', { name: 'Ask Atlas' }),
+      'Summarize this{Enter}',
+    );
+    const stop = screen.getByRole('button', { name: 'Stop (Esc)' });
+    expect(screen.getAllByText('Preview').length).toBeGreaterThan(0);
+    await user.click(stop);
+    await act(async () => {
+      vi.advanceTimersByTime(10000);
+    });
+    expect(screen.getByRole('button', { name: 'Send (Enter)' })).toBeVisible();
+  });
+});
+describe('Channels preview', () => {
+  it('keeps a sent message local to the tab and labels it undelivered', async () => {
+    const user = userEvent.setup();
+    render(wrap(<ChannelsScreen />, 'channels'));
+    await user.type(
+      screen.getByRole('textbox', { name: /Message #/ }),
       'A local research thought',
     );
-    await user.click(screen.getByRole('button', { name: 'Add local message' }));
-    const message = screen
-      .getByText('A local research thought')
-      .closest('article');
-    expect(message).not.toBeNull();
-    await user.click(within(message!).getByRole('button', { name: 'Thread' }));
-    const thread = screen.getByRole('complementary', {
-      name: 'Message thread',
-    });
-    await user.type(
-      within(thread).getByRole('textbox', { name: 'Local reply' }),
-      'A local response',
-    );
-    await user.click(
-      within(thread).getByRole('button', { name: 'Add local reply' }),
-    );
-    expect(
-      within(thread).getByText('Preview visitor · A local response'),
-    ).toBeVisible();
-  });
-  it('lets optional onboarding choices be skipped without creating a tenant', async () => {
-    const user = userEvent.setup();
-    render(wrap(<OnboardingPreview />));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(
-      screen.getByRole('radio', { name: 'Independent researcher' }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    for (let step = 0; step < 4; step += 1)
-      await user.click(screen.getByRole('button', { name: 'Skip' }));
-    expect(screen.getByText('Independent researcher')).toBeVisible();
-    expect(screen.getByText(/prepared no real account/)).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: 'Explore the sample workspace' }),
-    ).toHaveAttribute('href', '/app/home');
+    await user.click(screen.getByRole('button', { name: 'Send message' }));
+    expect(screen.getByText(/A local research thought/)).toBeVisible();
+    expect(screen.getByText('Stays in this tab · not delivered')).toBeVisible();
   });
 });

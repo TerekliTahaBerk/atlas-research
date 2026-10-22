@@ -1,44 +1,105 @@
-# Atlas AI interaction specification
+# Atlas AI interaction specification · Phase 00.5A
 
-Status: working presentation foundation, no AI service. Contracts live in `apps/web/src/features/atlas-ai/contracts.ts`; they are UI DTOs, not database entities or access grants.
+Status: presentation only. No model, search, retrieval, tool or network request is made. The contracts in `apps/web/src/features/atlas-ai/contracts.ts` are UI DTOs, not database entities or access grants.
 
-## Lifecycle and placement
+## One state, five modes
 
-`AtlasProvider` owns one optional roaming panel. `openAssistant` accepts prompt, context kind, and named references. The topbar is the stable launcher. Inline composers, task details, paper reading, document selection, and channel actions use the same provider. The full Atlas AI module reuses `AssistantExperience` and `AtlasComposer`. The panel is nonmodal: the user can continue working. Desktop reserves a right column; narrow screens stack the panel above the content with a bounded scrolling area. Closing restores the invoking control where it still exists; a route change must never create hidden authorization context.
+`AtlasProvider` (`atlas-provider.tsx`) owns a single state shared by every placement:
 
-| State             | UI behavior                                           | Actual operation         |
-| ----------------- | ----------------------------------------------------- | ------------------------ |
-| Collapsed         | Topbar launcher, inline composer available            | None                     |
-| Focused           | Visible composer focus ring                           | Local input              |
-| Expanded          | Context, mode, composer and introduction              | None                     |
-| Context attached  | Named removable chips                                 | In-memory references     |
-| Search pending    | Explicitly labeled progress preview                   | None                     |
-| Searching sources | Manually selectable progress preview                  | No search                |
-| Reading documents | Manually selectable progress preview                  | No retrieval             |
-| Generating        | Manually selectable illustrative progress             | No model                 |
-| Answer            | Prewritten rich sample, source disclosure and actions | Fixed sample             |
-| Approval          | Target and proposed action; dismiss only              | No executable approval   |
-| Error             | Safe example error and retry composer                 | No actual provider error |
-| Cancelled         | Explicit no-action status                             | No cancellation request  |
+- mode
+- input draft
+- context chips
+- messages
+- busy message
 
-Submitting arbitrary prompts always shows the same disclosed answer. It must never be described as generated, personalized, searched, or source-verified. Retry opens a sample pending state; the user explicitly chooses a sample answer or cancellation. Model selection is represented as Grounded/Explore preview modes; no actual model availability is claimed.
+Changing mode never resets the conversation or the draft.
 
-## Context and pickers
+| Mode    | Entry                                                | Placement                                                                                                                        | Exit                                                                         |
+| ------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Compact | Default                                              | `AtlasAnchor` floats ≤620px at the canvas top centre; stacks under the topbar on narrow canvases                                 | —                                                                            |
+| Open    | Focus the composer, or the "Chat · N messages" strip | The same surface expanded: context row, conversation, controls                                                                   | Collapse button, or Escape (animated unless reduced motion)                  |
+| Focus   | ⌘/Ctrl+J, the Focus button, or `?atlas=focus`        | Radix Dialog with a `--dim` overlay and 7px backdrop blur, 720px wide                                                            | Escape returns to **Open** (or Compact where there is no anchor); ⌘J toggles |
+| Panel   | "Dock to side", or `?atlas=panel`                    | Fixed 380px right column; `#main-content` gets `margin-right: 392px` so content reflows. Under 900px it is a bottom sheet (78vh) | "Close Atlas panel", or "Float" back to Open                                 |
+| Inline  | `ContextualAITrigger` and `atlas.ask()` call sites   | Attaches chips, then opens a mode and optionally asks                                                                            | —                                                                            |
 
-`ContextReference` has a synthetic identifier, entity kind, display title, optional module link, and optional future flag. Supported categories: document, paper, task, person, project, channel, manuscript, dataset, figure, experiment, selected text, workspace. Datasets, figures and experiments appear as unavailable future entries. Chips have an icon, truncation, full-title tooltip, navigation where available, and a named remove button. Only UI preferences are stored; prompt and artifact content remain in React state.
+Escape is layered in this order:
 
-`useEntityPicker` and `EntityPicker` are independent of any editor. A trailing @ or / token opens a compact filtered list. The active descendant is announced by the labeled combobox; arrow keys change the active option, Enter selects, Escape dismisses while keeping the draft. No results is explicit. Disabled future entries cannot attach. Mouse selection preserves the invoking input focus. Search currently considers the trailing token at the end of the value; arbitrary cursor-position insertion is a later rich-editor adapter responsibility.
+1. An open mention or slash menu closes first (`menuOpen`).
+2. A running preview stops.
+3. The mode steps down.
 
-Mentions attach structured references. Slash commands insert a visible command token; they do not execute. `getPickerItems` filters commands by context. Document/manuscript commands include rewrite, improve, cite and outline; tasks includes subtasks; research includes compare and gaps. Channel `@Atlas` visibly names the sample channel context. Cross-project/private-channel access cannot be inferred from a chip or mention.
+Route changes move the context to the new screen's default chips. An expanded float collapses, and Focus steps back to Open.
 
-## Responses and citations
+The manuscript editor hosts its own neutral composer (`editorComposer`). Hiding it routes Open to Focus.
 
-`AIResponse` presents safe authored JSX: paragraphs, headings, list, inline citation anchor, source cards, a mathematical expression with an accessible verbal label, and an inert code block. It does not parse untrusted HTML or arbitrary model Markdown. A later Markdown adapter must sanitize and constrain links and render structured citations separately. Code is never executed.
+## Mentions and slash commands
 
-`CitationReference` distinguishes verified, suggested, generated and unavailable. Verification needs source ID, source location, and evidence text. Missing fields downgrade the visible status. All current sample sources are synthetic or unavailable and none is verified. Counts, authors and venues in sample papers are illustrative. DOI is explicitly unavailable. A source link must be reauthorized in future services and a verified passage does not by itself prove scientific entailment.
+**Mentions.** `@` opens a listbox grouped by kind, with structured IDs:
 
-Copy uses the clipboard and reports success or a recoverable failure. Add-to-document and Create-task show an unexecutable proposal. Save-finding and Insert-citation explain the required later service. Related paper/context chips navigate to the relevant sample module. A future action ledger must bind approval to an authenticated actor, tenant, resource version, capability, exact content, and idempotency key; this UI state cannot stand in for authorization.
+| Kind       | Examples           |
+| ---------- | ------------------ |
+| Paper      | `p1…p4`            |
+| Document   | `d1`, `d2`         |
+| Manuscript | `ms-main`          |
+| Task       | `ATL-27`, `ATL-31` |
+| Person     | `ayse`, `mehmet`   |
+| Channel    | `ch-reading`       |
+| Project    | `pr2`              |
+| Experiment | `nb-14`            |
 
-## Focus and errors
+Picking an item removes the `@query` text and adds a removable chip `{ id, kind, title }`.
 
-The assistant moves focus to its named close control when opened; it does not trap focus. Escape closes it only after nested listboxes or dialogs have dismissed. Modal details use Radix focus trapping/restoration. Unique IDs prevent the full AI page and roaming assistant from colliding. Provider errors never print raw details, credentials, prompts, or private source content into logs. A later streaming transport must include safe request IDs, resumable/cancel semantics, stale-source handling, bounded retries, and usage reconciliation.
+**Slash commands.** `/` lists `commandsFor(screen)`:
+
+- Available everywhere: `/ask`, `/search`, `/summarize`, `/compare`, `/create-task`.
+- Context-sensitive:
+  - `/cite`: documents, manuscripts, library, reader, research, AI and home.
+  - `/rewrite`: documents, manuscripts, reader and AI.
+  - `/latex`: manuscripts, documents, experiments and AI.
+
+Picking a command inserts `/<id> `. Commands do not execute anything.
+
+**Keyboard.**
+
+- ↑/↓ move and wrap. `aria-activedescendant` tracks the active option, which is scrolled into view.
+- Enter picks the option.
+- Escape dismisses the menu and keeps the draft.
+
+When nothing matches, the menu says so explicitly. The document editor has its own block (`/`), reference (`@`) and citation menus over the same fixture data.
+
+## Responses: labeled sample animation (approved deviation)
+
+The handoff shows thinking steps and token streaming. The user chose **labeled sample animations** over a static answer. This deviates from the Phase 00.5 rule "no fake timed research runs". The rule is still met in spirit, because every animated element is visibly marked as a preview of prewritten content:
+
+- **Thinking.** Steps advance on fixed timers (460ms for the first, then 360–640ms). They carry a `Preview` tag, and the collapsed summary reads "Preview sequence · N.Ns".
+- **Streaming.** Prewritten text is revealed 6 characters every 30ms.
+- **Labels.** Every assistant message shows **"Sample response"** next to its actions. The empty state reads "Answers are prewritten samples".
+- **Reduced motion.** Under `prefers-reduced-motion: reduce` the final state renders immediately (duration 0), with no animation.
+- **Stop and errors.** Stop cancels the sequence and marks it stopped. `?demo=errors` ends sequences in a labeled sample error with Retry, which shows the safe failure path.
+- **No external work.** Nothing reaches the network. E2E tests assert that no `/api` request or non-GET request is made.
+
+`sampleReply()` picks prewritten text from the command, screen and context. It must never be described as generated, searched, personalised or verified.
+
+## Citations and sources
+
+`CitationChip` and `CitePill` show a numbered pill with a `PaperHoverCard` (title, authors, venue). `SourcePill` opens the reader at `?paper=…&cite=1`. All papers are synthetic fixtures, and no citation claims verification.
+
+Message actions:
+
+- **Copy** uses the clipboard.
+- **Insert below** and **Accept** in documents change only the in-memory editor.
+- **Create task** and similar actions show toasts stating they are UI-only.
+
+## Honesty rules (until real services land)
+
+1. No AI execution. Every preview output is labeled `Sample response` or `Sample`.
+2. No artificial success for loading, payment, sharing, invitations, compilation, restore or sign-in. Toasts state what did **not** happen.
+3. Code, LaTeX and notebooks never execute.
+4. Prompts, drafts, messages and onboarding answers are never written to browser storage. Only `theme` and `atlas-sidebar-collapsed` persist.
+
+## Focus
+
+- Focus mode moves focus to the composer and restores it on close (Radix).
+- The panel does not trap focus.
+- The command palette restores focus to its invoker, or to the sidebar toggle when the invoker was inside the closed drawer.
+- A future streaming transport must add request IDs, real cancellation, bounded retries and usage reconciliation. It must never log prompts or private source text.

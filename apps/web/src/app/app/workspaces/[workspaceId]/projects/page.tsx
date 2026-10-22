@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { WorkspaceProjects } from '@/features/projects/workspace-projects';
+import { WorkspaceProjects } from '@/features/home/workspace-projects';
 export default async function Page({
   params,
 }: {

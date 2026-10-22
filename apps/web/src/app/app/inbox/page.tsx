@@ -1,4 +1,10 @@
-import { InboxScreen } from '@/features/preview/inbox-screen';
+import { Suspense } from 'react';
+import { InboxScreen } from '@/features/inbox/inbox-screen';
+export const metadata = { title: 'Inbox' };
 export default function Page() {
-  return <InboxScreen />;
+  return (
+    <Suspense>
+      <InboxScreen />
+    </Suspense>
+  );
 }
