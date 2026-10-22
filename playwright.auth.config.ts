@@ -13,6 +13,15 @@ export default defineConfig({
     trace: 'off',
     screenshot: 'off',
     video: 'off',
+    // Same opt-in as the design suite for containers with a preinstalled
+    // Chromium; CI leaves it unset and uses the pinned Playwright browser.
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+      ? {
+          launchOptions: {
+            executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+          },
+        }
+      : {}),
   },
   webServer: {
     command: 'pnpm --filter @atlas/web dev --port 3102',

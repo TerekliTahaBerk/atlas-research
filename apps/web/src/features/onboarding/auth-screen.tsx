@@ -1,5 +1,6 @@
 'use client';
 import { useId, useState } from 'react';
+import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { Building2, CircleAlert, Info, MailCheck, SunMoon } from 'lucide-react';
@@ -92,10 +93,15 @@ export function AuthScreen({
         },
       );
       if (result.redirect) {
-        setFeedback(
-          mode === 'signin'
-            ? 'Signed in. Opening your research…'
-            : 'Request completed. Opening the next page…',
+        // Commit the announcement before the browser starts navigating. A
+        // batched update could otherwise render after the request has begun,
+        // leaving the live region empty while the next document loads.
+        flushSync(() =>
+          setFeedback(
+            mode === 'signin'
+              ? 'Signed in. Opening your research…'
+              : 'Request completed. Opening the next page…',
+          ),
         );
         window.location.assign(
           result.redirect +

@@ -174,7 +174,36 @@ test('independent researcher registers, verifies, creates, renames, logs out and
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   // Hold the destination document to reproduce a slow first page load after
-  // successful authentication. The form must not invite a second submission.
+  // successful authentication. Playwright cannot query the outgoing document
+  // while its replacement is pending, so record what the user and assistive
+  // technology perceive at the exact moment navigation starts (the Navigation
+  // API dispatches `navigate` synchronously from location.assign).
+  const atNavigation: { status: string; waiting: boolean }[] = [];
+  await page.exposeBinding(
+    'atlasNavigationProbe',
+    (_source, snapshot: { status: string; waiting: boolean }) => {
+      atNavigation.push(snapshot);
+    },
+  );
+  await page.evaluate(() => {
+    const probe = (
+      window as unknown as {
+        atlasNavigationProbe: (s: { status: string; waiting: boolean }) => void;
+      }
+    ).atlasNavigationProbe;
+    (
+      window as unknown as { navigation: EventTarget }
+    ).navigation.addEventListener('navigate', () => {
+      const submit = Array.from(
+        document.querySelectorAll<HTMLButtonElement>('main button'),
+      ).find((button) => button.textContent?.trim() === 'Please wait…');
+      probe({
+        status:
+          document.querySelector('main [role="status"]')?.textContent ?? '',
+        waiting: submit?.disabled === true,
+      });
+    });
+  });
   let releaseNavigation!: () => void;
   const navigationGate = new Promise<void>((resolve) => {
     releaseNavigation = resolve;
@@ -191,12 +220,15 @@ test('independent researcher registers, verifies, creates, renames, logs out and
     .click();
   try {
     await destinationRequest;
-    await expect(page.getByRole('main').getByRole('status')).toContainText(
-      'Signed in. Opening your research',
-    );
-    await expect(
-      page.getByRole('button', { name: 'Please wait…', exact: true }),
-    ).toBeDisabled();
+    await expect
+      .poll(() => atNavigation, {
+        message:
+          'Successful sign-in feedback must be committed before navigation',
+      })
+      .toContainEqual({
+        status: expect.stringContaining('Signed in. Opening your research'),
+        waiting: true,
+      });
   } finally {
     releaseNavigation();
     await signingIn;
