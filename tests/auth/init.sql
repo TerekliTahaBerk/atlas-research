@@ -1,4 +1,6 @@
 -- Public, disposable test-only passwords. No application or cloud credentials.
+-- GoTrue migrations grant to the conventional postgres role even on plain Postgres.
+CREATE ROLE postgres NOLOGIN;
 CREATE ROLE atlas_test_auth LOGIN PASSWORD 'atlas_auth_test_only';
 CREATE SCHEMA auth AUTHORIZATION atlas_test_auth;
 ALTER ROLE atlas_test_auth SET search_path=auth,public;
