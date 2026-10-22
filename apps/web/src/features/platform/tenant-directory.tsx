@@ -6,7 +6,13 @@ import {
   type PlatformState,
 } from '@atlas/core';
 import { requestData } from './client';
-export function TenantDirectory({ state }: { state: PlatformState }) {
+export function TenantDirectory({
+  state,
+  destination = 'workspace',
+}: {
+  state: PlatformState;
+  destination?: 'workspace' | 'settings';
+}) {
   const [organizations, setOrganizations] = useState(state.organizations);
   const [workspaces, setWorkspaces] = useState(state.workspaces);
   const [orgCursor, setOrgCursor] = useState(state.organizationsCursor);
@@ -56,7 +62,11 @@ export function TenantDirectory({ state }: { state: PlatformState }) {
         {workspaces.map((w) => (
           <a
             key={w.id}
-            href={`/app/workspaces/${w.id}`}
+            href={
+              destination === 'settings'
+                ? `/app/settings/workspace?workspaceId=${w.id}`
+                : `/app/workspaces/${w.id}`
+            }
             className="rounded-lg border border-bd px-3 py-2"
           >
             {w.name}

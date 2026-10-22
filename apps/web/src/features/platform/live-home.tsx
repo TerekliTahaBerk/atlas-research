@@ -55,6 +55,18 @@ export function LiveHome({
               : 'Choose or create a workspace to begin.'}
           </p>
           <TenantDirectory state={state} />
+          {state.recentProject ? (
+            <section className="mb-8">
+              <h2 className="mb-2 text-xs text-tx3">Continue working</h2>
+              <a
+                href={`/app/projects/${state.recentProject.id}/overview`}
+                className="flex items-center gap-3 rounded-lg border border-bd2 bg-card px-3 py-3 text-ui"
+              >
+                <FolderKanban aria-hidden="true" className="size-4 text-actx" />
+                {state.recentProject.name}
+              </a>
+            </section>
+          ) : null}
           <div className="mb-3 flex items-center gap-2">
             <h2 className="font-serif text-2xl font-medium">Projects</h2>
             <span className="rounded bg-el px-1.5 text-xs text-tx3">

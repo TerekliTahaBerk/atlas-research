@@ -75,7 +75,9 @@ async function register(page: Page) {
   await page
     .getByRole('button', { name: 'Create account', exact: true })
     .click();
-  await expect(page.getByRole('status')).toContainText('check your inbox');
+  await expect(page.getByRole('main').getByRole('status')).toContainText(
+    'check your inbox',
+  );
   const link = await mailLink(page.request, email, 'confirm');
   try {
     await page.goto(link);
@@ -139,10 +141,29 @@ test('independent researcher registers, verifies, creates, renames, logs out and
     page.getByRole('heading', { level: 1, name: 'Renamed research' }),
   ).toBeVisible();
   const projectUrl = page.url();
+  await expect
+    .poll(async () =>
+      (await page.context().cookies())
+        .find((cookie) => cookie.name === 'atlas-navigation')
+        ?.value.includes('projectId'),
+    )
+    .toBe(true);
+  await page.goto('/app/home');
+  await expect(
+    page.getByRole('heading', { name: 'Continue working', exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Continue working', exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await login(page, email);
   await page.goto(projectUrl);
+  await expect(page).toHaveURL(/\/login\?next=/);
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(projectUrl);
   await expect(
     page.getByRole('heading', { level: 1, name: 'Renamed research' }),
   ).toBeVisible();
@@ -195,6 +216,14 @@ test('laboratory collaboration enforces invitation identity, private grants, rol
     );
     expect(denied.status()).toBe(404);
     expect(await denied.text()).not.toContain('Private lab study');
+    const forgedPreference = await collaboratorContext.request.post(
+      `${origin}/api/v1/context`,
+      {
+        headers: { Origin: origin },
+        data: { workspaceId: ws, projectId: project },
+      },
+    );
+    expect(forgedPreference.status()).toBe(404);
     const pageDenied = await collaborator.goto(
       `/app/projects/${project}/overview`,
     );
@@ -331,7 +360,9 @@ test('password recovery uses an actual captured email and rejects expired callba
   await page.goto('/reset-password');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Send reset link' }).click();
-  await expect(page.getByRole('status')).toContainText('eligible');
+  await expect(page.getByRole('main').getByRole('status')).toContainText(
+    'eligible',
+  );
   const link = await mailLink(page.request, email, 'reset');
   try {
     await page.goto(link);
@@ -347,7 +378,7 @@ test('password recovery uses an actual captured email and rejects expired callba
   await login(page, email, nextPassword);
   await page.goto('/auth/callback?code=expired-test-code');
   await expect(page).toHaveURL(/\/login\?auth=expired$/);
-  await expect(page.getByRole('status')).toContainText(
+  await expect(page.getByRole('main').getByRole('status')).toContainText(
     'invalid, expired or cancelled',
   );
 });

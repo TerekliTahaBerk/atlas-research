@@ -154,18 +154,7 @@ export function LiveSettings({
           ) : null}
           {section === 'workspace' ? (
             <>
-              <TenantDirectory state={state} />
-              <div className="flex flex-wrap gap-2">
-                {state.workspaces.map((w) => (
-                  <a
-                    key={w.id}
-                    href={`/app/settings/workspace?workspaceId=${w.id}`}
-                    className="rounded-lg border border-bd px-3 py-2 text-xs"
-                  >
-                    {w.name}
-                  </a>
-                ))}
-              </div>
+              <TenantDirectory state={state} destination="settings" />
               {org ? (
                 <section className="mt-6">
                   <h2 className="mb-3 font-serif text-2xl">

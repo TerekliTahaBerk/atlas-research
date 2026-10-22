@@ -109,6 +109,17 @@ export async function loadState(
         );
       workspaces.push(...extra);
     }
+    if (
+      organizationId &&
+      !workspaces.some((w) => w.organizationId === organizationId)
+    ) {
+      const extra = z
+        .array(workspaceDto)
+        .parse(
+          await tx.$queryRaw`SELECT id,name,organization_id AS "organizationId",version,atlas_private.capabilities('workspace',id) AS capabilities FROM workspaces WHERE organization_id=${organizationId}::uuid ORDER BY id LIMIT 1`,
+        );
+      workspaces.push(...extra);
+    }
     const requestedOrg =
       organizationId ??
       workspaces.find((w) => w.id === workspaceId)?.organizationId;

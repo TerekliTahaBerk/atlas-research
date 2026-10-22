@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers';
+import { readNavigation } from '@/features/platform/navigation';
 import { z } from 'zod';
 import { platformCommand, scopeType } from '@atlas/core';
 import { verifyActor } from '@/features/identity/server/supabase';
@@ -27,7 +29,49 @@ export async function POST(
     const path = (await context.params).path.join('/');
     if (path === 'auth') return authenticate(await readJson(request));
     const actor = await verifyActor();
-    await rateLimit('write', actor.id);
+    await rateLimit(
+      path === 'context' ? 'navigation' : 'write',
+      actor.id,
+      path === 'context' ? 120 : 30,
+    );
+    if (path === 'context') {
+      const input = z
+        .object({ workspaceId: z.uuid(), projectId: z.uuid().optional() })
+        .strict()
+        .parse(await readJson(request));
+      await loadState(actor, input.workspaceId);
+      if (input.projectId) {
+        const project = await getProject(actor, input.projectId);
+        if (project.workspaceId !== input.workspaceId)
+          throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
+      }
+      const jar = await cookies();
+      const previous = readNavigation(
+        jar.get('atlas-navigation')?.value,
+        actor.id,
+      );
+      const projectId =
+        input.projectId ??
+        (previous?.workspaceId === input.workspaceId
+          ? previous.projectId
+          : undefined);
+      jar.set(
+        'atlas-navigation',
+        JSON.stringify({
+          actorId: actor.id,
+          workspaceId: input.workspaceId,
+          ...(projectId ? { projectId } : {}),
+        }),
+        {
+          httpOnly: true,
+          secure: process.env.ATLAS_ORIGIN?.startsWith('https:') === true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 2592000,
+        },
+      );
+      return { selected: true };
+    }
     if (path !== 'commands')
       throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
     return executeCommand(
@@ -66,7 +110,11 @@ export async function GET(
         .max(1024)
         .optional()
         .parse(url.searchParams.get('cursor') ?? undefined);
-      return loadState(actor, workspaceId, cursor);
+      const organizationId = z
+        .uuid()
+        .optional()
+        .parse(url.searchParams.get('organizationId') ?? undefined);
+      return loadState(actor, workspaceId, cursor, organizationId);
     }
     if (path.length === 2 && path[0] === 'projects')
       return getProject(actor, z.uuid().parse(path[1]));

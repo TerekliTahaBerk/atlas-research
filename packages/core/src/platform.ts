@@ -169,6 +169,7 @@ export const platformState = z.object({
   nextCursor: z.string().nullable(),
   organizationsCursor: z.string().nullable(),
   workspacesCursor: z.string().nullable(),
+  recentProject: projectDto.nullable().default(null),
 });
 export type PlatformState = z.infer<typeof platformState>;
 export type ProjectDto = z.infer<typeof projectDto>;
