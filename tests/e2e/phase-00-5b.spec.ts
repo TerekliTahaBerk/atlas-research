@@ -255,8 +255,11 @@ test('all requested context transitions clear explicit stale references through 
     'experiments',
   ];
   for (const route of routes) {
-    await page.getByRole('combobox', { name: 'Ask Atlas' }).fill('@Okafor');
-    await page.keyboard.press('Enter');
+    const composer = page.getByRole('combobox', { name: 'Ask Atlas' });
+    await composer.fill('@Okafor');
+    await expect(page.getByRole('option', { name: /Okafor/ })).toBeVisible();
+    // Target the composer after the previous dialog's focus restoration.
+    await composer.press('Enter');
     await expect(
       page.getByRole('button', { name: 'Remove Okafor et al., 2024' }),
     ).toBeVisible();
