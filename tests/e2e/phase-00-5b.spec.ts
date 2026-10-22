@@ -236,6 +236,7 @@ test('all requested context transitions clear explicit stale references through 
   page,
 }) => {
   await page.goto('/app/home?atlas=panel');
+  await expect(page.locator('[data-placement="panel"]')).toBeVisible();
   const contexts: Record<string, string> = {
     research: 'Research',
     library: 'All papers',
