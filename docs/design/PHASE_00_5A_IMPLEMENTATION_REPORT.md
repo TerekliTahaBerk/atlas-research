@@ -247,4 +247,6 @@ Phase 01 boundaries, which are unchanged and must be kept:
 
 ## 13. Git and PR status
 
-See the PR description for the final commit hash and PR link. Nothing is merged. The PR targets `master` and is not set to auto-merge.
+- Branch: `feat/phase-00-5a-design-integration`, based on `master` at `01379a4`, and pushed to `origin`.
+- Implementation commit: `ae3ce81`. A follow-up commit records this section.
+- Pull request: [#3](https://github.com/TerekliTahaBerk/atlas-research/pull/3), targeting `master`. It is open, not merged, and auto-merge is off.
