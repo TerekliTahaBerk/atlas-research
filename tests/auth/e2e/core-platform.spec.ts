@@ -70,6 +70,17 @@ async function register(page: Page) {
   await page.goto('/register');
   await page.getByLabel('Full name').fill('Test researcher');
   await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill('short');
+  await page.getByLabel('Confirm password').fill('short');
+  await page
+    .getByRole('button', { name: 'Create account', exact: true })
+    .click();
+  expect(
+    await page
+      .getByLabel('Password', { exact: true })
+      .evaluate((input) => (input as HTMLInputElement).validity.tooShort),
+  ).toBe(true);
+  await expect(page).toHaveURL(/\/register$/);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
   await page
