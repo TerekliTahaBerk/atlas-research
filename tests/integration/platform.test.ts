@@ -81,6 +81,32 @@ async function invite(
   return { token, id: result.id! };
 }
 describe.sequential('real non-owner PostgreSQL platform boundary', () => {
+  it('waits for a briefly saturated pool instead of failing the two-second default acquisition budget', async () => {
+    const db = createDatabase(runtime!);
+    let started = 0;
+    let ready!: () => void;
+    const allStarted = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    const held = Array.from({ length: 10 }, () =>
+      db.$transaction(async (tx) => {
+        started++;
+        if (started === 10) ready();
+        await tx.$executeRaw`SELECT pg_sleep(3)`;
+      }),
+    );
+    try {
+      await allStarted;
+      const waiting = db.$transaction(
+        (tx) => tx.$queryRaw`SELECT 1 AS connected`,
+      );
+      await expect(waiting).resolves.toEqual([{ connected: 1 }]);
+      await Promise.all(held);
+    } finally {
+      await Promise.allSettled(held);
+      await db.$disconnect();
+    }
+  });
   it('provisions exactly one personal hierarchy under simultaneous retries', async () => {
     const input = {
       command: 'bootstrap' as const,
