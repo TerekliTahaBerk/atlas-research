@@ -1,0 +1,635 @@
+{
+  "method": "Raw RGB absolute difference, 0–255. Above-16 pixel count. Diagnostic only; not a fidelity percentage or release threshold. Different text, accessible tokens, icons and PDF rendering contribute.",
+  "comparisons": [
+    {
+      "screen": "home",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7368638545953292,
+          "pixelsAbove16": 3927,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 1.3002961601307181,
+          "pixelsAbove16": 1216,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 3.430953107536812,
+          "pixelsAbove16": 41104,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "overview",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7283401920438897,
+          "pixelsAbove16": 3928,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 3.136738607480009,
+          "pixelsAbove16": 3552,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 4.519068331298145,
+          "pixelsAbove16": 53474,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "doc",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7268347050754407,
+          "pixelsAbove16": 3920,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 7.4752519063170455,
+          "pixelsAbove16": 6236,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 6.6258140963234915,
+          "pixelsAbove16": 85971,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "manuscript",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.8337585733882019,
+          "pixelsAbove16": 4231,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 5.6110657225846525,
+          "pixelsAbove16": 6450,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 7.98243303100182,
+          "pixelsAbove16": 88975,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "research",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7278223593964279,
+          "pixelsAbove16": 3929,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.25076025780682676,
+          "pixelsAbove16": 174,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 5.920384019121572,
+          "pixelsAbove16": 65312,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "library",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7276971879286634,
+          "pixelsAbove16": 3928,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 1.887947076978949,
+          "pixelsAbove16": 1770,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.758782196881685,
+          "pixelsAbove16": 23030,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "reader",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7271622085047956,
+          "pixelsAbove16": 3923,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 7.475240559183629,
+          "pixelsAbove16": 4130,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 10.701217635724795,
+          "pixelsAbove16": 104161,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "tasks",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7283213305898439,
+          "pixelsAbove16": 3932,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 1.6249829793028345,
+          "pixelsAbove16": 1580,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.71528550348415,
+          "pixelsAbove16": 27067,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "channels",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7273456790123407,
+          "pixelsAbove16": 3923,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 2.712701978939726,
+          "pixelsAbove16": 2507,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.9598240727863683,
+          "pixelsAbove16": 25657,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "experiments",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7281155692729709,
+          "pixelsAbove16": 3923,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 7.615337917573381,
+          "pixelsAbove16": 6040,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.9957273623915988,
+          "pixelsAbove16": 28546,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "graph",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7284207818929993,
+          "pixelsAbove16": 3932,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 2.68076547748729,
+          "pixelsAbove16": 2255,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.2752385955690027,
+          "pixelsAbove16": 17841,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "inbox",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.743118998628251,
+          "pixelsAbove16": 3930,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.13006649419026867,
+          "pixelsAbove16": 111,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 2.2774970771076886,
+          "pixelsAbove16": 29248,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "settings",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7399571330589795,
+          "pixelsAbove16": 3926,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.08315745279593317,
+          "pixelsAbove16": 64,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 3.047580695005427,
+          "pixelsAbove16": 23822,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "system",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.7370833333333285,
+          "pixelsAbove16": 3924,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 3.8224854756717206,
+          "pixelsAbove16": 2698,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 26.913303409059814,
+          "pixelsAbove16": 208598,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "mobile",
+      "theme": "dark",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 0.734869684499309,
+          "pixelsAbove16": 3922,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.08315745279593317,
+          "pixelsAbove16": 64,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 10.885311886757338,
+          "pixelsAbove16": 136620,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "home",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.142222222222235,
+          "pixelsAbove16": 4234,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 1.9146809186637606,
+          "pixelsAbove16": 1263,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 3.838129065653572,
+          "pixelsAbove16": 42388,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "overview",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1237139917695582,
+          "pixelsAbove16": 4235,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 3.9155376270878812,
+          "pixelsAbove16": 3683,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 5.224000744243515,
+          "pixelsAbove16": 66368,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "doc",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1099279835391072,
+          "pixelsAbove16": 4226,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 9.410056962599262,
+          "pixelsAbove16": 10654,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 7.8232940996168026,
+          "pixelsAbove16": 94608,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "manuscript",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.2250377229081069,
+          "pixelsAbove16": 4540,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 6.408536446985622,
+          "pixelsAbove16": 7442,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 7.564832197656185,
+          "pixelsAbove16": 92286,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "research",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1231944444444568,
+          "pixelsAbove16": 4211,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.35012708787218577,
+          "pixelsAbove16": 193,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 6.260920608065529,
+          "pixelsAbove16": 76242,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "library",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1275034293552941,
+          "pixelsAbove16": 4220,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 2.61856617647058,
+          "pixelsAbove16": 1845,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 2.1234632282121764,
+          "pixelsAbove16": 34030,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "reader",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.138677983539107,
+          "pixelsAbove16": 4226,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 11.879884940084521,
+          "pixelsAbove16": 22747,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 4.7363422384986205,
+          "pixelsAbove16": 62669,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "tasks",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1308984910836881,
+          "pixelsAbove16": 4243,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 2.2807563997821187,
+          "pixelsAbove16": 1639,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.8777394067687643,
+          "pixelsAbove16": 26870,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "channels",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1233521947873915,
+          "pixelsAbove16": 4222,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 3.5487699709513607,
+          "pixelsAbove16": 2678,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 2.1613771329387688,
+          "pixelsAbove16": 25822,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "experiments",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1210973936900004,
+          "pixelsAbove16": 4226,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 9.859136710239149,
+          "pixelsAbove16": 11499,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 2.476215446777598,
+          "pixelsAbove16": 45667,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "graph",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1140843621399272,
+          "pixelsAbove16": 4217,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 3.378931781045737,
+          "pixelsAbove16": 2345,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 1.6604638900477797,
+          "pixelsAbove16": 19873,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "inbox",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1514591906721654,
+          "pixelsAbove16": 4232,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.2111928104575163,
+          "pixelsAbove16": 125,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 2.720553791519243,
+          "pixelsAbove16": 29810,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "settings",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1426937585734,
+          "pixelsAbove16": 4231,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.10653254357298476,
+          "pixelsAbove16": 78,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 3.643984636145069,
+          "pixelsAbove16": 31265,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "system",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1312945816186666,
+          "pixelsAbove16": 4231,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 4.173021060276033,
+          "pixelsAbove16": 2812,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 30.341224820664202,
+          "pixelsAbove16": 247665,
+          "totalPixels": 1035504
+        }
+      }
+    },
+    {
+      "screen": "mobile",
+      "theme": "light",
+      "metrics": {
+        "sidebar": {
+          "meanAbsoluteChannelDifference": 1.1274588477366378,
+          "pixelsAbove16": 4226,
+          "totalPixels": 194400
+        },
+        "header": {
+          "meanAbsoluteChannelDifference": 0.10653254357298476,
+          "pixelsAbove16": 78,
+          "totalPixels": 58752
+        },
+        "canvas": {
+          "meanAbsoluteChannelDifference": 27.895965314233397,
+          "pixelsAbove16": 240825,
+          "totalPixels": 1035504
+        }
+      }
+    }
+  ]
+}
