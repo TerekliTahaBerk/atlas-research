@@ -108,3 +108,9 @@ Recorded deviations:
   - New: `reader`, `graph`, `/app/design-system`, `/app/design-system/mobile`.
   - Documents use `?doc=`, which replaces `?note=`.
 - **Rich editing.** Documents use Tiptap and the manuscript uses CodeMirror 6. Both keep content in memory only.
+
+## 14. Phase 00.5B addendum — independent QA
+
+Phase 00.5A was confirmed merged into `master` at `ec8a91f`. Phase 00.5B audits the original handoff runtime independently of the application, fixes visual/interaction/accessibility defects in React, and adds regression coverage without introducing services. See the [QA report](../design/PHASE_00_5B_QA_REPORT.md), [visual matrix](../design/VISUAL_COMPARISON_MATRIX.md), [interaction matrix](../design/INTERACTION_QA_MATRIX.md), [accessibility audit](../design/ACCESSIBILITY_AUDIT.md), and [Phase 01 UI handoff](../design/PHASE_01_UI_HANDOFF.md).
+
+The audited scope includes all 15 design screens in both themes, six real application viewports, five AI interaction modes, corrected active-artifact context, document pickers, modal ownership/focus restoration, canvas-aware manuscript splitting, phone reader notes and reachable graph inspection. The original handoff and implementation are captured separately; approved signature screenshots guard subsequent drift. Manual assistive-technology, physical-device and additional browser/platform checks remain explicit limitations. No authentication, backend, schema, migration, compiler, provider, deployment or Scholara change is included.

@@ -93,9 +93,7 @@ export function GraphScreen() {
               }
               className={cn(
                 'inline-flex h-[26px] items-center gap-1.5 rounded-[13px] border px-[9px] text-xs transition-opacity',
-                filters[k.kind]
-                  ? 'border-bd text-tx'
-                  : 'border-bd2 text-tx3 opacity-60',
+                filters[k.kind] ? 'border-bd text-tx' : 'border-bd2 text-tx3',
               )}
             >
               <span
@@ -108,7 +106,7 @@ export function GraphScreen() {
           ))}
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 max-lg:flex-col">
+      <div className="flex min-h-0 flex-1 max-lg:flex-col max-lg:overflow-y-auto">
         <div className="relative mr-3 mb-3 ml-5 min-h-[320px] min-w-0 flex-1 overflow-auto rounded-2xl border border-bd2 bg-card max-sm:mx-4">
           <div className="relative h-full min-h-[420px] min-w-[640px]">
             <svg
@@ -158,7 +156,7 @@ export function GraphScreen() {
                         n.id === selected
                           ? 'border-tx bg-el'
                           : 'border-bd bg-pop',
-                        neighbours.has(n.id) ? 'opacity-100' : 'opacity-40',
+                        neighbours.has(n.id) ? 'font-medium' : 'border-bd2',
                       )}
                       style={{ left: `${n.x}%`, top: `${n.y}%` }}
                     >

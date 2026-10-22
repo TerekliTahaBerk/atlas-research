@@ -70,7 +70,7 @@ export function VersionHistoryDialog({
         onOpenChange(next);
       }}
     >
-      <ModalContent className="flex h-[min(600px,calc(100vh-48px))] w-[min(920px,calc(100vw-32px))] flex-col overflow-hidden rounded-3xl">
+      <ModalContent className="flex h-[min(600px,calc(100vh-48px))] w-[min(920px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl">
         <div className="flex items-start px-5 pt-[18px] pb-3.5">
           <div className="flex-1">
             <ModalTitle className="text-base font-semibold">
@@ -94,7 +94,7 @@ export function VersionHistoryDialog({
                 <FileClock aria-hidden="true" className="size-6 text-tx3" />
                 <span className="font-medium">No versions yet</span>
                 <span className="text-xs text-tx3">
-                  Versions are saved automatically as you edit.
+                  No saved versions in this sample. Local edits are not saved.
                 </span>
               </div>
             ) : (

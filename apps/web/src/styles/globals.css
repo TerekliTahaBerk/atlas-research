@@ -397,7 +397,7 @@
   /* Compact composer: top-centre of the canvas, ≤620px (handoff §5.1). */
   .atlas-float {
     position: absolute;
-    top: 14px;
+    top: 7px; /* 6px frame + 1px border → handoff's 14px viewport offset */
     left: 50%;
     z-index: 30;
     width: min(620px, calc(100cqw - 440px));
@@ -437,6 +437,12 @@
     .atlas-float-wide .atlas-strip {
       display: none !important;
     }
+  }
+  /* Docking removes the floating composer, so its stacked reservation
+     must also disappear from the narrower document/research canvas. */
+  .atlas-canvas[data-atlas-mode='panel'] > *,
+  .atlas-canvas[data-atlas-mode='panel'] .aic-wide {
+    --aic: 0px;
   }
   .shimmer-text {
     background: linear-gradient(

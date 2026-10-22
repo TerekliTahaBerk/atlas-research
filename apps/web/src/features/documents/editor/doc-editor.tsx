@@ -35,6 +35,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@atlas/ui/lib/utils';
+import { Portal } from 'radix-ui';
 import { useAtlas } from '@/features/atlas-ai/atlas-provider';
 import { usePreviewStore } from '@/features/shell/preview-store';
 import { people } from '@/lib/preview/people';
@@ -146,15 +147,14 @@ export function DocEditor({
   const place = useCallback(
     (kind: MenuKind, from: number, to: number, query: string) => {
       if (!editor) return;
-      const box = editor.view.dom.closest('article')?.getBoundingClientRect();
       const at = editor.view.coordsAtPos(from);
       setMenu({
         kind,
         query,
         from,
         to,
-        top: at.bottom - (box?.top ?? 0) + 6,
-        left: Math.max(0, at.left - (box?.left ?? 0) - 4),
+        top: at.bottom + 6,
+        left: at.left,
       });
       setIndex(0);
     },
@@ -397,6 +397,50 @@ export function DocEditor({
       }));
   })();
   const active = Math.min(index, Math.max(0, items.length - 1));
+  const menuRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!menu || !editor) return;
+    const position = () => {
+      const el = menuRef.current;
+      if (!el || menu.from > editor.state.doc.content.size) return;
+      const at = editor.view.coordsAtPos(menu.from);
+      const box = el.getBoundingClientRect();
+      const below = innerHeight - at.bottom - 14;
+      const above = at.top - 14;
+      const flip = below < box.height && above > below;
+      el.style.maxHeight = `${Math.max(80, flip ? above : below)}px`;
+      el.style.left = `${Math.max(8, Math.min(at.left, innerWidth - box.width - 8))}px`;
+      el.style.top = `${Math.max(8, flip ? at.top - Math.min(box.height, above) - 6 : at.bottom + 6)}px`;
+      el.style.visibility = 'visible';
+    };
+    position();
+    // Radix Portal mounts after this component's layout effect.
+    const frame = requestAnimationFrame(position);
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
+    };
+  }, [editor, menu]);
+  useLayoutEffect(() => {
+    if (!editor) return;
+    const el = editor.view.dom;
+    if (menu && menu.kind !== 'cite') {
+      el.setAttribute('aria-controls', listId);
+      const item = items[active];
+      if (item)
+        el.setAttribute('aria-activedescendant', `${listId}-${item.id}`);
+      document
+        .getElementById(`${listId}-${item?.id}`)
+        ?.scrollIntoView({ block: 'nearest' });
+    }
+    return () => {
+      el.removeAttribute('aria-controls');
+      el.removeAttribute('aria-activedescendant');
+    };
+  });
   const pick = (item: MenuItem | undefined) => {
     if (!item || !editor) return;
     setMenu(null);
@@ -440,7 +484,22 @@ export function DocEditor({
   const { setMenuOpen } = atlas;
   useEffect(() => {
     setMenuOpen(Boolean(menu));
+    return () => setMenuOpen(false);
   }, [menu, setMenuOpen]);
+  useEffect(() => {
+    if (!menu || !editor) return;
+    const outside = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Node &&
+        !menuRef.current?.contains(target) &&
+        !editor.view.dom.contains(target)
+      )
+        close();
+    };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [close, editor, menu]);
   if (!editor)
     return <div className="atlas-prose min-h-[200px]" aria-busy="true" />;
   return (
@@ -542,143 +601,144 @@ export function DocEditor({
         </button>
       </div>
       {menu ? (
-        <div
-          className={cn(
-            'absolute z-[6] animate-atlas-in overflow-hidden rounded-xl border border-bd bg-pop font-sans shadow-pop',
-            menu.kind === 'cite'
-              ? 'w-[min(380px,calc(100%-8px))]'
-              : 'w-[280px] p-[5px]',
-          )}
-          style={{ top: menu.top, left: Math.min(menu.left, 420) }}
-        >
-          {menu.kind === 'cite' ? (
-            <div className="flex h-10 items-center gap-2 border-b border-bd2 px-3">
-              <Quote aria-hidden="true" className="size-[14px] text-actx" />
-              <input
-                autoFocus
-                role="combobox"
-                aria-label="Cite a paper from your library"
-                aria-expanded="true"
-                aria-controls={listId}
-                aria-activedescendant={
-                  items[active] ? `${listId}-${items[active].id}` : undefined
-                }
-                value={citeQuery}
-                onChange={(e) => {
-                  setCiteQuery(e.target.value);
-                  setIndex(0);
-                }}
-                onKeyDown={(e) => {
-                  if (keyHandler.current(e.nativeEvent)) e.preventDefault();
-                }}
-                placeholder="Cite a paper from your library…"
-                className="flex-1 text-ui"
-              />
-              <button
-                type="button"
-                aria-label="Close citation picker"
-                onClick={() => {
-                  setMenu(null);
-                  editor.commands.focus();
-                }}
-                className="grid size-[22px] place-items-center rounded-sm text-tx3 hover:bg-hov"
-              >
-                <X aria-hidden="true" className="size-3" />
-              </button>
-            </div>
-          ) : null}
+        <Portal.Root>
           <div
-            id={listId}
-            role="listbox"
-            aria-label={
-              menu.kind === 'slash'
-                ? 'Block commands'
-                : menu.kind === 'mention'
-                  ? 'Insert reference'
-                  : 'Library papers'
-            }
+            ref={menuRef}
             className={cn(
-              'max-h-[280px] overflow-auto',
-              menu.kind === 'cite' && 'p-[5px]',
+              'fixed z-[95] max-w-[calc(100vw-16px)] overflow-auto rounded-xl border border-bd bg-pop font-sans text-tx shadow-pop',
+              menu.kind === 'cite' ? 'w-[380px]' : 'w-[280px] p-[5px]',
             )}
+            style={{ top: menu.top, left: menu.left, visibility: 'hidden' }}
           >
-            {items.map((item, i) => {
-              const header = i === 0 || items[i - 1]?.group !== item.group;
-              return (
-                <div key={item.group + item.id}>
-                  {header ? (
+            {menu.kind === 'cite' ? (
+              <div className="flex h-10 items-center gap-2 border-b border-bd2 px-3">
+                <Quote aria-hidden="true" className="size-[14px] text-actx" />
+                <input
+                  autoFocus
+                  role="combobox"
+                  aria-label="Cite a paper from your library"
+                  aria-expanded="true"
+                  aria-controls={listId}
+                  aria-activedescendant={
+                    items[active] ? `${listId}-${items[active].id}` : undefined
+                  }
+                  value={citeQuery}
+                  onChange={(e) => {
+                    setCiteQuery(e.target.value);
+                    setIndex(0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (keyHandler.current(e.nativeEvent)) e.preventDefault();
+                  }}
+                  placeholder="Cite a paper from your library…"
+                  className="flex-1 text-ui"
+                />
+                <button
+                  type="button"
+                  aria-label="Close citation picker"
+                  onClick={() => {
+                    setMenu(null);
+                    editor.commands.focus();
+                  }}
+                  className="grid size-[22px] place-items-center rounded-sm text-tx3 hover:bg-hov"
+                >
+                  <X aria-hidden="true" className="size-3" />
+                </button>
+              </div>
+            ) : null}
+            <div
+              id={listId}
+              role="listbox"
+              aria-label={
+                menu.kind === 'slash'
+                  ? 'Block commands'
+                  : menu.kind === 'mention'
+                    ? 'Insert reference'
+                    : 'Library papers'
+              }
+              className={cn(
+                'max-h-[280px] overflow-auto',
+                menu.kind === 'cite' && 'p-[5px]',
+              )}
+            >
+              {items.map((item, i) => {
+                const header = i === 0 || items[i - 1]?.group !== item.group;
+                return (
+                  <div key={item.group + item.id}>
+                    {header ? (
+                      <div
+                        aria-hidden="true"
+                        className={cn(
+                          'px-[9px] pt-1.5 pb-1 text-[11px] text-tx3',
+                          i > 0 && 'mt-1 border-t border-bd2 pt-2',
+                        )}
+                      >
+                        {item.group}
+                      </div>
+                    ) : null}
                     <div
-                      aria-hidden="true"
+                      id={`${listId}-${item.id}`}
+                      role="option"
+                      aria-selected={i === active}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setIndex(i)}
+                      onClick={() => pick(item)}
                       className={cn(
-                        'px-[9px] pt-1.5 pb-1 text-[11px] text-tx3',
-                        i > 0 && 'mt-1 border-t border-bd2 pt-2',
+                        'flex cursor-pointer items-center gap-2.5 rounded-md px-[9px] text-ui',
+                        menu.kind === 'cite' ? 'items-start py-[7px]' : 'h-8',
+                        i === active && 'bg-hov',
                       )}
                     >
-                      {item.group}
-                    </div>
-                  ) : null}
-                  <div
-                    id={`${listId}-${item.id}`}
-                    role="option"
-                    aria-selected={i === active}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setIndex(i)}
-                    onClick={() => pick(item)}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-2.5 rounded-md px-[9px] text-ui',
-                      menu.kind === 'cite' ? 'items-start py-[7px]' : 'h-8',
-                      i === active && 'bg-hov',
-                    )}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'grid size-[22px] shrink-0 place-items-center rounded-[5px] border border-bd',
-                        item.tone === 'ai' ? 'text-actx' : 'text-tx2',
-                      )}
-                    >
-                      <item.icon className="size-3" />
-                    </span>
-                    {menu.kind === 'cite' ? (
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-serif text-[15px] leading-[1.25]">
-                          {item.label}
-                        </span>
-                        <span className="text-[11.5px] text-tx3">
-                          {item.sub}
-                        </span>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'grid size-[22px] shrink-0 place-items-center rounded-[5px] border border-bd',
+                          item.tone === 'ai' ? 'text-actx' : 'text-tx2',
+                        )}
+                      >
+                        <item.icon className="size-3" />
                       </span>
-                    ) : (
-                      <>
-                        <span className="min-w-0 flex-1 truncate">
-                          {item.label}
-                        </span>
-                        {item.sub ? (
-                          <span className="font-mono text-[11px] text-tx3">
+                      {menu.kind === 'cite' ? (
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-serif text-[15px] leading-[1.25]">
+                            {item.label}
+                          </span>
+                          <span className="text-[11.5px] text-tx3">
                             {item.sub}
                           </span>
-                        ) : null}
-                      </>
-                    )}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="min-w-0 flex-1 truncate">
+                            {item.label}
+                          </span>
+                          {item.sub ? (
+                            <span className="font-mono text-[11px] text-tx3">
+                              {item.sub}
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            {items.length === 0 ? (
-              <p role="status" className="px-2.5 py-2 text-ctl text-tx3">
-                No matches
-              </p>
+                );
+              })}
+              {items.length === 0 ? (
+                <p role="status" className="px-2.5 py-2 text-ctl text-tx3">
+                  No matches
+                </p>
+              ) : null}
+            </div>
+            {menu.kind === 'cite' ? (
+              <div className="flex gap-3 border-t border-bd2 px-3 py-[7px] text-[11px] text-tx3">
+                <span>↵ insert</span>
+                <span>Adds to References</span>
+                <span className="flex-1" />
+                <span>Sample library</span>
+              </div>
             ) : null}
           </div>
-          {menu.kind === 'cite' ? (
-            <div className="flex gap-3 border-t border-bd2 px-3 py-[7px] text-[11px] text-tx3">
-              <span>↵ insert</span>
-              <span>Adds to References</span>
-              <span className="flex-1" />
-              <span>Sample library</span>
-            </div>
-          ) : null}
-        </div>
+        </Portal.Root>
       ) : null}
     </>
   );

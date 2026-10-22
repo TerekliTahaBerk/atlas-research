@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowUp,
@@ -62,6 +62,12 @@ export function ChannelsScreen() {
   const showList = useMediaQuery('(min-width: 900px)');
   const showThread = useMediaQuery('(min-width: 1100px)');
   const [channel, setChannel] = useState<ChannelKey>('reading-group');
+  const { setContext } = atlas;
+  useEffect(() => {
+    setContext([
+      { id: `ch-${channel}`, kind: 'channel', title: `#${channel}` },
+    ]);
+  }, [channel, setContext]);
   const [threadOpen, setThreadOpen] = useState(true);
   const [input, setInput] = useState('');
   const [reply, setReply] = useState('');

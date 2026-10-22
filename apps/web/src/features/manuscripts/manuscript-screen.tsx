@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import {
@@ -86,10 +86,28 @@ export function ManuscriptScreen() {
   const failedDemo = params.get('demo') === 'errors';
   const wide = useMediaQuery('(min-width: 1280px)');
   const showTree = useMediaQuery('(min-width: 1100px)');
+  const workspace = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState<number | null>(null);
+  useEffect(() => {
+    const el = workspace.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setCanvasWidth(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const treeVisible = showTree && (canvasWidth === null || canvasWidth >= 884);
+  const splitFits =
+    !shell.narrow && (canvasWidth === null || canvasWidth >= 680);
   const [layoutPref, setLayout] = useState<Layout>('split');
   const layout: Layout =
-    shell.narrow && layoutPref === 'split' ? 'editor' : layoutPref;
+    !splitFits && layoutPref === 'split' ? 'editor' : layoutPref;
   const [file, setFile] = useState<TexFile>('main.tex');
+  const { setContext } = atlas;
+  useEffect(() => {
+    setContext([{ id: `ms-${file}`, kind: 'manuscript', title: file }]);
+  }, [file, setContext]);
   const [docs, setDocs] = useState<Record<TexFile, string>>(texSources);
   const [activeLine, setActiveLine] = useState<number | null>(null);
   const [range, setRange] = useState<[TexFile, number, number] | null>(null);
@@ -185,7 +203,11 @@ export function ManuscriptScreen() {
           range={range && range[0] === file ? [range[1], range[2]] : null}
           activeLine={activeLine}
           presenceLine={file === 'main.tex' ? presenceLine : null}
-          topInset={showComposer ? 64 : 12}
+          topInset={
+            showComposer && atlas.mode !== 'panel' && atlas.mode !== 'focus'
+              ? 64
+              : 12
+          }
           onLineClick={onLine}
           onChange={onChange}
         />
@@ -497,8 +519,8 @@ export function ManuscriptScreen() {
         </span>
         <h1 className="sr-only md:hidden">Sparse Evoformer manuscript</h1>
       </Topbar>
-      <div className="flex min-h-0 flex-1">
-        {showTree ? (
+      <div ref={workspace} className="flex min-h-0 flex-1">
+        {treeVisible ? (
           <nav
             aria-label="Manuscript files"
             className="flex w-[200px] shrink-0 flex-col border-r border-bd2 bg-canvas"
@@ -584,8 +606,8 @@ export function ManuscriptScreen() {
             <Group orientation="horizontal" className="min-w-0 flex-1">
               <Panel
                 id="editor"
-                defaultSize="50"
-                minSize="28"
+                defaultSize="50%"
+                minSize="320px"
                 className="min-w-0"
               >
                 {editorPane}
@@ -599,7 +621,12 @@ export function ManuscriptScreen() {
                   className="h-full w-px bg-bd2 group-focus-visible:bg-ac"
                 />
               </Separator>
-              <Panel id="pdf" defaultSize="50" minSize="28" className="min-w-0">
+              <Panel
+                id="pdf"
+                defaultSize="50%"
+                minSize="280px"
+                className="min-w-0"
+              >
                 {pdfPane}
               </Panel>
             </Group>

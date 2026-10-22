@@ -1,0 +1,4284 @@
+{
+  "commit": "04ee12ee6ace9723b63e047d4bcb43a3c78710dd",
+  "trackedDiffSha256": "40d7e30358fb789942620d7defb9e5b6b29e41459306ca90c75ff777ccab9ac2",
+  "source": {
+    "archiveSha256": "c1a72aabb7db64eb0ff37367db88155ed07aea0b1ea94af39b6e91fdb003cc73",
+    "htmlSha256": "edb5b4edb4e662ae978a4ab9293c7fa25f531262a85cfd6fec5f871d2a75fa03",
+    "bridge": "Expose the existing Component instance from componentDidMount; no visual edits."
+  },
+  "browser": "156.0.8078.4",
+  "viewports": [
+    [1920, 1080],
+    [1440, 900],
+    [1280, 800],
+    [1024, 768],
+    [768, 1024],
+    [390, 844]
+  ],
+  "captures": [
+    {
+      "kind": "reference",
+      "screen": "home",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-home.png",
+      "sha256": "999d3ab0d5c2e6ca990c144f334383553ca1cb1f59b4877112b231df6886b1c4"
+    },
+    {
+      "kind": "reference",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-overview.png",
+      "sha256": "c86f41954cea735be049e381c02c549fb23c9d7c4fb483c511dc287b309e9561"
+    },
+    {
+      "kind": "reference",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-doc.png",
+      "sha256": "6685e21a667be7eabc0778e66f9a9237f70089ec0edc74bc26359acbfc8d2aa5"
+    },
+    {
+      "kind": "reference",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-manuscript.png",
+      "sha256": "52191070c3b7824268646875947c0548fef4c217e040b73937ab1c0eb5f3068d"
+    },
+    {
+      "kind": "reference",
+      "screen": "research",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-research.png",
+      "sha256": "fff9b93a1291cdf1b70fb8c12b7b269b9d6859c6c1a806c624051273f268e2b1"
+    },
+    {
+      "kind": "reference",
+      "screen": "library",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-library.png",
+      "sha256": "ef368358d7686f782d87f0d7f06c58ae7b798196b063dc4dfd601865966b5091"
+    },
+    {
+      "kind": "reference",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-reader.png",
+      "sha256": "1ff4b5edc75bef9c5649b97f9d63b801de30fe659e8e0f9e712da01c588841f1"
+    },
+    {
+      "kind": "reference",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-tasks.png",
+      "sha256": "cf44ecdd7713af0ccb3e653942b98aa8bcfb676c65c38654c66532dcc845d630"
+    },
+    {
+      "kind": "reference",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-channels.png",
+      "sha256": "8f9c01208a7ea84adf7595ed5eeafe18246c394bd38d09fedc696863f1ff0c95"
+    },
+    {
+      "kind": "reference",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-experiments.png",
+      "sha256": "b8bb45bc3d5fb6d5bbab39c346f31f4e0362ef88d004dd8fe61b47c279140d32"
+    },
+    {
+      "kind": "reference",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-graph.png",
+      "sha256": "4fe57a2fa415f44e92f22c5bb7332096119954be0b5917623f56c99d31cd6582"
+    },
+    {
+      "kind": "reference",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-inbox.png",
+      "sha256": "17369667dc4210400323a1a201b5373a8f02cccbdfe6d529a8c642890b8dd522"
+    },
+    {
+      "kind": "reference",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-settings.png",
+      "sha256": "9096f5d4e6f862ac9aa8975d37113f247a7b8ae2677d5219ec79fbdcacc3ebb3"
+    },
+    {
+      "kind": "reference",
+      "screen": "system",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-system.png",
+      "sha256": "5a7e7c0218b0bf785bf66e468d2caa8ef37f03b82c474a44acd34692f94b6511"
+    },
+    {
+      "kind": "reference",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-mobile.png",
+      "sha256": "9a88a2dbb0785095e3fbb9d08c20a5add3b1958620e2bfbf095ae9b7f3b91a7c"
+    },
+    {
+      "kind": "reference",
+      "screen": "ai-open",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-ai-open.png",
+      "sha256": "995d092a10867934ad0fb3efb73dfec886cadaf427911d6c63e0c7cdd9ad257c"
+    },
+    {
+      "kind": "reference",
+      "screen": "ai-focus",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-ai-focus.png",
+      "sha256": "ec0c1681c3eadf6f5846059f811b2faad5d43d9788a3fd9efdeacddde40613ec"
+    },
+    {
+      "kind": "reference",
+      "screen": "ai-panel",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-ai-panel.png",
+      "sha256": "e91f24b199c5d4e536e5c8a7c0395b06eabb429a7f6d80923d7aca8ef0bff647"
+    },
+    {
+      "kind": "reference",
+      "screen": "history",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-history.png",
+      "sha256": "1a8dae729bb4c3ee5078e566fc1a69f48d4b6e7167f9b8bfc0696025561687ea"
+    },
+    {
+      "kind": "reference",
+      "screen": "share",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-dark-1440-share.png",
+      "sha256": "ce240035ec5ecd6075db6f9417909906914444e6d92c23f21ce984712a59cbd2"
+    },
+    {
+      "kind": "reference",
+      "screen": "home",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-home.png",
+      "sha256": "0e81feefc8e0cd6e2429ddd7c801b87e9c7e57475b1441562f0eac952fda8da6"
+    },
+    {
+      "kind": "reference",
+      "screen": "overview",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-overview.png",
+      "sha256": "4b5990bce0f7378787e96cc11335240d238e69a9103e74b2c073c290e9aee325"
+    },
+    {
+      "kind": "reference",
+      "screen": "doc",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-doc.png",
+      "sha256": "6e5af3863f27c5c620813167b55e44e1c28542d5cd80f165fb432a964d368b00"
+    },
+    {
+      "kind": "reference",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-manuscript.png",
+      "sha256": "2834a0ddf0eb4428b2343e152aab5c11a43d7302782f06188a1458d3a48629fc"
+    },
+    {
+      "kind": "reference",
+      "screen": "research",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-research.png",
+      "sha256": "3a476c81d340763f390bc7f2e85250ca1a87932fb9904dc4136cd8fbd483a8b4"
+    },
+    {
+      "kind": "reference",
+      "screen": "library",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-library.png",
+      "sha256": "39f6e079297b8f9cef0be6c4b260ea1de3fcb8c49decbdd260287b82b89e9e5d"
+    },
+    {
+      "kind": "reference",
+      "screen": "reader",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-reader.png",
+      "sha256": "02072e22ed47d545b4b547718880b6ed6e8ade827fdc4f627c7cd5a4846a3ccf"
+    },
+    {
+      "kind": "reference",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-tasks.png",
+      "sha256": "ce2e4b13b9b554200cada7f2f65ddda4d40b17d19d01b12d893ea72259733bc4"
+    },
+    {
+      "kind": "reference",
+      "screen": "channels",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-channels.png",
+      "sha256": "e3fafae9ff7bd885a66583a56aab8e032be4c0af50fda9baf046d1c64f266c0f"
+    },
+    {
+      "kind": "reference",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-experiments.png",
+      "sha256": "ad295f9d4da115da357ed26d0426f41939d9dbf674abae8aef4fb46fee28eeb0"
+    },
+    {
+      "kind": "reference",
+      "screen": "graph",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-graph.png",
+      "sha256": "8a980e5706857fe3cf531cdd58fe845e253ac81ae4d986526852569d6e670600"
+    },
+    {
+      "kind": "reference",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-inbox.png",
+      "sha256": "bc0896ed0817518842290d87a499bddc69f068bdab9f3e30c603f50ccb91db90"
+    },
+    {
+      "kind": "reference",
+      "screen": "settings",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-settings.png",
+      "sha256": "6601865bcc22fd9aaaa1c8b8a388bbb82946120af70f508fd87153a6d42b08d4"
+    },
+    {
+      "kind": "reference",
+      "screen": "system",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-system.png",
+      "sha256": "89b619b926ee149a67424fab54657ea1b1bc13ba784434d2e963f1092d07053a"
+    },
+    {
+      "kind": "reference",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-mobile.png",
+      "sha256": "7613cf43f2584a7959ae2788922c68845ac159f3fdd02b4c172c1137677e5c6f"
+    },
+    {
+      "kind": "reference",
+      "screen": "ai-open",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-ai-open.png",
+      "sha256": "f2c4d9fa4aadbe099c3129e7691bcb1eaf33894a6b553d20bb384238618b1068"
+    },
+    {
+      "kind": "reference",
+      "screen": "ai-focus",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-ai-focus.png",
+      "sha256": "e64bac521a9fd48a3f7933956ebd8fa133b3bc91d07f9b766329f05a040586b2"
+    },
+    {
+      "kind": "reference",
+      "screen": "ai-panel",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-ai-panel.png",
+      "sha256": "c3ac773e51f99f0318ed13acd10774dcd4f164a384facabea83bd0c125aae1f7"
+    },
+    {
+      "kind": "reference",
+      "screen": "history",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-history.png",
+      "sha256": "4d6eba503d01cc5996a4b3df69c7c0a146d2bd5b458ab2c847ff52b79f732ecb"
+    },
+    {
+      "kind": "reference",
+      "screen": "share",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "reference-light-1440-share.png",
+      "sha256": "c3e0d09b7c6b62899dc66a0ef2b782b839039b66e417172a8cb3e795e9d012db"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "c9f632870fb5e8f7fbf9c98e49ea6ee1a0a834dca290f717602bdf1ce1e32605"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "78ddba7e3d345feaf91f5a81cded266c9749ceaf87b091adbdd5b969087b9799"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "1a09b5ccbb92ef155133e234b260b9ee21667e9c382f6229308d4fb13814ee39"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f53b5793eb20b7c836278bdc8bbc0f826f5dcc952a5720afc99b4618e810b778"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "211af58b3a04a9af0ebc9b96d240b9639f3f79722370f91df826427454d9e06d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "5935092f64b40f75d65db399d624d90ad52959b3fbd54d06131807fff2d26e3a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b8a100ebd0f51821b1eb3a6c98a443b47b2e86609f172d27c887ddce95bad398"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2909e268518cbf1ca172bec08df6c2090ee8c5010dd1052d1fae559b76b2a9eb"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "ce3cb210ecaeb7d8698095c99007871b04476a5d6207a2e40021d7ea0e7d9701"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "73b4cfb3e28f8145e1108bf5b74af6496b2772b0b995641d795e519e58fcd759"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "71b6aeb8cfc7265716ba77596758a63e866cb33266df3869fea986a0bba6da19"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7f9a9b556f11687a90d456978fc07bd742e6340440eb89ae264b4005e38a817c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "dd2d3ebc13ab3942f501c54badad88753c5575c37d688752f2710440813cb91a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "150b823791c3f089cb4ef397f6793ac0dd457fd32eea12a9ee771427ea397b7b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-dark-1920-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "5fbcb6ecb7acb528b91dd1727f3f4ec93160b7d3be75d4f781c3404aa180ba4f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "99e7ab31c6312d5c09c931b545860acaef3e287362ab78b96f25bd9cfb2cc2bd"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f165c8079c474bd091565bc21df83a6dc9151c3fc96a6bd2f029e5706c6876c5"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "da326f4d9b5448f7e7a9a8530e91539b1d9b9b9112c802acbb7b367d3bd0ca76"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "3278bc065138e9538f219eba6e92702d88538fd368649c847f078989082575ae"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b04c9266b4d2a357ee76bc8aa53c92452272ac870f4be818a6b2895603bad9d9"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "41f8332b7a7ca8c1ce0793fbd91177bd485b70baa5fbcc578a3b6cceedc773ba"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "9379248ec8e9e4800abedd6c6c4e818448a95bfff563a7787cd5cced034a4885"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "c376d2ad363aa6c88a764e2687b312f06bedab91f6a827edf48facdac3ec551a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0224ead826c1276b23fce0d473a5008cd8029ae26b70c990e2bdc410778e6f73"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "617dd1a8a4906d581a21a48719213d32a5a202141c47b2183f49f25007e7c32d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "90ad9e4f2f5eb64f5ef479376cb0fbd6ae26777695171b1b2a17c77228e83b2d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "9afcd92769c09567c49efb03decfdea85e52b5879f468b5a342e3b04cdd5d567"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "1900571a5a6e43b278d70e6d9525773b3ad60a02f5ad62b970f0d56b2ce27cc7"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "53354ce504fc18b4f69747c03062f310f10daca076dd87345058a531a2601eaf"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "file": "implementation-light-1920-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4594d8a3a9559cc8d0410b6a0d57666d01f3dd45904064eb82f7f8c067ad8afc"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "e8641eaaaf52e178b0ec00a2f2afc4a448e726e5ead203e0e85c3db76c5e20e3"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "46ad671e8cd34fd913b2237450aeb495b84aa6d96a9d643ceea6f9e9b7508a3a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2632a0796991bf711654ff6ab1949860a3a4d0ef90ff2fa8948ad32338e3956b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "56679d52fa6f11469067fe9ae80a897471109a8e24578cf6f60423505fbd1394"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a260b61c3beb9cf5cd6ba4fefe8623d2662a6004ca6175f286eabd18f97148d8"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "64ab9086d7b31da5c9cddeb74f571ffa9f9cebdef3f789f7372fa5d3d8a6a39f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "caaffae0c0ab28022143081ed04e90ce9e8634d5a46ca8fd3df2389f1800b830"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "83c96147621f292758928b586a10d5bdd52888f643b75a083f27ed89dd97553f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "edc053837a1f3f6359b436e524b3c55bbbb69e0d19d730485bbee50f8ea3e591"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "44c23b9288e5536218c38597704b1109e78ba48fed2b068a78f68def72087cf3"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "9c14242dc07fd18cc7f3997de7befbeabf3be82bde41480f74babd1498355d58"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f44d04873d0580fbb4eb0ff9cd66f72ba706b05093698bc5c5b3c16e568d53c2"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "18c251c6ebfde0a6a2dcd56379bb3902d91554e13df0ffe728a2ddddb11d425d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "547d0bec5249bed50b88cae4ea7f424e0aaf713c20f2c662a1d6ebd1972b5a11"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "41ac59bb042e4c0c472433f2ebe7175766ce5a7b4aaca0b4d6f445aff034278b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2d937a0c03a296cb59c1a7f4b6ac584ec5d2f432bc3f9a237490a55867a42607"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "971490e1793db7c9e5e6dba9bf5843d50b772b1e709f678a45f25e4cbcfa7c9a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "14d816ed82edde730aa9970d683aae19b57842c2f8a75571db9222d7d5f13235"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b8bc0fc7f9eb8bfe682ccc79bca121a62770732b8051250f79abdb0c662960cb"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "03a82526b348577dd2d28a8ba6a6d42c2a8289e6001644bfc78a5beef1568e32"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7f033e0f378e45c0d140251a3ea18c5ba068771d3038e1d2cdfdf166dcbaddee"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "e3d963a94c00ef266a5a5fb41a9ff99d6eb19bfca4639f3971473b6fffdc7f37"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "30fc73490dbfc9b18516e1e2867f21bce373c92729a0b4fb599cf42ca948b03d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "41cbeaac068e4abe84dc1fd7cc787eb509a3ca674d2ce3f6539e8bc0e8f64bb2"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "05a3b976d337c84e06ce925e679114b8d9424a8ba74fe9be2bb92ce740dea6b3"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b28d0bbf494f6dd98008646d485035ff48e979a0b39fe0c0e7a48e612e688c8c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4318a5227e86e818f5a075e4c2ce1c94c47a8b2c5bc759c426fdf60b02a20b0a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4ad50ebc61486941bd7a3bb357ab62d73c9c79426e57ba4025272f0c9b19394d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a82df1e454fa097bc85c5cc60d52ad390151c7235f4f6e7bd3c315cc1f864a19"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "61b02a9e1fa35944f7fa97fe365e2efdfb9a03b15342f8882b813e7dd8b29f15"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0b98a23d286ca5c6e86638173d964e32bfedd305539faa16a874e28262c0680f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a17f3b9ab75a37511c7b4e301afe371f823b6d315741d5d50d30a066efeb4ca6"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "c0b2ff9cde4a2af352957a4a728f0cdde55f71603814526e4c7d14ac8d095be7"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4103feea5e4105c6912b248f1193b9e353058043ec09efe470c33d4d90f747df"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "131ee9ce0dae2a5fa524e74b385069ac9a878fb2fadea0861c264c93d9d56f46"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b4031a754207ef8b2b5c4a57c7c56d7be992c1f75ff68b45dad296a44193af75"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "3c3b4f6fdf1d057a6f41d47dacf9b89631a5d2a8f11f88bc16c600b0e151aa36"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "d0a3f9995af4d64907215b93fac92f04b133ccb0645c4f4a344534413151021d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "92c0a50e4e8ebe21f0e1e6aca0c4c0386490fd0805a6550ac0e6e361b3d50a99"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f5e603595ae85917f394f57c23489bc8053c0d7765b59d97f9826dd0cd142fb8"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "61254132ad1cc82a3985febfbdbc38d164322c15fc42af560b4892fb7ca01225"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "344461acd6a5c0f8c48c4a389cf6e5836e08465cc30caa5ff66015a4114649e1"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "443e6be8548940f9e8e08933a70e0089add7791427978755bca7ec89e996c4f4"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0c3e7712ccbc23e1f1684f8a479f376df628e289ad5fa5c50d31b9e0c9e98376"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-dark-1280-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "55fd80b58512334f7b04a32b213f7a683a98a5b7bde41dc65ac0831043e67e54"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "56a92958338bf2d1567392d9eb70bf3f312b14ffbcd07d45e6c90018b3cc1719"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "d48d4e613638f0671abbfc13cceeed93eddaa5c6308436cc0359eedccf4b2a4f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4fa2552eb2b23558d22f63983c5feac6081c431b20cfbfd9b0e398ca73d1f856"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "5795ba07bb02bca40216f1801e6222e5da4966b9480a608e3448a324b6c5dc0c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "82a1581c487f5e92ccf799f78c47926d4e03037f72e6452313fb4552769c6330"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4c3bb7767084fbbc541313c8b696b72967462f4a320627450abb3fd697a40c80"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "1d95dfa0c2252f05d2fbd0ed7e39aff5f9e795e8f3e25d5bbb657fcf4de56c2a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "d35a746cbfa5dd259fe8a782d02bfb8b79a47838f81509f5072c4a72f2cd0f10"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "853da5482454469ddde2d9d74d3ba215516d0df4932949f43c49fb8e92e25f24"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "03001261283065986d5b566f34482f324926cbc83208794abb4d2ab0b97ccf41"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "358bcd1a8c296aa2e4d067df7edbcbb97e88eebecf8bf4a6e6145e106772b8a8"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "3db3e25c919f86acb9c674e5c0f0d8499b0b15b9da51490a57c98d0d28186b89"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "cc392ebab8f746a8a9fe72abf24f105e28bca2b47693557b6a5b187fe7cb9598"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a0c4fa1b4f0079a1376fe3be8a9356b7abc8187acccc09980519baa86969c40d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 1280,
+      "height": 800,
+      "file": "implementation-light-1280-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "3b9e3a2a6949e16188f1843429c7101be33f35e5cd0f356140a5981c69789340"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b612b297f6286c3fa39524dfd32e298a40a8ed62f266944be3c454fcdd9a55f9"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2483b405908e144dc31882cda28a95dfc1936f0ff925fee02137a5dad899d529"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "8f7f8ced5f6d1f080183200a6d32f10b327f0c1afa8f63c61835205e4cbb12fd"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "3307fcfcf7906fe344a18d96ae3a9058da20079766ed6c132e37a57a1f46c829"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "ead685658ee7b53f7c342dbfb428d904fade290919866bb6cde3280550f443d1"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f822552588a99d8293c57e497caa8ffaf631a8000e076b6283786a71d6295794"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "1faa67dc145f825e95baa31b76dfb584a3a7cab6355365eb318d2debd2e4974f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2e13b475e662d296abdb3069a87abf16d4c46e4b8ffcdaaf69b7c0add3f5262a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2c6e02dde70064ef09c1ea14c2cad778b82a97465cdb8821251cf969f3086458"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2226a6da2774b42cbf3e6249e8883032be13866f204c19fd298028064887b279"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "19ddedfa53068c9ba11b61b11f268cacc792eb7e2cd36870cf56da8f80a181fd"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0c7cd33c8794292d426ca0cea44e83e77da97fd2f5966f3f93a82a6912782380"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b4d24cd51512b8595eb3f5e825bf507c8e336c8cc30122203498cf414900787b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b0d8067d7cb766391ae5ac1f3c9a04f265e6af4ba8a23cf5831b52176c255ec2"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-dark-1024-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b831ef6f2fe5bc4c278bfcd1a9480f93ae79c9f8a338c51d1b92b94a7db1b613"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b52669b4b7e96ae542e927d52c1982d33fdb7c4df43f54c30ce84ffb18e1b159"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a52401ecc4f12bf7424079064883c40dba1192ea553e915039aac3c4ab2eeb9f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "56dbdd376c61b56c36f0428588a4e2265b2ded3f45d34a838e696e38d1393f0c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "49325c2d3391570212196f2ab5308d483bc84608f88624b2029a5ae055071c7e"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a861c3a06d49b3e63fddbb0c03e11a105133163991a978aa3dcc7cf526b02112"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "29ef8a66f9c373bc1499367ba1517d8bb6f75cabf2e71cc0229505ad99d6db24"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "63205605135cb370dc652fa5994ba002a8d4d2eceb3306dae2d468ce642c9ad3"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "6f3970e72d4a49682c8115df111e209787ad84ef4557ea15f63fdfcbe993a529"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7eb7dd9287f3e7f96b903c433a61cbe7c39ce3ce0cf7c49d87dd9ef9104f3989"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "01e5bb6f69026ca22c99259880ff3c9fbbf32f92f2468f066945d734927fa41a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "c7682d9d34690c8e2ec6dd7dd17077dcf377410bfb0a2ae5ebed15fdd36efd3a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "9a90d83e99ddf2a7863f818b4fb28eac8ef7d188621fccf471823e6fa3af43f7"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b4a1aeab0875c3bb65ff7c13a57b36dd84bd5fd7c8b3e7c129cee3c96805c84a"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "19f4d30e670e46f42e56c5db13d2624ba36b18560565860daa4411a04cf12efe"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 1024,
+      "height": 768,
+      "file": "implementation-light-1024-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2108a868892360f53e65f86966e53c3d79d1058728d8fc3ad0894ca63742f161"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "cf0168596e11f05662b8cd53805c77b5b55ba90018ae18a037450e63faffa42d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0198001d6030806b25111a2c372acdd22fa1cdeb3390ca5fbb3830388535de16"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "daf79f71354178822ecb29e87f5655b0c1a89999d7f7b0ef64a08140270dd815"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "ae08193dc30b83f4f992702d55dbea523aab0772c003fbec164f92299b0bca18"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f64d929227f1fc031bf505b75807392a06b458dfabe839d52ca100a5a7e6d0c9"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "347be270bfeae864119bf8739897cbe51795ad57cfcb39a1259a28bc3ed5e216"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "8f6b3092bf1770d8c3e169bc4d60872af1118f0f520c6a4150abb5d7c4e4a5ee"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "bc9e0cb45eaa3ec7e6ccf3f1d1ce5f1a142fd593ae0e414bcf12c130241f7807"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "39a7ba15d6a1eb1eeaead846e1aa611e09e88ee918bf6fc38c9424a759d91759"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "effb14f7adb5a24b567d5fb94d2a9ea2f3b808afde4338e4a46d38e819b745e9"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a9fee5931c9e78e3005a08db48ecefd4b0a3de5b11c157352b2912a6416290f4"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "e625658abe625a2b35fcbb2d7b7dfe7a1f12471d3826794e91d01a3dcbccb50e"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "81e6e590a6f15602fccbe662f2eb92ff349b9f0921312d1fa79a6f56545b1b2e"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "256e22d0ee2c43639fc1ffbe74a8f295bd446cdc9942965d0cf32333aa5e60f0"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-dark-768-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": ["Geist Variable", "Geist Variable", "Cormorant Garamond"],
+      "sha256": "c688c80dcc329351a49758713cd6b69d3dac068365161b9eb4973cc53994f07b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "10853f32928b88f989cb290da8766c4fb379e7642166ab2ddba3e1c0205aba6e"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7ebedb6bcd0549c92548dad851edc9e52331055edb1f7e7b447008c20bfde7e2"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "21f252f099c29964be4448661ef5324cd1c9ed1de5168beb01b0a9a941324307"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0916ee3be8feb323519bd9f5159024625088f38efb505a93ea6780fe5d057c69"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "124818a4012ec3649288e9dff45ef3630e580337f1b664ab2d3a62d1ff0500e8"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4f2beefbe169ac7f923940d0fc8502355abcd853e3a241cb1182ba51304651f6"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7bd98968c1cfd59a37465693050f1ff75ea035af43cc28f9e5dd4019907f7431"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "d852accd92d46fa6f264bdfe68752ef87ead547d553ceeb7c31f34c31fe3f735"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "345f2db85bd8e5d69ab2d5e553519323247e0e4e354046a89aa87b9f6248b73b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "6497f8e288a4c83baeecd5ff1d7fd818748cc7a5b20b0791f68f600653e8c278"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "cf84fc07dec45b70197819f57cb12361d33dc528c577f946bfa0ea6414bd8ead"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "fd94b13de4d95a8648668b21ddbb239ec7f64c8b33c474d1a0bbaa03890bcead"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "8bcce78e93a37e20a9860a5a737ddad8191847223e42f01177f3ce5d5bf45665"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "d4f8778d1d888c4f6649816f209e5944446f05e3baee98d7fe04dfce9cf173c9"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 768,
+      "height": 1024,
+      "file": "implementation-light-768-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": ["Geist Variable", "Geist Variable", "Cormorant Garamond"],
+      "sha256": "9bbc0247f787e1990e024caef1644fbbb93ddee650acbe6d9483db4a8535c5d2"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f3bc8db5c905309c923ccca7b67dae62744661d13e6ac87ee15351b1152c1ac4"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "cc01fa9ed560cb7797bd0092dfccb987410761195b417c51b183aada6b6d7f39"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "8d23c81b663ba6d69bd1e57ff9f6dc10222af3a2813630e9c79d12a9cbfa39d7"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "755bb068288a9ad3d13481057b402592b79b88a10d22e6dbae980e0e6e0add43"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "764ebca85cc7e510a0d0e72dfd7bcad3039f48e5a3ba3c7ff1d20fff8aa4d149"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "1e725397cd7e91cef6969e4768ec3f3f3f54e354cd2af257cdbb630272b3c7dc"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "67b38ea84946469dcfc3512a9c5eca270f107169515749017931eb1afc541f30"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "895e6dcba98c9f6af1d3026ed7249fdfa5c70493f197570bc8a6bacbf1acd364"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "3ccb7130e5690b9cb12f2668d99b3007f593b972d8f7c649c9eda0ebe628f133"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "d7e39483a6059c8136647a7cfa47e1e3462ffe1ca1071ceaac0be3c3fdb710c1"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "ac7f69f0ef0b0507cb395d135206366034305d07c309b788fb1885c2f6e2a820"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7e2cf3d3dfcc7a59a4e07c9baca3776478b0af942a6767bd93bbbe612114a09b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "f24790b3cc0b4ba8beabfe6ad50e25f9195884c70537bd205d36166b5b64480f"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "49acda47068589ed6a5f9d872110229644a9bb80c1be088afe165f5a5ce531c5"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "63b55809a9609a0271875aca0fd0902c58058581e3c772aa7bff7ab286e218f1"
+    },
+    {
+      "kind": "implementation",
+      "screen": "home",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-home.png",
+      "title": "Home · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "b9bbe0aa34741769d5b85e26062af1332699195c8f7aa6846ef020fa3f4e7d8b"
+    },
+    {
+      "kind": "implementation",
+      "screen": "overview",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-overview.png",
+      "title": "Overview · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "9e37a5e0b8e9c775024b1e5e64ad8240efb272d5b7154ddf11fe453b49af2e27"
+    },
+    {
+      "kind": "implementation",
+      "screen": "doc",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-doc.png",
+      "title": "Documents · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "adca99e411f2b4bb592d4ec5167b66250ea2e154f2b815acfd83d4f27368e669"
+    },
+    {
+      "kind": "implementation",
+      "screen": "manuscript",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-manuscript.png",
+      "title": "Manuscripts · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond"
+      ],
+      "sha256": "2666801de469dd96913c22725d9815bfe4368c3794395db3d51cfdf0d30f7870"
+    },
+    {
+      "kind": "implementation",
+      "screen": "research",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-research.png",
+      "title": "Research · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "05be22ba06b0bfcb86c864b0ecfc2f1335e44e67c3fe26d149c79e80e69a3607"
+    },
+    {
+      "kind": "implementation",
+      "screen": "library",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-library.png",
+      "title": "Library · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "80c6f44aa193f2cc05c7c7f7355902ced982db2c27539b3b2a1fd09efce74439"
+    },
+    {
+      "kind": "implementation",
+      "screen": "reader",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-reader.png",
+      "title": "PDF reader · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "0ad622eb6f2c964ca2919eaf3444d99965e6e1d4fad13a76994e99f683003c05"
+    },
+    {
+      "kind": "implementation",
+      "screen": "tasks",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-tasks.png",
+      "title": "Tasks · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "73c77ec2f84c268ea0d3ad53c7489e2ed57c9ba657a87b6264a29c1215e54d94"
+    },
+    {
+      "kind": "implementation",
+      "screen": "channels",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-channels.png",
+      "title": "Channels · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "4af11e6fcaa424660e211c106b1a4ae202551ceadc47e2249c1b9e293ddf8a53"
+    },
+    {
+      "kind": "implementation",
+      "screen": "experiments",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-experiments.png",
+      "title": "Experiments · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a186c2c0bd03a11dbcb260115a71ce799e50ddcddd0a99549cf304b020f50cde"
+    },
+    {
+      "kind": "implementation",
+      "screen": "graph",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-graph.png",
+      "title": "Knowledge graph · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "7dba698b9b4a0f6305fa274ce2190701ac34aed8bdf6916bcf5c485fb7a91975"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-inbox.png",
+      "title": "Inbox · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "87c48756c41a75317c6907dbea735e6c13b1e5bc23df2a6ebb4821ba10d757bb"
+    },
+    {
+      "kind": "implementation",
+      "screen": "settings",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-settings.png",
+      "title": "Settings · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "ed15186e60570845f4a72820eae7d648471215efb43e2e8319c4529688c84675"
+    },
+    {
+      "kind": "implementation",
+      "screen": "system",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-system.png",
+      "title": "Design system · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "Lora Variable",
+        "JetBrains Mono Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "c3de00b4110c1b87ab91342a26184e98b4ae5a2f8fc58fb8a8902806291c8f20"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-mobile.png",
+      "title": "Mobile screens · Atlas",
+      "errors": [],
+      "overflow": false,
+      "fonts": [
+        "Geist Variable",
+        "Geist Variable",
+        "Cormorant Garamond",
+        "Cormorant Garamond"
+      ],
+      "sha256": "a47ef987e06ef20268079e91ccdfbb0722e97c724f77dca5223e4164d9431454"
+    },
+    {
+      "kind": "implementation",
+      "screen": "ai-open",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-ai-open.png",
+      "sha256": "6ee97331850e343a2046752b4e89e00f95c8007312d027243b35d5eb979710a4"
+    },
+    {
+      "kind": "implementation",
+      "screen": "ai-focus",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-ai-focus.png",
+      "sha256": "54f0c70730631d18029feaa98e6945d6330ad05c5d579d300c67218acfa69599"
+    },
+    {
+      "kind": "implementation",
+      "screen": "ai-panel",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-ai-panel.png",
+      "sha256": "8fd2743e901988f93f8b89c796ac3a8c5bceadebdbc7cbaa954e7376255f5a5d"
+    },
+    {
+      "kind": "implementation",
+      "screen": "history",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-history.png",
+      "sha256": "fa4c51c81643ae3a85f9f961702e59ef832942b8bebd708cdbf21f5420d73583"
+    },
+    {
+      "kind": "implementation",
+      "screen": "share",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-share.png",
+      "sha256": "90fdeef4794d46527dcd88a8450d6940462ba15cd6d97438486254a2c3767edc"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox-popover",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-inbox-popover.png",
+      "sha256": "92580dcaa5d2631707665a77bcdb9ba0ad7daba840a8481c158dd27c9ef4ccec"
+    },
+    {
+      "kind": "implementation",
+      "screen": "command-search",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-command-search.png",
+      "sha256": "514d3e767dc7608eb81326f3e47a6608216b56638b3a53d43d956e08e80de78c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "paper-detail",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-paper-detail.png",
+      "sha256": "28df5603d1644ed792e9995f7c17d229ce3cbf8860d3a8d099eefdd4fca6ef3e"
+    },
+    {
+      "kind": "implementation",
+      "screen": "task-detail",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-task-detail.png",
+      "sha256": "168832b42a12e2d73665deee38557b95db1afa8e604e1f8ed46df2cc7cd3569c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "pricing",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-pricing.png",
+      "sha256": "575b79be37b379297adde88e740b22d5a1ebf608dcbc413f800ea947c4444db8"
+    },
+    {
+      "kind": "implementation",
+      "screen": "document-mention",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-document-mention.png",
+      "sha256": "8455deba24d3cc7d5325d6f9a5df1fd9fc631a70c6eee18c77e8cf4f05098180"
+    },
+    {
+      "kind": "implementation",
+      "screen": "document-slash",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-dark-1440-document-slash.png",
+      "sha256": "09a65ab725a5feb308ef3cb16336e65d8d4fd600747caef459bd26d826e82916"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile-drawer",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-dark-390-mobile-drawer.png",
+      "sha256": "f963d9c0e3c9d5a18fe98ece6e8cbf394ade19250299d35343dd8befe9508f87"
+    },
+    {
+      "kind": "implementation",
+      "screen": "ai-open",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-ai-open.png",
+      "sha256": "a92664ca21380984082363860843520e76d75aaf5a297895819801578da62034"
+    },
+    {
+      "kind": "implementation",
+      "screen": "ai-focus",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-ai-focus.png",
+      "sha256": "90d666744be97e31b498987b4cc1508d50e82116574b242afb91f47dc17d77e9"
+    },
+    {
+      "kind": "implementation",
+      "screen": "ai-panel",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-ai-panel.png",
+      "sha256": "1cb442e1cbf588513ac4e634857ad3ed5c432ad6ce188be6ef2f4fc2dcbe55ba"
+    },
+    {
+      "kind": "implementation",
+      "screen": "history",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-history.png",
+      "sha256": "aa2756536eb0a57800a83ec25ba4843ad083567fce6b39177d7e4a7c4f7a43e5"
+    },
+    {
+      "kind": "implementation",
+      "screen": "share",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-share.png",
+      "sha256": "c7fcea44e4593499a018b2f3ae60f599d0b65e900e117752ee63a6b7c3b3c5db"
+    },
+    {
+      "kind": "implementation",
+      "screen": "inbox-popover",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-inbox-popover.png",
+      "sha256": "6508047601d4f626688b5f984d7718852013f2ecdc08afb8b68cc2ed4e9d7de0"
+    },
+    {
+      "kind": "implementation",
+      "screen": "command-search",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-command-search.png",
+      "sha256": "88e53e32f7b3d2742370c8b260df3dea1fac37fed97df03a2791c2a937a3fac0"
+    },
+    {
+      "kind": "implementation",
+      "screen": "paper-detail",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-paper-detail.png",
+      "sha256": "8bdb110196c81c2ff30adec23858039530817d7cf1cdf2b6d8c4dfb6f25df647"
+    },
+    {
+      "kind": "implementation",
+      "screen": "task-detail",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-task-detail.png",
+      "sha256": "aa311fa7f09f5a2353d0435240e348f0570aec3c6d50458da4f66174c5eedbb0"
+    },
+    {
+      "kind": "implementation",
+      "screen": "pricing",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-pricing.png",
+      "sha256": "f7395892c322c100931b3f6610ff12373bc8a88857d48a7cfc1ea9e3451f8621"
+    },
+    {
+      "kind": "implementation",
+      "screen": "document-mention",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-document-mention.png",
+      "sha256": "f213c8f926a6cd89d65c660ff01c89736c437b4c99c7d700f4d218a278694b5c"
+    },
+    {
+      "kind": "implementation",
+      "screen": "document-slash",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "file": "implementation-light-1440-document-slash.png",
+      "sha256": "b8654de2ad017792337b74018ab3a72ee5bd0561cc403042f49c62f56ead5adb"
+    },
+    {
+      "kind": "implementation",
+      "screen": "mobile-drawer",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "file": "implementation-light-390-mobile-drawer.png",
+      "sha256": "a30de4ca75810abfa3a658be64f73cd5e8c59dbd018d225a2077717af02fb36b"
+    }
+  ]
+}

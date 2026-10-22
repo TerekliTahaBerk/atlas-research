@@ -55,7 +55,13 @@ function DocumentView({ docId }: { docId: string }) {
   const openSource = useOpenSource();
   const doc = documentById(docId);
   const rich = docId === 'd1';
-  const title = doc?.title ?? 'Untitled document';
+  const title = rich
+    ? 'Related work — sparse attention in structure prediction'
+    : (doc?.title ?? 'Untitled document');
+  const { setContext } = atlas;
+  useEffect(() => {
+    setContext([{ id: docId, kind: 'document', title }]);
+  }, [docId, setContext, title]);
   const [mode, setMode] = useState<'edit' | 'suggest'>('edit');
   const [rail, setRail] = useState<RailTab | null>(null);
   const [resolved, setResolved] = useState(false);

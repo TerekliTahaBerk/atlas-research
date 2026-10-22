@@ -10,6 +10,7 @@ const config = [
       '**/generated/**',
       'playwright-report/**',
       'test-results/**',
+      '.qa-artifacts/**',
       '**/next-env.d.ts',
     ],
   },

@@ -35,6 +35,8 @@ export interface AtlasApi {
   input: string;
   setInput: (value: string) => void;
   chips: ContextReference[];
+  /** Replace ambient sample context when the active artifact changes. */
+  setContext: (chips: ContextReference[]) => void;
   addChip: (chip: ContextReference) => void;
   removeChip: (id: string) => void;
   messages: AtlasMessage[];
@@ -55,7 +57,7 @@ export interface AtlasApi {
   menuOpen: React.RefObject<boolean>;
   setMenuOpen: (open: boolean) => void;
   focusInput: () => void;
-  registerInput: (el: HTMLInputElement | null) => void;
+  registerInput: (el: HTMLInputElement | null) => () => void;
   /** Manuscript-only: whether the inline editor composer is shown. */
   editorComposer: boolean;
   setEditorComposer: (value: boolean) => void;
@@ -145,12 +147,15 @@ export function AtlasProvider({
   }, []);
   const registerInput = useCallback((el: HTMLInputElement | null) => {
     inputEl.current = el;
+    return () => {
+      if (inputEl.current === el) inputEl.current = null;
+    };
   }, []);
-  const contextLabel = chips[0]?.title ?? 'this workspace';
   const send = useCallback(
-    (raw?: string) => {
+    (raw?: string, context = chips) => {
       const text = (raw ?? input).trim();
       if (!text || busyId) return;
+      const contextLabel = context[0]?.title ?? 'this workspace';
       const id = `a${++messageSeq}`;
       const reply = sampleReply(text, screen, contextLabel);
       const instant = prefersReducedMotion();
@@ -182,7 +187,7 @@ export function AtlasProvider({
       setModeState((m) => (m === 'compact' ? 'open' : m));
       if (!instant) setBusyId(id);
     },
-    [busyId, contextLabel, input, screen],
+    [busyId, chips, input, screen],
   );
   const update = useCallback(
     (id: string, patch: (m: AssistantMessage) => Partial<AssistantMessage>) =>
@@ -281,18 +286,30 @@ export function AtlasProvider({
         setInput(draft);
         focusInput();
       }
-      if (prompt) setTimeout(() => send(prompt), 0);
+      if (prompt) send(prompt, extra?.length ? extra : chips);
     },
-    [focusInput, send],
+    [chips, focusInput, send],
   );
+  const setContext = useCallback((context: ContextReference[]) => {
+    setChips(context);
+  }, []);
   const setMenuOpen = useCallback((open: boolean) => {
     menuOpen.current = open;
   }, []);
   // ⌘/Ctrl+J toggles focus mode; Escape steps down open → compact.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
       const key = event.key.toLowerCase();
       if ((event.metaKey || event.ctrlKey) && key === 'j') {
+        // A foreground dialog owns focus. Opening Atlas behind it would
+        // create a second focus trap below the visible overlay.
+        if (
+          document.querySelector(
+            '[role="dialog"][data-state="open"]:not([data-atlas-focus]), [role="menu"][data-state="open"]',
+          )
+        )
+          return;
         event.preventDefault();
         toggleFocus();
         return;
@@ -340,6 +357,7 @@ export function AtlasProvider({
       input,
       setInput,
       chips,
+      setContext,
       addChip: (chip) =>
         setChips((list) =>
           list.some((c) => c.id === chip.id) ? list : [...list, chip],
@@ -377,6 +395,7 @@ export function AtlasProvider({
       send,
       setMenuOpen,
       setMode,
+      setContext,
       stop,
       toggleFocus,
       update,

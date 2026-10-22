@@ -16,6 +16,8 @@
     "typecheck": "pnpm db:generate && pnpm -r typecheck && tsc --noEmit -p tsconfig.tools.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "qa:reference": "node tests/visual/prepare-reference.mjs",
+    "qa:visual": "node tests/visual/capture.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:validate": "pnpm --filter @atlas/database validate",

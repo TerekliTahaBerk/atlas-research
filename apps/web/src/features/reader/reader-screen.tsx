@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Dialog as DialogPrimitive } from 'radix-ui';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -46,11 +47,17 @@ export function ReaderScreen() {
   const wide = useMediaQuery('(min-width: 900px)');
   const paperParam = params.get('paper');
   const paper = paperById(isPaperId(paperParam) ? paperParam : 'p2');
+  const { setContext } = atlas;
+  useEffect(() => {
+    setContext([{ id: paper.id, kind: 'paper', title: paper.short }]);
+  }, [paper.id, paper.short, setContext]);
   const cited = params.get('cite') === '1';
   const [page, setPage] = useState(3);
   const [zoom, setZoom] = useState(100);
   const [color, setColor] = useState(0);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [mobilePanel, setMobilePanel] = useState(false);
+  const notesTrigger = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<'notes' | 'outline' | 'ask'>('notes');
   const [selectionBar, setSelectionBar] = useState(!cited);
   const [highlighted, setHighlighted] = useState(false);
@@ -71,6 +78,133 @@ export function ReaderScreen() {
       prompt: 'Is this memory claim comparable to ours?',
     });
   };
+  const notesPanel = (
+    <aside
+      aria-label="Reading panel"
+      className={cn(
+        'flex min-h-0 shrink-0 flex-col border-l border-bd2 bg-canvas',
+        wide
+          ? 'w-80'
+          : 'fixed inset-y-2 right-2 z-[81] w-[min(380px,calc(100vw-16px))] rounded-xl border shadow-pop',
+      )}
+    >
+      {!wide ? (
+        <div className="flex items-center justify-between px-3 pt-3">
+          <DialogPrimitive.Title className="text-ui font-medium">
+            Reader notes
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">
+            Sample notes, outline and Atlas questions for this paper.
+          </DialogPrimitive.Description>
+          <IconBtn
+            label="Close reader notes"
+            onClick={() => setMobilePanel(false)}
+          >
+            <X aria-hidden="true" />
+          </IconBtn>
+        </div>
+      ) : null}
+      <div className="border-b border-bd2 px-2.5 py-2">
+        <Segmented
+          label="Reading panel view"
+          variant="plain"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'notes', label: 'Notes' },
+            { value: 'outline', label: 'Outline' },
+            { value: 'ask', label: 'Ask' },
+          ]}
+        />
+      </div>
+      <div className="flex-1 overflow-auto p-3">
+        {tab === 'notes'
+          ? readerNotes.map((n) => (
+              <button
+                key={n.quote}
+                type="button"
+                onClick={() => setPage(n.page)}
+                className="mb-2 block w-full rounded-lg border border-bd2 p-2.5 text-left hover:bg-card"
+              >
+                <span className="mb-1.5 flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className="size-2 rounded-[2px]"
+                    style={{
+                      background: highlightColors[n.color]?.value,
+                    }}
+                  />
+                  <span className="font-mono text-[11px] text-tx2">
+                    {n.location}
+                  </span>
+                  <span className="flex-1" />
+                  <span className="text-[11px] text-tx3">{n.who}</span>
+                </span>
+                <span className="mb-[5px] block font-read text-ui leading-normal text-tx2 italic">
+                  “{n.quote}”
+                </span>
+                {n.note ? (
+                  <span className="block text-ctl">{n.note}</span>
+                ) : null}
+              </button>
+            ))
+          : null}
+        {tab === 'outline'
+          ? readerOutline.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                aria-current={
+                  o.page === page && o.label.startsWith('3 ')
+                    ? 'true'
+                    : undefined
+                }
+                onClick={() => setPage(o.page)}
+                className={cn(
+                  'flex h-[30px] w-full items-center gap-2 rounded-md pr-2 text-ctl hover:bg-hov',
+                  o.page === page && o.label.startsWith('3 ') && 'bg-hov',
+                )}
+                style={{ paddingLeft: o.depth ? 26 : 12 }}
+              >
+                <span className="flex-1 truncate text-left">{o.label}</span>
+                <span className="text-[11px] text-tx3">{o.page}</span>
+              </button>
+            ))
+          : null}
+        {tab === 'ask' ? (
+          <>
+            <p className="mb-2.5 text-ctl text-tx2">
+              Atlas answers from this paper and cites page locations.{' '}
+              <SampleTag>Sample answers</SampleTag>
+            </p>
+            {readerQuestions.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => {
+                  setMobilePanel(false);
+                  atlas.ask({
+                    mode: 'open',
+                    prompt: q,
+                    chips: [
+                      { id: paper.id, kind: 'paper', title: paper.short },
+                    ],
+                  });
+                }}
+                className="mb-1.5 flex w-full items-center gap-2 rounded-[7px] border border-bd2 px-2.5 py-2 text-left text-ctl hover:bg-hov"
+              >
+                <Sparkles
+                  aria-hidden="true"
+                  className="size-3 shrink-0 text-actx"
+                />
+                {q}
+              </button>
+            ))}
+          </>
+        ) : null}
+      </div>
+    </aside>
+  );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-12 shrink-0 items-center gap-1.5 border-b border-bd2 px-3">
@@ -144,9 +278,12 @@ export function ReaderScreen() {
           <ZoomIn aria-hidden="true" className="size-[14px]" />
         </IconBtn>
         <IconBtn
+          ref={notesTrigger}
           label="Notes panel"
           tone={panel ? 'active' : 'default'}
-          onClick={() => setPanelOpen((o) => !o)}
+          onClick={() =>
+            wide ? setPanelOpen((o) => !o) : setMobilePanel((o) => !o)
+          }
         >
           <PanelRight aria-hidden="true" className="size-[15px]" />
         </IconBtn>
@@ -244,7 +381,7 @@ export function ReaderScreen() {
                         <span
                           role="toolbar"
                           aria-label="Selection actions"
-                          className="absolute top-[-5.2cqw] left-[36%] z-[2] flex items-center gap-0.5 rounded-lg border border-bd bg-pop p-1 font-sans text-xs whitespace-nowrap text-tx shadow-pop max-sm:left-0"
+                          className="absolute top-[-5.2cqw] right-0 z-[2] flex max-w-[calc(100vw-40px)] flex-wrap items-center gap-0.5 rounded-lg border border-bd bg-pop p-1 font-sans text-xs whitespace-nowrap text-tx shadow-pop"
                         >
                           <button
                             type="button"
@@ -279,6 +416,7 @@ export function ReaderScreen() {
                               setSelectionBar(false);
                               setTab('notes');
                               setPanelOpen(true);
+                              if (!wide) setMobilePanel(true);
                             }}
                             className="flex h-[26px] items-center gap-[5px] rounded-[5px] px-2 hover:bg-hov"
                           >
@@ -386,113 +524,24 @@ export function ReaderScreen() {
             </IconBtn>
           </div>
         </div>
-        {panel ? (
-          <aside
-            aria-label="Reading panel"
-            className="flex w-80 shrink-0 flex-col border-l border-bd2 bg-canvas"
-          >
-            <div className="border-b border-bd2 px-2.5 py-2">
-              <Segmented
-                label="Reading panel view"
-                variant="plain"
-                value={tab}
-                onChange={setTab}
-                options={[
-                  { value: 'notes', label: 'Notes' },
-                  { value: 'outline', label: 'Outline' },
-                  { value: 'ask', label: 'Ask' },
-                ]}
-              />
-            </div>
-            <div className="flex-1 overflow-auto p-3">
-              {tab === 'notes'
-                ? readerNotes.map((n) => (
-                    <button
-                      key={n.quote}
-                      type="button"
-                      onClick={() => setPage(n.page)}
-                      className="mb-2 block w-full rounded-lg border border-bd2 p-2.5 text-left hover:bg-card"
-                    >
-                      <span className="mb-1.5 flex items-center gap-1.5">
-                        <span
-                          aria-hidden="true"
-                          className="size-2 rounded-[2px]"
-                          style={{
-                            background: highlightColors[n.color]?.value,
-                          }}
-                        />
-                        <span className="font-mono text-[11px] text-tx2">
-                          {n.location}
-                        </span>
-                        <span className="flex-1" />
-                        <span className="text-[11px] text-tx3">{n.who}</span>
-                      </span>
-                      <span className="mb-[5px] block font-read text-ui leading-normal text-tx2 italic">
-                        “{n.quote}”
-                      </span>
-                      {n.note ? (
-                        <span className="block text-ctl">{n.note}</span>
-                      ) : null}
-                    </button>
-                  ))
-                : null}
-              {tab === 'outline'
-                ? readerOutline.map((o) => (
-                    <button
-                      key={o.label}
-                      type="button"
-                      aria-current={
-                        o.page === page && o.label.startsWith('3 ')
-                          ? 'true'
-                          : undefined
-                      }
-                      onClick={() => setPage(o.page)}
-                      className={cn(
-                        'flex h-[30px] w-full items-center gap-2 rounded-md pr-2 text-ctl hover:bg-hov',
-                        o.page === page && o.label.startsWith('3 ') && 'bg-hov',
-                      )}
-                      style={{ paddingLeft: o.depth ? 26 : 12 }}
-                    >
-                      <span className="flex-1 truncate text-left">
-                        {o.label}
-                      </span>
-                      <span className="text-[11px] text-tx3">{o.page}</span>
-                    </button>
-                  ))
-                : null}
-              {tab === 'ask' ? (
-                <>
-                  <p className="mb-2.5 text-ctl text-tx2">
-                    Atlas answers from this paper and cites page locations.{' '}
-                    <SampleTag>Sample answers</SampleTag>
-                  </p>
-                  {readerQuestions.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() =>
-                        atlas.ask({
-                          mode: 'open',
-                          prompt: q,
-                          chips: [
-                            { id: paper.id, kind: 'paper', title: paper.short },
-                          ],
-                        })
-                      }
-                      className="mb-1.5 flex w-full items-center gap-2 rounded-[7px] border border-bd2 px-2.5 py-2 text-left text-ctl hover:bg-hov"
-                    >
-                      <Sparkles
-                        aria-hidden="true"
-                        className="size-3 shrink-0 text-actx"
-                      />
-                      {q}
-                    </button>
-                  ))}
-                </>
-              ) : null}
-            </div>
-          </aside>
-        ) : null}
+        {panel ? notesPanel : null}
+        <DialogPrimitive.Root
+          open={!wide && mobilePanel}
+          onOpenChange={setMobilePanel}
+        >
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-dim" />
+            <DialogPrimitive.Content
+              asChild
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                notesTrigger.current?.focus();
+              }}
+            >
+              {notesPanel}
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
       </div>
     </div>
   );
