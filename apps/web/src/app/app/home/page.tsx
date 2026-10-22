@@ -1,4 +1,5 @@
-import { ProjectOverview } from '@/features/projects/project-overview';
+import { HomeScreen } from '@/features/home/home-screen';
+export const metadata = { title: 'Home' };
 export default function Page() {
-  return <ProjectOverview />;
+  return <HomeScreen />;
 }

@@ -1,46 +1,58 @@
-# Component inventory · Phase 00.5
+# Component inventory · Phase 00.5A
 
-## Shared UI package
+Atlas primitives live in `apps/web/src/components/atlas/`. Features live in `apps/web/src/features/<area>/`. Sample fixtures live in `apps/web/src/lib/preview/` and do not depend on Prisma or the core domain. `@atlas/ui` keeps its existing shadcn components. `cn()` there now registers Atlas's named text sizes with tailwind-merge.
 
-Existing `@atlas/ui/components/*` remain the base: Button, Input, Textarea, Select, Dialog, DropdownMenu, Tooltip, Badge, Avatar, Card, Tabs, Skeleton, Empty, Alert and Separator. No library or runtime dependency was added. Tabs now use semantic muted foreground for inactive labels so the light theme meets contrast requirements. EmptyState exposes its title as a level-two heading. The original `cn` remains the only class utility.
+## Primitives (`components/atlas`)
 
-## Application composition
+| Component                                                                                                            | Notes                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Btn`, `btnVariants`                                                                                                 | Variants primary, secondary, outline, ghost, ai, aiGhost, subtle, danger, inverse; sizes xs–cta; `asChild` |
+| `IconBtn`                                                                                                            | `label` is required; it becomes both the accessible name and the tooltip                                   |
+| `Segmented`                                                                                                          | Radio group with roving arrow keys; track, plain and solid variants; icon-only options take `ariaLabel`    |
+| `RefChip`, `InlineRef`, `CountBadge`, `UnreadBadge`, `Kbd`, `SampleTag`, `StatusTag`, `Dot`, `Avatar`, `AvatarStack` | Chips and labels. `SampleTag` marks preview content. `Avatar` is `role="img"`.                             |
+| `Menu*`, `MenuItem`, `MenuRadioItem`, `Popover*`, `HoverCard*`, `Modal*`                                             | Radix wrappers with the Atlas pop surface; `ModalContent` takes `blur` and `position`                      |
+| `ToastProvider` / `useToast`                                                                                         | A single polite `role="status"` region                                                                     |
+| `EmptyState`, `ErrorBanner`, `SkeletonLines`                                                                         | Shared states                                                                                              |
 
-| Component / contract                  | Owner              | Responsibility                                                             |
-| ------------------------------------- | ------------------ | -------------------------------------------------------------------------- |
-| AppShell / ShellFrame                 | shell              | Shared contextual header, shortcuts, mobile dialog and preference handling |
-| Sidebar                               | shell              | Workspace/project sections from central navigation; compact named links    |
-| SearchDialog                          | shell              | Accessible navigation-only search, no artifact data access                 |
-| ThemeControl / Providers              | components         | Existing next-themes persistence and Radix tooltip scope                   |
-| PageHeader / state components         | components         | Consistent title/description, empty/loading/retry                          |
-| AtlasProvider / useAtlas              | atlas-ai           | Single roaming assistant request and invoking-control focus                |
-| AssistantExperience                   | atlas-ai           | Shared state presentation for panel and full AI workspace                  |
-| AtlasComposer                         | atlas-ai           | Sage input, mode, attachment entry point, draft submission                 |
-| ContextReference / AssistantContext   | atlas-ai/contracts | Typed presentation references and explicit scope                           |
-| useEntityPicker / EntityPicker        | atlas-ai           | Reusable trailing-token search, keyboard selection, active descendant      |
-| ContextChip                           | atlas-ai           | Entity icon, named link, full-title tooltip and accessible removal         |
-| CitationReference / SourceCard        | atlas-ai           | Structured source state; incomplete verification downgraded                |
-| AIResponse                            | atlas-ai           | Safe authored rich sample, source expansion, copy and proposed actions     |
-| PreviewNotice                         | preview            | Local fixture/service boundary disclosure                                  |
-| CapabilityButton                      | preview            | Accessible explanation for an unavailable action                           |
-| CreatePreview                         | preview            | Bounded name, local draft review, no persistence claim                     |
-| ViewToggle                            | preview            | Native radio-driven layout switch                                          |
-| SectionHeading                        | preview            | Repeated section/link rhythm                                               |
-| PreviewPaper / PreviewTask / fixtures | preview            | Synthetic authored content; no Prisma/domain dependency                    |
-| ProjectOverview                       | projects           | Home continuation desk and project compatibility route                     |
-| ResearchScreen / PaperCard            | research           | Local discovery/library composition and reusable paper anatomy             |
-| ReaderPreview                         | research           | Outline, reflowing sample pages, zoom/search/highlight and context         |
-| DocumentScreen                        | documents          | Note tree, local draft state, marker toolbar, selection actions and focus  |
-| TaskStatusLabel / TaskPriority        | tasks              | Text-plus-icon status/priority shared across board/detail                  |
-| TasksScreen                           | tasks              | Local board/list and task detail state                                     |
-| ChannelsScreen                        | channels           | Local research conversation, entity cards, reactions and thread            |
-| InboxScreen                           | preview            | Local activity and unread state                                            |
-| ManuscriptsScreen / ExperimentsScreen | preview            | Lightweight future module contracts without runtimes                       |
-| AuthPreview                           | onboarding         | One coherent auth family; no network submission                            |
-| OnboardingPreview                     | onboarding         | Optional, short multi-step sketch; never creates resources                 |
+## Shell (`features/shell`)
 
-## Boundaries and extension points
+| Component / module                 | Responsibility                                                                                                               |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `AppShell`                         | Providers, fixed layout, desktop `Sidebar` aside, Radix drawer under 900px, `#main-content` canvas, global keys (⌘K, ⌘\\, ?) |
+| `Sidebar`                          | Workspace and New menus, Search, Home, Inbox popover, sections, project menu, Upgrade, theme menu                            |
+| `Topbar`, `SidebarToggle`, `Crumb` | 48px contextual header                                                                                                       |
+| `ShellProvider` / `useShell`       | Narrow, collapsed (persisted), drawer, search, pricing and shortcuts state                                                   |
+| `PreviewStoreProvider`             | In-memory saved papers, task moves, read state, channel drafts and doc citations (never persisted)                           |
+| `CommandPalette`                   | ⌘K "Search Atlas" combobox over pages and sample items; hands off to Atlas                                                   |
+| `ShortcutsDialog`, `ThemeMenu`     | "?" help; Dark/Light/System, gated on hydration                                                                              |
+| `navigation.ts`                    | The single allowlist for modules, destinations and screen keys                                                               |
+| `useMediaQuery`, `useHydrated`     | SSR-safe client state                                                                                                        |
 
-Feature state stays local to its screen. Shell/AI composition can wrap server-rendered route children. `ModulePreview` remains a server dispatcher, so unused modules do not require a universal client screen switch. Feature components do not import database, server environment or provider packages. Core/AI packages retain their original dependency constraints.
+## Atlas AI (`features/atlas-ai`)
 
-These presentation types are intentionally separate from production domain IDs. A later service adapter validates unknown DTOs with Zod and resolves actor/tenant/resource/capability on the server. The picker can accept a future authorized source without coupling to a particular rich editor; its current exported fixture search is explicitly preview-only. Rich text parsing, cursor-range insertion, CRDT editing and arbitrary Markdown rendering are not included. Context chips link to module views rather than claim a future entity detail route.
+| Handoff component     | Implementation                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| `AtlasComposer`       | `atlas-composer.tsx`: combobox "Ask Atlas", mention and slash listboxes, send/stop              |
+| `AtlasAIPanel`        | `AtlasSurface` with `placement="panel"`; `AtlasLayer` positions the panel and focus dialog      |
+| `AtlasAIMessage`      | `atlas-message.tsx`: user and assistant messages, preview steps, actions, "Sample response"     |
+| `AtlasAIContext`      | `AtlasProvider` / `useAtlas`: the single state shared by all modes                              |
+| `ContextChip`         | `RefChip` in the context row, with "Remove …" buttons                                           |
+| `CitationChip`        | `citations.tsx`: `CitationChip`, `CitePill`, `PaperHoverCard`                                   |
+| `SourcePill`          | `citations.tsx`: opens the reader at the cited paper                                            |
+| `MentionMenu`         | The composer listbox over `filterMentions`; the editor uses the same item data                  |
+| `SlashMenu`           | The composer listbox over `commandsFor(screen)`; the editor has its own block menu              |
+| `ContextualAITrigger` | `atlas-surface.tsx`: button that calls `atlas.ask({ prompt, chips, mode })`                     |
+| `AIStatusIndicator`   | `atlas-surface.tsx`: pulsing dot plus specific status text                                      |
+| `AISuggestionBlock`   | `documents/editor/nodes.tsx`: the `AISuggestion` Tiptap node with Accept, Discard and Try again |
+
+## Screens
+
+`home`, `projects` (overview, workspace projects), `documents` (Tiptap editor, nodes, rail), `manuscripts` (CodeMirror editor, PDF preview), `research`, `library`, `reader`, `tasks`, `channels`, `experiments`, `graph`, `inbox`, `settings`, `system` (design system, tokens, mobile frames), `onboarding` (auth, onboarding) and `overlays` (share, version history, pricing, resource menus).
+
+The per-screen detail is in the [reference map](design/PHASE_00_5A_REFERENCE_MAP.md).
+
+## Boundaries
+
+- No feature imports the database, server environment or provider packages.
+- Presentation IDs (`p1`, `d1`, `ATL-27`, …) are not production identifiers. A Phase 01+ adapter must validate DTOs with Zod and authorize them on the server.
+- Tiptap and CodeMirror content is in memory only.

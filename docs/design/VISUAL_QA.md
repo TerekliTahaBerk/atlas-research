@@ -1,5 +1,7 @@
 # Phase 00.5 visual QA
 
+> Superseded for the current UI by [PHASE_00_5A_IMPLEMENTATION_REPORT.md](PHASE_00_5A_IMPLEMENTATION_REPORT.md). The Phase 00.5 screenshots below are kept as historical evidence; the 00.5A set is in `qa/00-5a/`.
+
 Date: 2026-10-22 (Europe/Istanbul). Application tested locally from the optimized Next.js production output; no deployment is claimed. Browser plugin/skill was not available, so the repository’s Playwright Chromium was used. Sandbox process/port restrictions required the elevated local tool path for browser/server processes and a supported Webpack production-build fallback.
 
 ## Automated evidence

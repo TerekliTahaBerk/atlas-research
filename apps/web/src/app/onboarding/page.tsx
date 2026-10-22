@@ -1,4 +1,10 @@
-import { OnboardingPreview } from '@/features/onboarding/onboarding-preview';
+import { Suspense } from 'react';
+import { OnboardingScreen } from '@/features/onboarding/onboarding-screen';
+export const metadata = { title: 'Onboarding' };
 export default function Page() {
-  return <OnboardingPreview />;
+  return (
+    <Suspense>
+      <OnboardingScreen />
+    </Suspense>
+  );
 }

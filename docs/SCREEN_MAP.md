@@ -1,5 +1,7 @@
 # Atlas screen map
 
+> Phase 00.5A note: the per-screen mapping for the current UI is in [design/PHASE_00_5A_REFERENCE_MAP.md](design/PHASE_00_5A_REFERENCE_MAP.md), and the route parameters are in [ROUTES.md](ROUTES.md). The rows below describe Phase 00.5. Where they conflict with those documents, the 00.5A documents win.
+
 All content described here is a synthetic design preview. Route IDs other than `sample` remain rejected by server allowlists. All screens inherit the semantic theme, responsive shell and global Atlas AI launcher except public authentication/onboarding. Shared failure conventions are at the end of this map.
 
 | Screen / route                                     | Purpose and layout                                                  | Working actions / navigation                                                                                | Empty, loading, error                                                     | AI and references                                    | Later services                                                       |

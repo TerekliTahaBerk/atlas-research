@@ -1,250 +1,134 @@
 'use client';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
-import Link from 'next/link';
-import {
-  Bell,
-  Menu,
-  ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Sparkles,
-} from 'lucide-react';
-import { Button } from '@atlas/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from '@atlas/ui/components/dialog';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from '@atlas/ui/components/tooltip';
-import { ThemeControl } from '@/components/theme-control';
-import { usePathname } from 'next/navigation';
+import { useEffect, type ReactNode } from 'react';
+import { Dialog as DialogPrimitive } from 'radix-ui';
+import { cn } from '@atlas/ui/lib/utils';
 import { AtlasProvider, useAtlas } from '@/features/atlas-ai/atlas-provider';
-import type { AssistantContext } from '@/features/atlas-ai/contracts';
-import { navigationItems } from './navigation';
+import { AtlasLayer } from '@/features/atlas-ai/atlas-surface';
+import { PricingDialog } from '@/features/overlays/pricing-dialog';
+import { CommandPalette } from './command-palette';
+import { PreviewStoreProvider } from './preview-store';
+import { ShellProvider, useShell } from './shell-context';
+import { ShortcutsDialog } from './shortcuts-dialog';
 import { Sidebar } from './sidebar';
-import { SearchDialog } from './search-dialog';
-function subscribeSidebar(callback: () => void) {
-  window.addEventListener('atlas-sidebar', callback);
-  window.addEventListener('storage', callback);
-  return () => {
-    window.removeEventListener('atlas-sidebar', callback);
-    window.removeEventListener('storage', callback);
-  };
-}
-function sidebarSnapshot() {
-  try {
-    return localStorage.getItem('atlas-sidebar-collapsed') === 'true';
-  } catch {
-    return false;
-  }
-}
-export function AppShell({ children }: { children: React.ReactNode }) {
+/**
+ * Application shell (handoff `AppShell`): 216px sidebar on --sb, inset main
+ * canvas (6px margin, 10px radius), shell-level Atlas layer and overlays.
+ */
+export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <AtlasProvider>
-      <ShellFrame>{children}</ShellFrame>
-    </AtlasProvider>
+    <ShellProvider>
+      <PreviewStoreProvider>
+        <AtlasProvider>
+          <ShellFrame>{children}</ShellFrame>
+        </AtlasProvider>
+      </PreviewStoreProvider>
+    </ShellProvider>
   );
 }
-function ShellFrame({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const currentPage =
-    navigationItems.find((item) => item.href === pathname)?.label ??
-    'Workspace';
-  const assistantContext: AssistantContext = pathname.endsWith('/documents')
-    ? 'document'
-    : pathname.endsWith('/tasks')
-      ? 'tasks'
-      : pathname.endsWith('/research')
-        ? 'research'
-        : pathname.endsWith('/library')
-          ? 'paper'
-          : pathname.endsWith('/channels')
-            ? 'channel'
-            : pathname.endsWith('/manuscripts')
-              ? 'manuscript'
-              : pathname.endsWith('/experiments')
-                ? 'experiment'
-                : 'global';
-  const { openAssistant, isOpen, closeAssistant } = useAtlas();
-  const collapsed = useSyncExternalStore(
-    subscribeSidebar,
-    sidebarSnapshot,
-    () => false,
-  );
-  const [preferenceError, setPreferenceError] = useState('');
-  function toggleSidebar() {
-    try {
-      localStorage.setItem('atlas-sidebar-collapsed', String(!collapsed));
-      window.dispatchEvent(new Event('atlas-sidebar'));
-    } catch {
-      setPreferenceError(
-        'Navigation preference could not be saved in this browser.',
-      );
-    }
-  }
-
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
-  const openSearch = useCallback(() => {
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    setSearchOpen(true);
-  }, []);
+function ShellFrame({ children }: { children: ReactNode }) {
+  const shell = useShell();
+  const atlas = useAtlas();
+  const {
+    setSearchOpen,
+    setShortcutsOpen,
+    toggleSidebar,
+    searchOpen,
+    openSearch,
+  } = shell;
   useEffect(() => {
-    const handle = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+    function onKey(event: KeyboardEvent) {
+      const key = event.key.toLowerCase();
+      const mod = event.metaKey || event.ctrlKey;
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target?.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '');
+      if (mod && key === 'k') {
         event.preventDefault();
         if (searchOpen) setSearchOpen(false);
         else openSearch();
+      } else if (mod && key === '\\') {
+        event.preventDefault();
+        toggleSidebar();
+      } else if (key === '?' && !typing && !mod) {
+        setShortcutsOpen(true);
       }
-    };
-    window.addEventListener('keydown', handle);
-    return () => window.removeEventListener('keydown', handle);
-  }, [searchOpen, openSearch]);
-  function restoreSearchFocus() {
-    const target = returnFocusRef.current;
-    if (target?.isConnected && target.getClientRects().length) target.focus();
-    else mobileTriggerRef.current?.focus();
-  }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openSearch, searchOpen, setSearchOpen, setShortcutsOpen, toggleSidebar]);
+  const sidebarVisible = !shell.narrow && !shell.sidebarCollapsed;
+  const panel = atlas.mode === 'panel' && !shell.narrow;
   return (
-    <div className={collapsed ? 'app-shell compact-sidebar' : 'app-shell'}>
-      <SearchDialog
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        onNavigate={() => setMobileOpen(false)}
-        returnFocus={restoreSearchFocus}
-      />
+    <div className="fixed inset-0 flex overflow-hidden bg-sb text-tx">
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <aside className="desktop-sidebar" aria-label="Workspace sidebar">
-        <Sidebar onSearch={openSearch} />
-      </aside>
-      <div className="workspace-content">
-        <header className="topbar">
-          <div className="mobile-menu">
-            <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Open navigation"
-                  ref={mobileTriggerRef}
-                >
-                  <Menu aria-hidden="true" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="mobile-sidebar translate-x-0 translate-y-0">
-                <DialogHeader className="sr-only">
-                  <DialogTitle>Workspace navigation</DialogTitle>
-                  <DialogDescription>
-                    Navigate the sample workspace and project.
-                  </DialogDescription>
-                </DialogHeader>
-                <Sidebar
-                  onNavigate={() => setMobileOpen(false)}
-                  onSearch={openSearch}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-          <nav aria-label="Breadcrumb">
-            <ol className="breadcrumbs">
-              <li className="sidebar-toggle">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  aria-expanded={!collapsed}
-                  onClick={toggleSidebar}
-                >
-                  {collapsed ? (
-                    <PanelLeftOpen aria-hidden="true" />
-                  ) : (
-                    <PanelLeftClose aria-hidden="true" />
-                  )}
-                </Button>
-              </li>
-              <li>
-                <Link href="/app/workspaces/sample">Sample workspace</Link>
-              </li>
-              <li>
-                <ChevronRight aria-hidden="true" />
-              </li>
-              <li>
-                <span aria-current="page">{currentPage}</span>
-              </li>
-            </ol>
-          </nav>
-          <div className="header-actions">
-            <span className="preview-label">
-              <i aria-hidden="true" />
-              Design preview
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={isOpen ? 'Collapse Atlas AI' : 'Open Atlas AI'}
-              aria-expanded={isOpen}
-              onClick={() =>
-                isOpen
-                  ? closeAssistant()
-                  : openAssistant({ context: assistantContext })
-              }
-            >
-              <Sparkles data-icon="inline-start" />
-              <span className="assistant-button-label">Ask Atlas</span>
-            </Button>
-            <Dialog>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Notifications"
-                    >
-                      <Bell aria-hidden="true" />
-                    </Button>
-                  </DialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Notifications</TooltipContent>
-              </Tooltip>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Notifications</DialogTitle>
-                  <DialogDescription>
-                    Notifications will arrive with the communication hub in
-                    Phase 05. This preview has no notification service.
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
-            <ThemeControl />
-          </div>
-        </header>
-        <main id="main-content" className="page-content" tabIndex={-1}>
-          {preferenceError ? <p role="status">{preferenceError}</p> : null}
-          {children}
-        </main>
-      </div>
+      {sidebarVisible ? (
+        <aside
+          aria-label="Sidebar"
+          className="relative z-[45] w-[216px] shrink-0"
+        >
+          <Sidebar />
+        </aside>
+      ) : null}
+      <DialogPrimitive.Root
+        open={shell.drawerOpen}
+        onOpenChange={shell.setDrawerOpen}
+      >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[44] animate-atlas-fade bg-dim" />
+          <DialogPrimitive.Content
+            className="fixed inset-y-0 left-0 z-[45] w-[280px] max-w-[85vw] shadow-pop outline-none data-[state=open]:animate-atlas-fade"
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+              shell.toggleRef.current?.focus();
+            }}
+          >
+            <DialogPrimitive.Title className="sr-only">
+              Workspace navigation
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description className="sr-only">
+              Navigate the sample workspace and project.
+            </DialogPrimitive.Description>
+            <Sidebar drawer onNavigate={() => shell.setDrawerOpen(false)} />
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className={cn(
+          'atlas-canvas aic-pad relative my-1.5 flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-bd2 bg-canvas outline-none transition-[margin] duration-200',
+          sidebarVisible ? 'ml-0' : 'ml-1.5',
+          panel ? 'mr-[392px]' : 'mr-1.5',
+        )}
+      >
+        {shell.preferenceError ? (
+          <p role="status" className="px-4 py-1 text-xs text-warn">
+            {shell.preferenceError}
+          </p>
+        ) : null}
+        {children}
+      </main>
+      <AtlasLayer />
+      <CommandPalette
+        open={shell.searchOpen}
+        onOpenChange={setSearchOpen}
+        returnFocus={() => {
+          const el = shell.searchReturn.current;
+          if (el?.isConnected && el.getClientRects().length) el.focus();
+          else shell.toggleRef.current?.focus();
+        }}
+      />
+      <PricingDialog
+        open={shell.pricingOpen}
+        onOpenChange={shell.setPricingOpen}
+      />
+      <ShortcutsDialog
+        open={shell.shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+      />
     </div>
   );
 }

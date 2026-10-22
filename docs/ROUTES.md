@@ -1,35 +1,44 @@
-# Route inventory · Phase 00.5
+# Route inventory · Phase 00.5A
 
-| Route                                                  | Current UI behavior                                               | Later purpose                         |
-| ------------------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------- |
-| /                                                      | Editorial public entry with honest preview CTA                    | Product entry                         |
-| /login, /register, /reset-password                     | Labeled local auth form previews; no submission                   | Phase 01 verified identity/recovery   |
-| /onboarding                                            | Seven-step optional local sketch                                  | Phase 01 authorized bootstrap/invites |
-| /app                                                   | Existing redirect to sample project overview                      | Authorized last workspace             |
-| /app/home                                              | Workspace continuation desk                                       | Authorized recents and activity       |
-| /app/inbox                                             | Synthetic activity with local read state                          | Phase 05 recipient notifications      |
-| /app/help                                              | Shortcut/storage guide and auth preview links                     | Help                                  |
-| /app/workspaces                                        | Existing redirect to sample workspace                             | Authorized workspaces                 |
-| /app/workspaces/sample                                 | Sample workspace and project listing                              | UUID workspace overview               |
-| /app/workspaces/sample/projects                        | Local project filter/grid/list and creation-flow preview          | Authorized project index              |
-| /app/projects/sample                                   | Existing redirect to overview                                     | UUID project entry                    |
-| /app/projects/sample/overview                          | Home-like project continuation desk                               | Authorized project overview           |
-| /app/projects/sample/research                          | Local paper filtering, compare, reader and synthesis presentation | Phase 02 scholarly discovery          |
-| /app/projects/sample/library                           | Local collection/tag/filter/grid/list and reader                  | Phase 02 private source library       |
-| /app/projects/sample/documents                         | Local plain-text notebook, picker, selection and focus            | Phase 04 versioned writing            |
-| /app/projects/sample/documents?note=document-questions | Opens the matching sample note                                    | Future authorized artifact deep link  |
-| /app/projects/sample/tasks                             | Local board/list/status/task detail                               | Phase 04 research tasks               |
-| /app/projects/sample/channels                          | Local discussion/thread/reaction/mention demonstration            | Phase 05 authorized communication     |
-| /app/projects/sample/ai                                | Reusable full assistant preview                                   | Phase 03 grounded conversations       |
-| /app/projects/sample/manuscripts                       | Local LaTeX text and static uncompiled illustration               | Phase 07 sandbox manuscript workspace |
-| /app/projects/sample/experiments                       | Inert notebook/code/output illustration                           | Phase 07 isolated execution           |
-| /app/settings, /profile, /workspace                    | Appearance works; account/membership unavailable                  | Authorized preferences                |
-| Unknown ID/module/settings/path                        | Existing HTTP 404 with recovery                                   | Permission-safe missing resource      |
+Every route serves synthetic sample content. Server allowlists (`generateStaticParams` with `dynamicParams=false`) still accept only the `sample` workspace and project and the explicit module and settings slugs. Anything else returns a 404 with recovery.
 
-## Compatibility and scope
+| Route                                                                          | Screen (handoff)                                    | Query parameters                   |
+| ------------------------------------------------------------------------------ | --------------------------------------------------- | ---------------------------------- |
+| `/`                                                                            | Public entry                                        | —                                  |
+| `/login`, `/register`, `/reset-password`                                       | Auth previews (nothing is sent)                     | —                                  |
+| `/onboarding`                                                                  | Seven-step onboarding preview                       | `step=1…7`                         |
+| `/app`                                                                         | Redirects to `/app/home` (Phase 00.5: the overview) | —                                  |
+| `/app/home`                                                                    | `home`                                              | —                                  |
+| `/app/inbox`                                                                   | `inbox` (full page; the popover is in the sidebar)  | —                                  |
+| `/app/help`                                                                    | Shortcuts and storage guide                         | —                                  |
+| `/app/workspaces`, `/app/workspaces/sample`, `/app/workspaces/sample/projects` | Workspace project list                              | —                                  |
+| `/app/projects/sample`                                                         | Redirects to `overview`                             | —                                  |
+| `/app/projects/sample/overview`                                                | `overview`                                          | —                                  |
+| `/app/projects/sample/research`                                                | `research`                                          | `demo=loading`, `errors`, `empty`  |
+| `/app/projects/sample/library`                                                 | `library`                                           | `paper=p1…p5`, `demo=empty`        |
+| `/app/projects/sample/reader` **(new)**                                        | `reader`                                            | `paper=p1…p5`, `cite=1`            |
+| `/app/projects/sample/documents`                                               | `doc`                                               | `doc=d1…d4` (**replaces `note=`**) |
+| `/app/projects/sample/tasks`                                                   | `tasks`                                             | `task=ATL-…`, `demo=empty`         |
+| `/app/projects/sample/channels`                                                | `channels`                                          | `demo=empty`                       |
+| `/app/projects/sample/ai`                                                      | Atlas research page                                 | —                                  |
+| `/app/projects/sample/manuscripts`                                             | `manuscript`                                        | `demo=errors` (sample failed log)  |
+| `/app/projects/sample/experiments`                                             | `experiments`                                       | —                                  |
+| `/app/projects/sample/graph` **(new)**                                         | `graph`                                             | —                                  |
+| `/app/settings/{profile,appearance,workspace,plan}`                            | `settings` (`/app/settings` is appearance)          | —                                  |
+| `/app/design-system` **(new)**                                                 | `system` QA view                                    | —                                  |
+| `/app/design-system/mobile` **(new)**                                          | `mobile` QA view (iframes of live routes)           | —                                  |
 
-No existing route was removed, and `/app` retains its redirect. New Home/Inbox/Help and auth previews are additive. Project/workspace ownership architecture remains unchanged: production UUID project URLs resolve workspace/organization server-side. `features/shell/navigation.ts` is the centralized destination and module allowlist; avoid independently hardcoded module arrays.
+## Parameters that work on every app route
 
-`generateStaticParams` and `dynamicParams=false` still restrict preview resources to `sample` and the explicit module/settings allowlist. Real actors, tenant IDs and research entities are not accepted here. The document `note` query only selects an authored fixture; it cannot load an arbitrary resource. In Phase 01 replace sample enumeration with verified session/resource resolution and maintain non-leaking 404 behavior. Auth preview routes must be replaced by real verified flows, not wrapped with a demo bypass.
+These parameters only select authored fixtures or presentation states. They never load an arbitrary resource:
 
-Research/Library live under a project route even though the sidebar visually groups them under Workspace. This preserves active research context and leaves an authorized cross-project aggregate as a later design. Context chips route to module views; they are not proof of access or arbitrary entity-detail retrieval. No route introduces a product API, database query, provider call, migration or tenant-policy change. See [screen map](SCREEN_MAP.md) for every screen’s states and service dependencies.
+- `atlas=open`, `focus` or `panel` opens Atlas AI in that mode, for deep links and QA.
+- `demo=errors` makes Atlas previews end in a labeled sample error with Retry. On the manuscript screen it shows the sample failed log.
+
+## Compatibility notes
+
+- `/app` now redirects to `/app/home`, which matches the handoff's landing screen. The project overview is still at `/app/projects/sample/overview`.
+- `?note=document-questions` is no longer recognised. Documents use `?doc=`.
+- The module allowlist in `features/shell/navigation.ts` gained `reader` and `graph`.
+
+No API route, database query, provider call or migration was added. In Phase 01, sample enumeration must be replaced with verified session and resource resolution, and the non-leaking 404 behaviour must be kept.

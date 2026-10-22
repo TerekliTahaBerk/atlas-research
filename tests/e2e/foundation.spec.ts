@@ -1,82 +1,87 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-const overview = '/app/projects/sample/overview';
-test('public entry leads to the honest project preview without runtime errors', async ({
+import { base, noHorizontalOverflow, useTheme } from './helpers';
+test('public entry leads to the honest sample workspace without runtime errors', async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await page.getByRole('link', { name: 'Explore the workspace' }).click();
-  await expect(page).toHaveURL(overview);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'A place for your next discovery.',
-  );
   await expect(
-    page.getByText('No research data is stored in this preview.'),
+    page.getByText(/every workspace item is labeled sample data/),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Paper library', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Paper library',
+  await page.getByRole('link', { name: 'Explore the workspace' }).click();
+  await expect(page).toHaveURL('/app/home');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  const nav = page.getByRole('navigation', { name: 'Workspace navigation' });
+  await nav.getByRole('link', { name: /^Library/ }).click();
+  await expect(page).toHaveURL(`${base}/library`);
+  await expect(nav.getByRole('link', { name: /^Library/ })).toHaveAttribute(
+    'aria-current',
+    'page',
   );
-  await expect(page.getByText(/Planned for Phase 02/)).toBeVisible();
-  await expect(
-    page.getByRole('link', { name: 'Paper library', exact: true }),
-  ).toHaveAttribute('aria-current', 'page');
   expect(errors).toEqual([]);
 });
 test('theme light/dark/system choices persist and follow OS', async ({
   page,
 }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto(overview);
-  await page.getByRole('button', { name: 'Change theme' }).click();
-  await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click();
+  await page.goto(`${base}/overview`);
+  // Phase 00.5A: the handoff defaults to dark; both class and data-theme are set.
   await expect(page.locator('html')).toHaveClass(/dark/);
-  await page.reload();
-  await expect(page.locator('html')).toHaveClass(/dark/);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('button', { name: 'Change theme' }).click();
   await page.getByRole('menuitemradio', { name: 'Light', exact: true }).click();
   await expect(page.locator('html')).toHaveClass(/light/);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'Change theme' }).click();
+  await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click();
+  await expect(page.locator('html')).toHaveClass(/dark/);
   await page.getByRole('button', { name: 'Change theme' }).click();
   await page
     .getByRole('menuitemradio', { name: 'System', exact: true })
     .click();
+  await expect(page.locator('html')).toHaveClass(/light/);
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(page.locator('html')).toHaveClass(/dark/);
   expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe(
     'system',
   );
 });
-test('keyboard search filters navigation and restores focus on Escape', async ({
+test('keyboard search filters, restores focus on Escape and navigates', async ({
   page,
 }) => {
-  await page.goto(overview);
-  const search = page.getByRole('button', { name: /Search…/ });
+  await page.goto(`${base}/overview`);
+  const search = page
+    .getByRole('navigation', { name: 'Workspace navigation' })
+    .getByRole('button', { name: 'Search', exact: true });
   await search.focus();
   await page.keyboard.press('Control+k');
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: 'Search Atlas' });
   await expect(dialog).toBeVisible();
   await dialog
-    .getByRole('textbox', { name: 'Search navigation' })
+    .getByRole('combobox', { name: 'Search Atlas' })
     .fill('no such page');
-  await expect(dialog.getByRole('status')).toContainText('No pages match');
+  await expect(dialog.getByRole('status')).toContainText(
+    'No pages or sample items match',
+  );
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(search).toBeFocused();
   await page.keyboard.press('Control+k');
-  await dialog.getByRole('textbox').fill('documents');
-  await dialog.getByRole('link', { name: 'Documents', exact: true }).click();
-  await expect(page).toHaveURL('/app/projects/sample/documents');
+  await dialog.getByRole('combobox').fill('documents');
+  await dialog.getByRole('option', { name: 'Documents', exact: true }).click();
+  await expect(page).toHaveURL(`${base}/documents`);
   await expect(dialog).toBeHidden();
 });
 test('mobile navigation opens, traps focus, follows link and closes', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(overview);
+  await page.goto(`${base}/overview`);
   await expect(
-    page.getByRole('navigation', { name: 'Project navigation' }),
+    page.getByRole('complementary', { name: 'Sidebar' }),
   ).toBeHidden();
   await page.getByRole('button', { name: 'Open navigation' }).click();
   const drawer = page.getByRole('dialog', { name: 'Workspace navigation' });
@@ -84,15 +89,12 @@ test('mobile navigation opens, traps focus, follows link and closes', async ({
   const bounds = await drawer.boundingBox();
   expect(bounds?.x).toBe(0);
   expect(bounds?.y).toBe(0);
-  expect(bounds?.width).toBe(300);
-  await drawer.getByRole('link', { name: 'Tasks', exact: true }).click();
+  // Handoff drawer width (was 300 before Phase 00.5A).
+  expect(bounds?.width).toBe(280);
+  await drawer.getByRole('link', { name: /^Tasks/ }).click();
   await expect(drawer).toBeHidden();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tasks');
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
+  await expect(page).toHaveURL(`${base}/tasks`);
+  expect(await noHorizontalOverflow(page)).toBe(true);
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.keyboard.press('Tab');
   expect(
@@ -104,33 +106,20 @@ test('mobile navigation opens, traps focus, follows link and closes', async ({
     page.getByRole('button', { name: 'Open navigation' }),
   ).toBeFocused();
 });
-test('workspace/project selectors, visitor menu and notifications are transparent', async ({
+test('workspace and project menus, inbox and plan are transparent previews', async ({
   page,
 }) => {
-  await page.goto(overview);
-  await page.getByRole('combobox', { name: 'Workspace', exact: true }).click();
-  await expect(
-    page.getByRole('option', { name: 'Sample workspace', exact: true }),
-  ).toBeVisible();
+  await page.goto(`${base}/overview`);
+  const nav = page.getByRole('navigation', { name: 'Workspace navigation' });
+  await nav.getByRole('button', { name: /^Workspace:/ }).click();
+  await expect(page.getByRole('menu')).toBeVisible();
   await page.keyboard.press('Escape');
-  await page.getByRole('combobox', { name: 'Project', exact: true }).click();
-  await expect(
-    page.getByRole('option', { name: 'Sample project', exact: true }),
-  ).toBeVisible();
+  await nav.getByRole('button', { name: /^Inbox/ }).click();
+  const inbox = page.getByRole('dialog', { name: /Inbox/ });
+  await expect(inbox).toBeVisible();
+  await expect(inbox).toContainText(/sample/i);
   await page.keyboard.press('Escape');
-  await page
-    .getByRole('button', { name: 'Notifications', exact: true })
-    .click();
-  await expect(page.getByRole('dialog')).toContainText(
-    'no notification service',
-  );
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Preview visitor' }).click();
-  await expect(
-    page.getByRole('menuitem', { name: 'Authentication arrives in Phase 01' }),
-  ).toBeDisabled();
-  await page.getByRole('menuitem', { name: 'Profile preview' }).click();
-  await expect(page).toHaveURL('/app/settings/profile');
+  await expect(inbox).toBeHidden();
 });
 for (const path of [
   '/unknown',
@@ -151,9 +140,12 @@ for (const path of [
     ).toHaveAttribute('href', '/app');
   });
 for (const theme of ['light', 'dark'] as const)
-  test(`accessible ${theme} overview`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-    await page.goto(overview);
+  test(`accessible ${theme} overview with a working skip link`, async ({
+    page,
+  }) => {
+    await useTheme(page, theme);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(`${base}/overview`);
     await expect(page.locator('html')).toHaveClass(new RegExp(theme));
     expect(
       (
@@ -169,27 +161,19 @@ for (const theme of ['light', 'dark'] as const)
     await page.keyboard.press('Enter');
     await expect(page.locator('#main-content')).toBeFocused();
   });
-
-test('mobile navigation search closes both dialogs after following a result', async ({
+test('mobile drawer search closes both dialogs after following a result', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(overview);
+  await page.goto(`${base}/overview`);
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page
     .getByRole('dialog', { name: 'Workspace navigation' })
-    .getByRole('button', { name: /Search…/ })
+    .getByRole('button', { name: 'Search', exact: true })
     .click();
-  const search = page.getByRole('dialog', {
-    name: 'Find your way around Atlas',
-  });
-  await search.getByRole('textbox').fill('library');
-  await search
-    .getByRole('link', { name: 'Paper library', exact: true })
-    .click();
-  await expect(page).toHaveURL('/app/projects/sample/library');
+  const search = page.getByRole('dialog', { name: 'Search Atlas' });
+  await search.getByRole('combobox').fill('library');
+  await search.getByRole('option', { name: 'Library', exact: true }).click();
+  await expect(page).toHaveURL(`${base}/library`);
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Paper library',
-  );
 });

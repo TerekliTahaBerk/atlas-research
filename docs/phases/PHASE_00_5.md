@@ -87,3 +87,24 @@ Responsive and Chromium/axe checks cover specified preview flows; other browser 
 ## 12. Git delivery
 
 Requested branch: `feat/phase-00-5-ui-ux`, based on clean `master`. Canonical PR base remains `master`. Final commit/push/PR evidence is reported at handoff; no merge is authorized. The code and documentation are scoped to Phase 00.5.
+
+## 13. Phase 00.5A addendum — design-to-code integration
+
+Phase 00.5A replaced the Phase 00.5 V2 visuals with the Claude Design handoff (`Atlas.dc.html`). It was rebuilt in React, Tailwind and Radix on the same architecture. Sections 1–12 above describe Phase 00.5 as delivered. Where they conflict with the following, this addendum wins. The evidence is in [the implementation report](../design/PHASE_00_5A_IMPLEMENTATION_REPORT.md) and the [reference map](../design/PHASE_00_5A_REFERENCE_MAP.md).
+
+Recorded deviations:
+
+- **Labeled sample animations.** Atlas thinking and streaming are now timed presentation sequences over prewritten content. They replace the earlier "No fake timed research runs" decision, and the user approved the change. Every sequence carries `Preview` and `Sample response` labels and is instant under reduced motion. See the [AI spec](../AI_INTERACTION_SPEC.md).
+- **Dark default.** Dark is now the default theme, as in the handoff. Light and System remain, and next-themes sets both `class` and `data-theme`.
+- **AA token adjustments.** Seven handoff values were adjusted, and a filled-button green `--acb` was added. See [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md).
+- **`frame-ancestors`.** `X-Frame-Options` changed from `DENY` to `SAMEORIGIN`, and the response now sends `Content-Security-Policy: frame-ancestors 'self'`. This lets `/app/design-system/mobile` frame live routes. Cross-origin framing is still refused.
+- **New dependencies** (all exact pins):
+  - Tiptap 3.32.0: react, pm, starter-kit, extensions.
+  - CodeMirror 6: state, view, commands, language, legacy-modes; plus `@lezer/highlight`.
+  - Fontsource: Geist, Cormorant Garamond, Lora, JetBrains Mono.
+  - Others: `radix-ui` 1.8.1, `react-resizable-panels` 4.14.8, `class-variance-authority` 0.7.1.
+- **Routes.**
+  - `/app` now redirects to `/app/home`.
+  - New: `reader`, `graph`, `/app/design-system`, `/app/design-system/mobile`.
+  - Documents use `?doc=`, which replaces `?note=`.
+- **Rich editing.** Documents use Tiptap and the manuscript uses CodeMirror 6. Both keep content in memory only.

@@ -1,4 +1,5 @@
-import { AuthPreview } from '@/features/onboarding/auth-preview';
+import { AuthScreen } from '@/features/onboarding/auth-screen';
+export const metadata = { title: 'Sign in' };
 export default function Page() {
-  return <AuthPreview mode="login" />;
+  return <AuthScreen mode="signin" />;
 }
