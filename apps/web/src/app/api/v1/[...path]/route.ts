@@ -1,7 +1,12 @@
 import { cookies } from 'next/headers';
 import { readNavigation } from '@/features/platform/navigation';
 import { z } from 'zod';
-import { platformCommand, scopeType } from '@atlas/core';
+import {
+  platformCommand,
+  researchCommand,
+  researchCommandNames,
+  scopeType,
+} from '@atlas/core';
 import { verifyActor } from '@/features/identity/server/supabase';
 import { authenticate } from '@/features/identity/server/auth-service';
 import {
@@ -19,14 +24,25 @@ import {
 } from '@/features/platform/server/services';
 import { rateLimit } from '@/features/platform/server/limiter';
 import { PlatformError } from '@/features/platform/server/errors';
+import { executeResearchCommand } from '@/features/library/server/library';
+import { providerResolver } from '@/features/discovery/server/service';
+import {
+  exportResponse,
+  researchGet,
+  researchPost,
+  scannerResponse,
+} from '@/features/library/server/routes';
 export const dynamic = 'force-dynamic';
 export async function POST(
   request: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
+  const segments = (await context.params).path;
+  // Isolated scanner calls are HMAC-authenticated server-to-server requests.
+  if (segments[0] === 'internal') return scannerResponse(segments, request);
   return respond(async (requestId) => {
     checkOrigin(request);
-    const path = (await context.params).path.join('/');
+    const path = segments.join('/');
     if (path === 'auth') return authenticate(await readJson(request));
     const actor = await verifyActor();
     await rateLimit(
@@ -72,24 +88,51 @@ export async function POST(
       );
       return { selected: true };
     }
-    if (path !== 'commands')
+    if (path !== 'commands') {
+      const handled = await researchPost(actor, segments, request, requestId);
+      if (handled !== undefined) return handled;
       throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
-    return executeCommand(
-      actor,
-      platformCommand.parse(await readJson(request)),
-      requestId,
-    );
+    }
+    const body = await readJson(request);
+    // One command endpoint; research names dispatch to their fixed commands.
+    const name =
+      typeof body === 'object' && body !== null && 'command' in body
+        ? body.command
+        : undefined;
+    if (
+      typeof name === 'string' &&
+      (researchCommandNames as string[]).includes(name)
+    )
+      return executeResearchCommand(
+        actor,
+        researchCommand.parse(body),
+        requestId,
+        providerResolver,
+      );
+    return executeCommand(actor, platformCommand.parse(body), requestId);
   });
 }
 export async function GET(
   request: Request,
   context: { params: Promise<{ path: string[] }> },
 ) {
+  const path = (await context.params).path;
+  const url = new URL(request.url);
+  if (path.at(-1) === 'export') {
+    // File responses on success; the standard envelope on failure.
+    let file: Response | undefined;
+    const failed = await respond(async () => {
+      const actor = await verifyActor();
+      await rateLimit('read', actor.id, 120);
+      file = await exportResponse(actor, path, url);
+      if (!file) throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
+      return null;
+    });
+    return file ?? failed;
+  }
   return respond(async () => {
     const actor = await verifyActor();
     await rateLimit('read', actor.id, 120);
-    const path = (await context.params).path;
-    const url = new URL(request.url);
     const listCursor = z
       .string()
       .max(1024)
@@ -123,6 +166,8 @@ export async function GET(
       return members(actor, scope, z.uuid().parse(path[1]), listCursor);
     }
     if (path.join('/') === 'invitations') return invitations(actor, listCursor);
+    const research = await researchGet(actor, path, url, request.signal);
+    if (research !== undefined) return research;
     throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
   });
 }

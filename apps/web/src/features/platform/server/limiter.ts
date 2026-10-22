@@ -9,6 +9,19 @@ export async function rateLimit(
   maximum = 30,
   seconds = 60,
 ) {
+  if (!(await takeRate(operation, identity, maximum, seconds)))
+    throw new PlatformError(
+      'RATE_LIMITED',
+      'Too many requests. Try again later.',
+    );
+}
+/** Consumes one unit and reports whether the bucket still had capacity. */
+export async function takeRate(
+  operation: string,
+  identity: string,
+  maximum: number,
+  seconds: number,
+) {
   const secret = process.env.ATLAS_RATE_SECRET;
   if (!secret || secret.length < 32)
     throw new PlatformError(
@@ -27,9 +40,5 @@ export async function rateLimit(
       );
     return result?.allowed === true;
   });
-  if (!allowed)
-    throw new PlatformError(
-      'RATE_LIMITED',
-      'Too many requests. Try again later.',
-    );
+  return allowed;
 }
