@@ -64,6 +64,7 @@ async function scanQueued(request: APIRequestContext) {
       data: z.array(
         z.object({
           jobId: z.string(),
+          attempt: z.number(),
           sha256: z.string(),
           downloadUrl: z.string(),
         }),
@@ -88,6 +89,7 @@ async function scanQueued(request: APIRequestContext) {
       signed(
         JSON.stringify({
           jobId: job.jobId,
+          attempt: job.attempt,
           verdict,
           sha256: measured,
           scanner: 'e2e-protocol-fixture',

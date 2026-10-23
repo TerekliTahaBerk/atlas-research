@@ -92,3 +92,11 @@ it('actual hosted Auth requires email confirmation and Data API excludes domain/
     z.object({ code: z.string() }).parse(await privateSchema.json()).code,
   ).toBe('PGRST106');
 });
+
+it('Prisma history is inaccessible through the actual anonymous Data API', async () => {
+  const response = await fetch(
+    `${origin}/rest/v1/_prisma_migrations?select=id&limit=0`,
+    { headers: { apikey: key }, cache: 'no-store' },
+  );
+  expect([401, 403]).toContain(response.status);
+});

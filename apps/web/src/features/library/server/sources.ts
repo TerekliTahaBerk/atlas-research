@@ -262,6 +262,7 @@ export async function claimScanJobs(
   input: z.infer<typeof scanClaimInput>,
   storage: SourceStorage,
 ) {
+  await cleanupScanObjects(storage);
   const jobs = await system(async (tx) =>
     z
       .array(
@@ -291,6 +292,7 @@ export async function claimScanJobs(
 export const scanCompleteInput = z
   .object({
     jobId: z.uuid(),
+    attempt: z.number().int().min(1).max(5),
     verdict: z.enum(['CLEAN', 'INFECTED', 'INVALID', 'ERROR']),
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
     scanner: z.string().regex(/^[A-Za-z0-9 ._:/()-]{1,120}$/),
@@ -312,7 +314,7 @@ export async function completeScan(
       )
       .parse(
         await tx.$queryRaw`SELECT project_id AS "projectId", source_version_id AS "sourceVersionId", quarantine_key AS "quarantineKey", sha256
-          FROM atlas_private.scan_job_source(${input.jobId}::uuid)`,
+          FROM atlas_private.scan_job_source(${input.jobId}::uuid, ${input.attempt}::integer)`,
       ),
   );
   if (!job)
@@ -320,16 +322,39 @@ export async function completeScan(
   let key: string | null = null;
   if (input.verdict === 'CLEAN' && input.sha256 === job.sha256.trim()) {
     key = acceptedKey(job.projectId, job.sourceVersionId);
+    // A committed reservation survives process failure and ambiguous commits.
+    await system(
+      async (tx) =>
+        tx.$queryRaw`SELECT atlas_private.reserve_scan_copy(${input.jobId}::uuid, ${input.attempt}::integer, ${key})::text`,
+    );
     await storage.accept(job.quarantineKey, key);
   }
   const [row] = await system(async (tx) =>
     z
       .array(z.object({ state: z.string() }))
       .parse(
-        await tx.$queryRaw`SELECT atlas_private.complete_scan(${input.jobId}::uuid, ${input.verdict}, ${input.sha256}, ${input.scanner}, ${key}) AS state`,
+        await tx.$queryRaw`SELECT atlas_private.complete_scan(${input.jobId}::uuid, ${input.attempt}::integer, ${input.verdict}, ${input.sha256}, ${input.scanner}, ${key}) AS state`,
       ),
   );
   if (row?.state === 'READY' || row?.state === 'REJECTED')
     await storage.removeQuarantined(job.quarantineKey);
   return { state: row?.state ?? 'UNKNOWN' };
+}
+
+/** Retried on every claim. Only aged, unreferenced copy reservations qualify. */
+export async function cleanupScanObjects(storage: SourceStorage) {
+  const candidates = await system(async (tx) =>
+    z
+      .array(z.object({ objectKey: z.string() }))
+      .parse(
+        await tx.$queryRaw`SELECT object_key AS "objectKey" FROM atlas_private.scan_cleanup_candidates()`,
+      ),
+  );
+  for (const { objectKey } of candidates) {
+    await storage.removeAccepted(objectKey);
+    await system(
+      async (tx) =>
+        tx.$queryRaw`SELECT atlas_private.ack_scan_cleanup(${objectKey})::text`,
+    );
+  }
 }

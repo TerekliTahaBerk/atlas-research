@@ -44,6 +44,9 @@ jobs:
       - run: pnpm db:validate
       - run: pnpm typecheck
       - run: pnpm test
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/scanner -v
+      - name: Reproduce Supabase browser defaults on the disposable database
+        run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon,authenticated;'
       - run: pnpm --filter @atlas/database exec prisma migrate deploy
       - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -f tests/database/constraints.sql
       - name: Create isolated non-owner test role

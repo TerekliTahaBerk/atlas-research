@@ -13,8 +13,8 @@ export function checkOrigin(request: Request) {
   if (!request.headers.get('content-type')?.startsWith('application/json'))
     throw new PlatformError('VALIDATION_ERROR', 'JSON content is required.');
 }
-export async function readJson(request: Request) {
-  if (Number(request.headers.get('content-length') ?? 0) > 32768)
+export async function readBoundedText(request: Request, maximum = 32768) {
+  if (Number(request.headers.get('content-length') ?? 0) > maximum)
     throw new PlatformError('VALIDATION_ERROR', 'Request is too large.');
   const reader = request.body?.getReader();
   if (!reader)
@@ -25,7 +25,7 @@ export async function readJson(request: Request) {
     const { value, done } = await reader.read();
     if (done) break;
     length += value.length;
-    if (length > 32768) {
+    if (length > maximum) {
       await reader.cancel();
       throw new PlatformError('VALIDATION_ERROR', 'Request is too large.');
     }
@@ -37,8 +37,12 @@ export async function readJson(request: Request) {
     bytes.set(chunk, offset);
     offset += chunk.length;
   }
+  return new TextDecoder().decode(bytes);
+}
+export async function readJson(request: Request) {
+  const body = await readBoundedText(request);
   try {
-    return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    return JSON.parse(body) as unknown;
   } catch {
     throw new PlatformError('VALIDATION_ERROR', 'Invalid JSON.');
   }

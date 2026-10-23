@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { libraryQuery, searchRequest, uploadIntentInput } from '@atlas/core';
 import type { VerifiedActor } from '@/features/platform/server/database';
 import { PlatformError, publicError } from '@/features/platform/server/errors';
-import { readJson } from '@/features/platform/server/http';
+import { readBoundedText, readJson } from '@/features/platform/server/http';
 import { rateLimit } from '@/features/platform/server/limiter';
 import { researchSearch } from '@/features/discovery/server/service';
 import {
@@ -140,12 +140,7 @@ export async function scannerResponse(path: string[], request: Request) {
       route !== 'internal/scanner/complete'
     )
       throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
-    const length = Number(request.headers.get('content-length') ?? 0);
-    if (length > 4096)
-      throw new PlatformError('VALIDATION_ERROR', 'Request is too large.');
-    const body = (await request.text()).slice(0, 4097);
-    if (body.length > 4096)
-      throw new PlatformError('VALIDATION_ERROR', 'Request is too large.');
+    const body = await readBoundedText(request, 4096);
     verifyScannerRequest(request.headers, body);
     const json: unknown = JSON.parse(body || '{}');
     const storage = supabaseSourceStorage();
