@@ -1,16 +1,16 @@
 # Phase 03 implementation report
 
-Recorded 23 October 2026. Local implementation is delivered; hosted release and real-provider evaluation remain **BLOCKED**. No paid model request, hosted mutation, production deployment, merge or subscription upgrade occurred.
+Recorded 23 October 2026. Local implementation is delivered; hosted release and real-provider evaluation remain **BLOCKED**. No paid model request, hosted mutation, production deployment, merge or subscription upgrade occurred. PR #9 is OPEN as a DRAFT against `master`; its automatic Vercel preview is separate from production activation.
 
 ## 1. Executive summary — PASS locally, BLOCKED for release
 
 Atlas now has an integrated source-grounded research engine: accepted-source extraction, embeddings, permission-scoped hybrid retrieval, streamed structured answers, exact source-location citations, persisted conversations and conservative cost accounting. It reuses the approved Atlas interface and existing identity/library/Reader boundaries. The end-to-end local workflow uses official SDKs against explicit synthetic wire fixtures, real PostgreSQL/pgvector, real disposable Auth/Storage and authenticated worker protocols. Fixture success is not hosted or scientific model-quality evidence.
 
-## 2. Git baseline and final state — PASS locally; publication BLOCKED
+## 2. Git baseline and final state — PASS; existing draft PR
 
 Started on existing `feat/phase-03-ai-research` with substantial uncommitted AI work and unrelated Reels changes. Freshly fetched `origin/master` exactly matched `1fca7cfc5cb590d9afaf6c6231c538c36f9cdfe8`. The AI draft was audited, extended and committed; unrelated Reels files and their navigation/context hunks remain uncommitted and outside the feature commits.
 
-Implementation commits: `12efe57` (engine/tests/UI), `543d948` (strict scoped-mention narrowing), `f401ab0` (offline worker). The final documentation commit follows these; its exact hash is reported in the handoff. A clean managed review worktree verified the committed scope independently of unrelated work. Branch publication/upstream tracking and a draft PR are pending publication approval. `master` is unchanged.
+Implementation commits: `12efe57` (engine/tests/UI), `543d948` (strict scoped-mention narrowing), `f401ab0` (offline worker). The final documentation commit follows these; its exact hash is reported in the handoff. A clean managed review worktree verified the committed scope independently of unrelated work. The user subsequently authorized publication: [PR #9](https://github.com/TerekliTahaBerk/atlas-research/pull/9) is OPEN/DRAFT, base `master`, head `feat/phase-03-ai-research`, tracking its matching origin branch. Final hardening is committed in `4c370d4`; the evidence documentation commit follows. `origin/master` remains `1fca7cfc5cb590d9afaf6c6231c538c36f9cdfe8`. Unrelated Reels work remains outside the PR.
 
 ## 3. AI services — PASS
 
@@ -58,28 +58,28 @@ Atomic advisory-locked reservations precede generation and embeddings. Server co
 
 ## 14. Migrations — PASS disposable; BLOCKED hosted
 
-Two additive migrations: `20261023150000_ai_research` and `20261023160000_ai_retention`. All six earlier migrations are unchanged. From-scratch deploy of all eight migrations passes on PostgreSQL 17/pgvector, including reproduced hostile browser defaults. Foundation SQL constraints and subsequent migration status pass. Prisma diff has no table/column drift; it shows only intentionally SQL-owned foreign keys/indexes omitted from Prisma models. Do not apply that diff or use `db push` to remove these safeguards. No hosted migration was applied.
+Three additive Phase 03 migrations: `20261023150000_ai_research`, `20261023160000_ai_retention` and final hardening `20261023170000_ai_stream_authorization`. All eight pre-hardening migrations are unchanged. From-scratch deploy of all nine migrations passes on PostgreSQL 17/pgvector, including reproduced hostile browser defaults. Foundation SQL constraints and subsequent migration status pass. Prisma diff has no table/column drift; it shows only intentionally SQL-owned foreign keys/indexes omitted from Prisma models. Do not apply that diff or use `db push` to remove these safeguards. No hosted migration was applied.
 
 ## 15. Quality and CI evidence
 
-| Check                                    | Result                              | Evidence                                                             |
-| ---------------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
-| `pnpm lint`                              | PASS                                | Primary and clean review worktree, zero warnings                     |
-| `pnpm typecheck`                         | PASS                                | Strict workspace and test/tool TypeScript                            |
-| `pnpm test`                              | PASS                                | 172 tests, including 43 official-adapter checks                      |
-| `pnpm test:integration`                  | PASS                                | 70 tests on fresh `atlas_p01_test_release`, including 20 AI tests    |
-| `pnpm build`                             | PASS                                | Default Turbopack production build in clean review checkout          |
-| `pnpm test:e2e`                          | PASS                                | 101 unchanged browser tests; six visual snapshots unchanged          |
-| `pnpm test:auth:e2e`                     | PASS                                | 5 real disposable Auth/Storage browser journeys, including AI        |
-| `pnpm db:validate`                       | PASS                                | Prisma schema validation                                             |
-| Foundation SQL / migration deploy/status | PASS                                | Explicit disposable loopback targets, all eight migrations           |
-| `pnpm format:check`                      | PASS scoped PR; FAIL mixed worktree | Clean checkout passes; unrelated unformatted Reels file is preserved |
-| Scanner Python                           | PASS                                | 10 existing tests                                                    |
-| Extractor Python                         | PASS                                | 6 boundary tests                                                     |
-| Extractor image / actual offline engine  | PASS                                | Image builds; valid PDF two-page extraction and malformed rejection  |
-| Hosted integration / recovery            | BLOCKED                             | Explicit authorization, security/recovery/worker prerequisites       |
-| Real provider smoke / scientific eval    | BLOCKED                             | Paid calls explicitly disabled; no approved credential activation    |
-| GitHub CI                                | NOT RUN                             | Branch push/PR rejected by automatic publication review              |
+| Check                                    | Result                              | Evidence                                                                                                                                                                                         |
+| ---------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm lint`                              | PASS                                | Primary and clean review worktree, zero warnings                                                                                                                                                 |
+| `pnpm typecheck`                         | PASS                                | Strict workspace and test/tool TypeScript                                                                                                                                                        |
+| `pnpm test`                              | PASS                                | 176 tests, including 43 official-adapter and 4 stream-buffer checks                                                                                                                              |
+| `pnpm test:integration`                  | PASS                                | 75 tests on fresh `atlas_p01_test_final`, including 25 AI tests                                                                                                                                  |
+| `pnpm build`                             | PASS                                | Default Turbopack production build in clean review checkout                                                                                                                                      |
+| `pnpm test:e2e`                          | PASS                                | 101 unchanged browser tests; six visual snapshots unchanged                                                                                                                                      |
+| `pnpm test:auth:e2e`                     | PASS                                | 5 real disposable Auth/Storage browser journeys, including AI                                                                                                                                    |
+| `pnpm db:validate`                       | PASS                                | Prisma schema validation                                                                                                                                                                         |
+| Foundation SQL / migration deploy/status | PASS                                | Explicit disposable loopback targets, all nine migrations                                                                                                                                        |
+| `pnpm format:check`                      | PASS scoped PR; FAIL mixed worktree | Clean checkout passes; unrelated unformatted Reels file is preserved                                                                                                                             |
+| Scanner Python                           | PASS                                | 10 existing tests                                                                                                                                                                                |
+| Extractor Python                         | PASS                                | 6 boundary tests                                                                                                                                                                                 |
+| Extractor image / actual offline engine  | PASS                                | Image builds; valid PDF two-page extraction and malformed rejection                                                                                                                              |
+| Hosted integration / recovery            | BLOCKED                             | Explicit authorization, security/recovery/worker prerequisites                                                                                                                                   |
+| Real provider smoke / scientific eval    | BLOCKED                             | Paid calls explicitly disabled; no approved credential activation                                                                                                                                |
+| GitHub CI                                | PASS original published head        | Run [40006126343](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/40006126343): quality and isolated-auth SUCCESS at `ac50290`; current hardening head checks are linked on PR #9 |
 
 The first primary-worktree build stalled under the restricted sandbox and was cancelled (exit 130). The same default build passed in the clean review worktree with required local execution permission; no build command or assertion was weakened. Early fixture locator, void-result cast, timeout-realm, SQL alias and strict-narrowing failures were repaired before final checks. Preview snapshots were never updated to incorporate unrelated Reels changes.
 
@@ -106,6 +106,42 @@ The last verified hosted Phase 02 audit found unsafe browser access to Prisma mi
 
 Typed research references, audited read tools, exact provenance, private conversations and pending action proposals provide integration points. Phase 04 still requires its own real document/task services, authorization, versioning and explicit execution approval. This implementation does not authorize or implement those services, nor does it waive hosted Phase 03 release gates.
 
-## 20. PR and deployment — BLOCKED publication; NOT RUN deployment
+## 20. PR and deployment — draft OPEN; production BLOCKED
 
-A concrete draft PR body is prepared locally. Automatic approval review rejected pushing the branch and opening a draft PR, stating that publication of private source/remote mutation lacked sufficient explicit trusted-user authorization. No alternative publication path was attempted. The final handoff requests approval to push this exact branch and open a draft PR targeting `master`. No remote branch/upstream, PR, merge or deployment success is claimed. The local work is complete and reviewable without publication.
+[PR #9](https://github.com/TerekliTahaBerk/atlas-research/pull/9) already exists, is OPEN/DRAFT and targets `master`. The earlier publication rejection was superseded by explicit user authorization and successful branch/PR publication. The final-review request explicitly authorizes committing, pushing the corrections to the same branch and updating that PR. No auto-merge or production deployment is requested or performed. The automatic Vercel preview/check for the original published head succeeded; this does not activate hosted AI or prove release readiness. The authoritative checks for the current pushed head and final Actions run are linked in the PR delivery description.
+
+## 21. Final independent hardening review
+
+The review reproduced excessive per-event SQL in the original published code, then measured the same real PostgreSQL scenarios after correction. One/twelve-source and twenty-four-chunk validations now take three application SQL round trips in one actor transaction. Fast streams coalesce at 256 characters/50 ms, persist and project minimal state in one transaction per batch, keep a one-second idle authorization heartbeat and share a single final snapshot across citation/usage/completion events. No stale permission cache replaces RLS.
+
+| Measurement                 | SQL before → after | Transactions before → after | Local elapsed before → after |
+| --------------------------- | ------------------ | --------------------------- | ---------------------------- |
+| One source                  | 7 → 3              | 2 → 1                       | 8 → 4 ms                     |
+| Twelve sources              | 29 → 3             | 2 → 1                       | 23 → 5 ms                    |
+| Twenty-four evidence chunks | 77 → 3             | 2 → 1                       | 64 → 7 ms                    |
+| 100 provider deltas         | 4,769 → 50         | 750 → 15                    | 4,495 → 94 ms                |
+| 500 provider deltas         | 23,194 → 54        | 3,618 → 16                  | 21,188 → 104 ms              |
+
+These are synthetic burst/provider-orchestration measurements, not hosted/model benchmarks. Counts include role/context setup, exclude BEGIN/COMMIT and fixture/admin setup, and do not count internal SQL-function statements as network round trips. Latency is a single local observation, not an SLA. CI enforces operation-count budgets; [performance methodology](../ai/STREAMING_PERFORMANCE.md) records the exact scope and bounds.
+
+Two correctness gaps were also repaired. Citation resolution now rejects end offsets past the canonical text length instead of allowing JavaScript substring truncation. Follow-up answers now persist bounded transitive historical evidence/reference dependencies, so an archived or inaccessible prior source also hides/cuts off dependent follow-ups. The additive migration checks canonical evidence tuples, metadata kinds and private notes under caller RLS; deletion/retention erases the new historical snapshot. Existing migrations were not rewritten.
+
+New regression evidence covers canonical evidence ID/paper/version/project/page/offset/text/hash tampering, fabricated metadata anchors/kinds/pages, historical-source archive during streaming, completed citation denial after archive, reader disconnect, TimeoutError, buffered cancellation and single settlement. Existing tests retain private-annotation denial, PDF instruction injection boundaries, membership revocation, leases, replay/concurrent budgets, provider failure and official-SDK structured output checks. All 75 PostgreSQL tests and 176 unit tests pass; fixture outputs remain explicitly synthetic. Scientific entailment and real-provider injection resistance remain NOT RUN.
+
+The complete local quality suite runs from the clean scoped worktree at `4c370d4`; format/lint/schema/typecheck/unit/integration/build/Auth+Storage+AI E2E pass. Production preview Playwright preserves the six approved baselines without updates. Scanner (10) and extractor (6) Python tests pass. The read-only activation SQL executes successfully on the disposable Auth/Storage harness: nine migration records, vector `extensions` namespace, zero browser/elevated-role findings and exactly two private PDF buckets with no object policies. This is local evidence only. Hosted audit/recovery/migrations/buckets/deployed workers remain BLOCKED and were not changed.
+
+The new OpenAI/Anthropic opt-in smoke procedure is prepared with a combined USD 0.50 ceiling, bounded context/output, at most six generation calls per provider, separate indexing allowance, no automatic retries and invoice reconciliation. It remains NOT RUN; paid dispatch remains disabled.
+
+## 22. UI verification and merge/release verdict
+
+Browser plugin not available; configured Playwright is the recorded fallback. Flow: disposable account login → saved paper/upload/index consent → Reader chips → streamed answer → exact citation/Reader navigation → follow-up/dock/focus → reload/reopen/cancel → project reset. Five authenticated journeys pass at `http://127.0.0.1:3102`. The AI journey asserts no page errors, no unsupported browser storage and no axe violations. Desktop 1440×1000 and mobile 390×844 renders were inspected against the approved dark tokens, typography, shell and composer; no overlap or design-system mismatch required a UI change. Existing development React script-tag warnings remain limited to older Auth/Library journeys; they are not hidden or reclassified as AI failures.
+
+| UI check                                                 | Result      | Evidence                                                                                                         |
+| -------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| Intended route, meaningful content, no framework overlay | PASS        | Authenticated Reader/research navigation and visible response assertions                                         |
+| Controls and state transitions                           | PASS        | Consent, mentions/chips, streamed/final citations, conversation history, cancellation and five shared placements |
+| Console/accessibility                                    | PASS for AI | Zero page errors and zero axe violations; older development warning noted above                                  |
+| Responsive visual inspection                             | PASS        | `/tmp/atlas-phase03-ai-desktop.png` and `/tmp/atlas-phase03-ai-mobile.png`; no snapshot updates                  |
+| Approved preview regressions                             | PASS        | 101 production-browser checks and six existing image comparisons                                                 |
+
+Code merge readiness: **eligible for merge after current-head required GitHub checks pass and normal reviewer approval**. No remaining critical defect was identified in the reviewed scope; keep the PR draft until the human review decision. Release readiness: **BLOCKED for real users** by the hosted security/recovery/schema/bucket/worker gates, approved credentials/data handling/tariffs and real-provider/scientific evaluation. Merging code does not authorize paid traffic, hosted migration, deployment or Phase 04.

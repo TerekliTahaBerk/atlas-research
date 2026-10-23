@@ -4,11 +4,11 @@ Measured 23 October 2026 on Node 24.21/PostgreSQL 17/pgvector, loopback Docker (
 
 | Scenario                                       | SQL before | SQL after | Transactions before → after | Elapsed before → after |
 | ---------------------------------------------- | ---------: | --------: | --------------------------- | ---------------------- |
-| Validate one metadata source                   |          7 |         3 | 2 → 1                       | 8 → 5 ms               |
+| Validate one metadata source                   |          7 |         3 | 2 → 1                       | 8 → 4 ms               |
 | Validate twelve distinct metadata sources      |         29 |         3 | 2 → 1                       | 23 → 5 ms              |
-| Validate twenty-four distinct immutable chunks |         77 |         3 | 2 → 1                       | 64 → 8 ms              |
-| Stream 100 provider deltas                     |      4,769 |        52 | 750 → 16                    | 4,495 → 110 ms         |
-| Stream 500 provider deltas                     |     23,194 |        56 | 3,618 → 17                  | 21,188 → 122 ms        |
+| Validate twenty-four distinct immutable chunks |         77 |         3 | 2 → 1                       | 64 → 7 ms              |
+| Stream 100 provider deltas                     |      4,769 |        50 | 750 → 15                    | 4,495 → 94 ms          |
+| Stream 500 provider deltas                     |     23,194 |        54 | 3,618 → 16                  | 21,188 → 104 ms        |
 
 Counts include runtime-role validation, actor-context setup and application SQL in every actor transaction. BEGIN/COMMIT are excluded (add two protocol statements per transaction). Internal statements inside SQL functions/RLS are not separate client round trips. Worker/admin fixture setup and `prepareRun` are excluded; streaming includes initial state, history, embedding reservation/settlement, retrieval/audit, generation persistence and final state. Stream evidence contains four indexed chunks from one paper. The twenty-four-chunk case separately exercises the maximum validation batch. One/twelve-source cases measure validation, not corpus search. Fixtures emit 100/500 single-character deltas without provider delay, so these numbers measure orchestration overhead, not model generation throughput, hosted latency, or large-corpus capacity. Heartbeat counts can vary with wall-clock scheduling; the latency samples are single local observations.
 
