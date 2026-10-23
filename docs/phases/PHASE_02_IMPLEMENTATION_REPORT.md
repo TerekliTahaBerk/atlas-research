@@ -4,7 +4,43 @@
 
 Atlas now has a working research workflow in live mode: real scholarly search through provider-neutral OpenAlex and Semantic Scholar adapters, saving to a project library with DOI/provider deduplication, collections, tags, reading status and archive, private PDF upload into quarantined Supabase Storage, a PDF.js reader for scanner-accepted versions with persisted, version-anchored highlights and notes, and BibTeX/RIS export. Everything is enforced by the Phase 01 boundary (verified session, non-owner runtime, RLS, transaction-local actor, one fixed-command mutation function) and verified end-to-end on disposable real services.
 
-**Phase 02 is not complete.** Three external gates remain: the live provider APIs were unreachable from the development session (network policy), the hosted Atlas development project could not be reached or migrated from this session, and no production malware scanner is deployed (uploads therefore stay quarantined in real environments by design).
+**Phase 02 is not complete.** Final hardening on 23 October 2026 confirmed a critical hosted migration-history exposure, missing Phase 02 schema/buckets and no recovery backup. Public OpenAlex workflows now pass actual live checks; Semantic Scholar search/detail/filter calls return 429. A concrete isolated ClamAV/qpdf worker and local real-engine evidence are present, but hosted activation and a deployed scanner require explicit approval. The approved UI and Atlas AI presentation are unchanged. See the [activation plan](PHASE_02_ACTIVATION_PLAN.md).
+
+## Current hardening capability matrix — 23 October 2026
+
+This matrix supersedes historical session limitations below. PASS applies only to the environment stated; fixture/disposable checks never establish hosted readiness.
+
+| Capability                                                         | Status  | Actual evidence / remaining gate                                                                                                                                                                                                             |
+| ------------------------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intended development target and existing state                     | PASS    | Connector and signed-in Chrome identify Atlas Research `hgngonpirctrwbckhbmy`; three finished migrations with matching checksums; one existing account/profile/project, no Phase 02 buckets                                                  |
+| Hosted Prisma history security                                     | FAIL    | RLS off; effective anon/authenticated table privileges include DML and TRUNCATE; anonymous zero-row Data API GET returns 200; no explicit column ACLs                                                                                        |
+| Prepared history remediation and future Prisma defaults            | PASS    | New `20261023090000_migration_history_security`: revoke browser/PUBLIC privileges, RLS without FORCE; only actual Prisma creator defaults changed; all eight table privileges, real SQL denial and future table/sequence probes pass locally |
+| Hosted remediation applied / authenticated Data API recheck        | BLOCKED | Explicit hosted-change approval pending; no hosted changes made, no authenticated session token extracted                                                                                                                                    |
+| Migration-owner continuity                                         | PASS    | Six Prisma migrations apply on fresh disposable PostgreSQL 17, including migrations after history hardening; second deploy/status verification recorded locally                                                                              |
+| Recovery readiness                                                 | BLOCKED | Signed-in dashboard confirms Free plan has no project backups; protected snapshot and isolated restore drill required before activation                                                                                                      |
+| Existing additive research migration review                        | PASS    | Original Phase 02 migration unchanged; composite FKs/RLS/grants/private buckets verified on disposable PostgreSQL/Auth/Storage                                                                                                               |
+| Hosted migration, RLS/FK/grant/bucket verification                 | BLOCKED | Phase 02 not applied; reviewed plan in `PHASE_02_ACTIVATION_PLAN.md`                                                                                                                                                                         |
+| OpenAlex public live search/detail/normalization/DOI/paging        | PASS    | Official API, real DOI-bearing records, second page; no fixtures                                                                                                                                                                             |
+| OpenAlex public live filters/sort                                  | PASS    | Year 2020–2024, OA, Computer Science, minimum citations; John Jumper author filter and descending citations                                                                                                                                  |
+| Semantic Scholar public live search/filter/detail                  | FAIL    | Actual search, filtered search and independent official-example detail all return rate_limited (HTTP 429); successful live normalization/paging remain unverified                                                                            |
+| Provider 429 handling and bounded retries                          | PASS    | Real Semantic Scholar 429 becomes rate_limited; deterministic Retry-After/retry-bound fixtures pass; no quota exhaustion flood attempted                                                                                                     |
+| Credentialed provider access / account quota verification          | NOT RUN | No provider keys configured; user explicitly selected public-access testing                                                                                                                                                                  |
+| Library persistence, deduplication, collections/tags/status/export | PASS    | Disposable real PostgreSQL and Auth/Storage browser workflow; hosted workflow BLOCKED                                                                                                                                                        |
+| Private PDF upload / download / source integrity                   | PASS    | Real disposable Storage and non-owner PostgreSQL; hosted Storage credential/buckets not configured                                                                                                                                           |
+| Streamed scanner request limit                                     | PASS    | 4 KiB byte limit before HMAC; ASCII/multibyte unbounded streams without Content-Length cancelled; unsigned small requests denied                                                                                                             |
+| Scanner attempt fencing, completion races and cleanup              | PASS    | Stale attempts/replays denied, two concurrent copies yield one READY, durable losing-copy cleanup, Storage failure retains retry record                                                                                                      |
+| Scanner authorization at execution/completion                      | PASS    | Live uploader capability recheck under hierarchy lock; nullable SQL authorization explicitly denied; revoked uploader cannot complete or be reclaimed                                                                                        |
+| Concrete isolated scanner integration                              | PASS    | `ops/scanner`: HMAC broker, secret-free offline validator, separate definition updater; bounded download/hash, parser CPU/memory/time/PIDs, scrubbed environment                                                                             |
+| Actual local malware/structure inspection                          | PASS    | ClamAV 1.4.6, qpdf 11.3.0, official daily 28162/main 63/bytecode 339 definitions; real clean, malformed, encrypted and EICAR cases pass inside network-none container                                                                        |
+| Scanner protocol unit regressions                                  | PASS    | 10 Python checks, explicitly mocked engine exits; not substituted for actual engine evidence                                                                                                                                                 |
+| Approved hosted scanner and full actual-scan research workflow     | BLOCKED | No approved host/HTTPS live origin/HMAC/Storage service configuration; actual engine tests are separate from browser protocol fixtures; nothing hosted marked READY                                                                          |
+| Reader, immutable anchors, annotation ACLs and citation export     | PASS    | Disposable browser/SQL/contract tests; no reader/UI redesign                                                                                                                                                                                 |
+| Preview UI / Atlas AI interaction regression                       | PASS    | 101/101 browser checks, existing screenshots/tolerances unchanged; AI remains unconnected; no Phase 03 work                                                                                                                                  |
+| Hosted read-only compatibility                                     | FAIL    | 3/4 pass (both pooler/TLS/context tests and Auth/domain/private-schema checks); new history-denial regression fails on observed HTTP 200                                                                                                     |
+| Format / lint / typecheck / Prisma validation / build              | PASS    | Local checks recorded below                                                                                                                                                                                                                  |
+| Hosted workflow smoke / deployment / production                    | NOT RUN | Hosted writes require approval; no production deployment or auto-merge                                                                                                                                                                       |
+
+Hardening branch: `test/phase-02-hardening`, based on merged `master` (`5882ff5`). Historical implementation detail follows.
 
 ## 2. Commits
 
@@ -30,7 +66,7 @@ Master run [39798601663](https://github.com/TerekliTahaBerk/atlas-research/actio
 
 Both the new component test and the browser assertion **fail on the old code** (`""` announced) and pass on the fix; the full Auth suite then passed 3/3 on three consecutive local runs, and GitHub [run 39803238601](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/39803238601) at `e6ad968` passed **both** `quality` and `isolated-auth`. [Run 39807201956](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/39807201956) at `84caf58` (library migration and services, including the 17 new integration tests) also passed both jobs. While reproducing, a second real defect appeared: email-less Auth actions shared one deployment-wide quota (10 sign-outs/15 minutes for every user). Logout/password update are now keyed by the verified user, with a regression test.
 
-Hosted environment: the Supabase connector available in this session has no access to project `hgngonpirctrwbckhbmy` (permission denied; it lists only an unrelated project, which was not touched) and no hosted credentials exist in this container. Hosted verification is **BLOCKED** from here; nothing hosted was changed.
+Historical implementation-session limitation: hosted access was unavailable then. The current hardening session can read the verified Atlas project and has confirmed the critical history exposure. Hosted changes are still BLOCKED by explicit approval and recovery readiness, not by read access.
 
 ## 3. Implemented modules
 
@@ -43,19 +79,19 @@ Hosted environment: the Supabase connector available in this session has no acce
 
 ## 4. Database migrations
 
-`20261023100000_research_library` (additive): 13 tables, 5 enums, composite tenant FKs, RLS read policies + deny-DML policies, immutability triggers, `mutate_research` behind the existing `mutate` dispatcher, scanner functions, conditional private buckets. Applied to fresh disposable PostgreSQL 17 and to the disposable Supabase Auth + Storage harness. Phase 01 foundation constraint script still passes. `prisma migrate diff` shows no table/column drift (only hand-written constraints, as in Phase 01). **Not applied to the hosted development project** (no access from this session; requires the documented approval and backup check).
+`20261023100000_research_library` (additive): 13 tables, 5 enums, composite tenant FKs, RLS read policies + deny-DML policies, immutability triggers, `mutate_research` behind the existing `mutate` dispatcher, scanner functions, conditional private buckets. Applied to fresh disposable PostgreSQL 17 and to the disposable Supabase Auth + Storage harness. Phase 01 foundation constraint script still passes. `prisma migrate diff` shows no table/column drift (only hand-written constraints, as in Phase 01). **Not applied to the hosted development project** (explicit approval and backup/restore verification pending).
 
 ## 5. Provider adapter architecture
 
 See [provider adapters](../research/PROVIDER_ADAPTERS.md) and [search contracts](../research/SEARCH_CONTRACTS.md): one interface, Zod-validated subsets, fixed HTTPS hosts, no redirects, 4 MB/8 s caps, bounded retry with `Retry-After`, cancellation, explicit unsupported filters, DOI-only merging, honest partial/rate-limited/unavailable states, per-actor/organization/provider PostgreSQL quotas and a public-only 5-minute cache. Saves re-fetch metadata server-side.
 
-## 6. OpenAlex integration status — BLOCKED (live), PASS (contract/fixture)
+## 6. OpenAlex integration status — PASS (public live and fixtures)
 
-Adapter, filters, sort, pagination and key support are implemented and pass unit and browser tests against synthetic documented-shape fixtures. Live calls to `api.openalex.org` were refused by the session's egress policy, so the live smoke test is NOT RUN. The `raw_author_name.search` filter and field IDs follow the documentation but are not live-verified.
+Actual official-host search, detail, DOI normalization, second page, year/OA/field/citation filters, author filter and citation sort pass. Current [OpenAlex authentication documentation](https://help.openalex.org/api/authentication/) permits casual keyless access; keys raise limits. No key was configured. Credentialed quota/account verification is NOT RUN. See the current capability matrix.
 
-## 7. Semantic Scholar integration status — BLOCKED (live), PASS (contract/fixture)
+## 7. Semantic Scholar integration status — FAIL (public live), PASS (fixtures)
 
-Same as OpenAlex; `api.semanticscholar.org` was refused. Author filter and non-relevance sorts are explicitly reported as unsupported.
+Actual official-host search, filtered search and an independent known-paper detail lookup return 429. The adapter correctly reports `rate_limited`; successful live normalization, detail and pagination are BLOCKED by public throttling. The previous smoke assertion allowing either ok or rate_limited was replaced: a throttled workflow now fails, never appears as successful provider verification. No intentional quota flood was used; user selected public access without keys.
 
 ## 8. Library persistence — PASS (disposable)
 
@@ -65,9 +101,9 @@ Saves, concurrent DOI/provider deduplication, idempotent replay/payload conflict
 
 Private buckets, no browser object policies, unpredictable keys, `upsert=false` single-object upload grants, server-measured size/SHA-256/PDF signature, 15-minute actor-bound intents, 60-second re-authorized download grants. Verified against the real Supabase Storage API (v1.79.32) in the harness, including a direct Storage listing with the user's own Supabase token returning nothing. Hosted bucket creation awaits the hosted migration. See [PDF storage security](../library/PDF_STORAGE_SECURITY.md).
 
-## 10. File validation and scanning — PARTIAL
+## 10. File validation and scanning — PASS (local), BLOCKED (hosted)
 
-Byte-level validation in the web process: PASS. Quarantine, outbox, leases, retry budget, checksum-bound acceptance and the HMAC protocol: PASS (integration + browser). **Production malware/structure scanning: BLOCKED — no approved isolated scanner exists.** The browser test supplies the verdict through the protocol and is labelled as a fixture; no scan is claimed. Real uploads remain quarantined until a scanner is deployed.
+Byte-level validation in the web process: PASS. Quarantine, outbox, leases, retry budget, checksum-bound acceptance and the HMAC protocol: PASS (integration + browser). **Hosted malware/structure scanning: BLOCKED — no deployment is approved.** The concrete worker is implemented and real local ClamAV/qpdf engine checks pass; see [scanner deployment](../library/SCANNER_DEPLOYMENT.md). The browser test supplies the verdict through the protocol and is labelled as a fixture; no scan is claimed. Real uploads remain quarantined until a scanner is deployed.
 
 ## 11. Reader — PASS (disposable)
 
@@ -85,26 +121,32 @@ BibTeX (escaping, Unicode, stable unique keys, omitted missing fields) and RIS, 
 
 Cross-tenant service and raw-SQL reads denied; raw DML denied; idempotency table unreadable; viewer cannot write; workspace administrator without a private-project grant sees nothing; revoked editor loses library, annotation and file access; private annotations author-only; unauthorized signed-URL issuance denied; unscanned files denied (409); upload replay/mismatch/expiry handled; overwrite prevented by `upsert=false`; malformed/truncated/non-PDF uploads rejected; scanner HMAC freshness/tamper checks; second real account receives 404 from every research endpoint and cannot save into the project. Runtime role checks unchanged.
 
-## 15. Visual regression verification
+## 15. Visual regression verification — PASS
 
-The approved shell, drawers, spacing and tokens are reused; preview mode code is unchanged except new scoped reader CSS. Local preview suite: 95/101 passed; the six failures are the signature screenshots at 2–3 % pixel difference, run with this container's preinstalled Chromium 141 instead of CI's pinned browser (the Playwright download was blocked). Unmodified `master` built in a separate worktree fails the same six tests in this container with **identical** pixel counts (13,071 / 13,666 / 16,457 / 17,009 / 27,021 / 27,190), so the local differences are browser-environmental, not caused by this branch. No baseline was updated and no tolerance changed; CI's pinned browser is the authoritative comparison, and it passed all six in run 39812812403.
+The hardening changes touch no UI components, tokens, AI interactions, CSS or screenshot baselines. The final sequential local preview suite passes **101/101**, including all six reviewed screenshots. An earlier concurrent run collided with the Auth suite's shared Playwright output directory (ENOENT trace files); sequential reruns resolve that environment issue without changing assertions or tolerances.
 
-## 16. Test results (actual)
+## 16. Test results (current hardening)
 
-| Check                                                 | Result           | Notes                                                                                                                                                                                                                                                                                          |
-| ----------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frozen install                                        | PASS             | Node 24.21.0, pnpm 11.25.0                                                                                                                                                                                                                                                                     |
-| Format / lint / typecheck                             | PASS             |                                                                                                                                                                                                                                                                                                |
-| Unit tests                                            | PASS             | 118                                                                                                                                                                                                                                                                                            |
-| Schema validation                                     | PASS             | Prisma 7.10.1                                                                                                                                                                                                                                                                                  |
-| Integration (real PostgreSQL 17, non-owner runtime)   | PASS             | 47 (30 Phase 01 + 17 Phase 02)                                                                                                                                                                                                                                                                 |
-| Foundation SQL constraints                            | PASS             |                                                                                                                                                                                                                                                                                                |
-| Production build                                      | PASS             | worker emitted as a same-origin static asset                                                                                                                                                                                                                                                   |
-| Isolated Auth E2E (GoTrue/Mailpit/Storage/PostgreSQL) | PASS             | 4/4 (3 Phase 01 + research journey)                                                                                                                                                                                                                                                            |
-| Preview design E2E (local Chromium 141)               | 95 PASS / 6 FAIL | signature screenshots only; identical failures on unmodified master locally (section 15)                                                                                                                                                                                                       |
-| CI quality / isolated-auth                            | PASS             | runs 39803238601 (`e6ad968`), 39807201956 (`84caf58`) and final-code run [39812812403](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/39812812403) (`f62d6db`): all steps, including the 101-test design suite on CI's pinned browser and the 4 isolated Auth/Storage journeys |
-| Live provider smoke                                   | NOT RUN          | provider hosts blocked by session network policy                                                                                                                                                                                                                                               |
-| Hosted development smoke / migration                  | BLOCKED          | no hosted access from this session                                                                                                                                                                                                                                                             |
+| Check                                         | Result  | Evidence                                                                                                                                      |
+| --------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Format / lint / typecheck / Prisma validation | PASS    | Existing commands unchanged                                                                                                                   |
+| TypeScript unit tests                         | PASS    | 121 tests                                                                                                                                     |
+| PostgreSQL integration                        | PASS    | 50 tests on fresh `atlas_p01_test_hardening_verified`, hostile browser defaults reproduced, non-owner runtime; no hosted fixtures             |
+| Foundation SQL constraints                    | PASS    | Composite scope, parent restriction and RLS checks on disposable PostgreSQL                                                                   |
+| Prisma migration continuity/status            | PASS    | Six migrations, subsequent deploy/status uses migration owner; no pending work locally                                                        |
+| Build                                         | PASS    | Approved preview mode, Node 24.21.0, pnpm 11.25.0                                                                                             |
+| Auth/Storage isolated E2E                     | PASS    | 4/4 on fresh real GoTrue/PostgreSQL/Storage; provider and scan verdict explicitly fixtures                                                    |
+| Frontend Playwright                           | PASS    | 101/101, sequential pinned local Chromium; no UI baseline changes                                                                             |
+| Scanner Python unit tests                     | PASS    | 10 mocked boundary/control-flow checks                                                                                                        |
+| Scanner Docker/Compose                        | PASS    | Validator builds; Compose syntax validates without starting broker; no secret passed to validator                                             |
+| Actual scanner engines                        | PASS    | Clean PDF, malformed PDF, encrypted PDF and standard EICAR antivirus test; official fresh signatures; network none; 3 GiB validator container |
+| OpenAlex live API                             | PASS    | Three real workflow checks across focused runs                                                                                                |
+| Semantic Scholar live API                     | FAIL    | Three real workflow checks throttled with 429                                                                                                 |
+| Hosted read-only checks                       | FAIL    | 3 pass; migration-history exclusion fails (HTTP 200)                                                                                          |
+| Hosted activation / actual-scan workflow      | BLOCKED | Approval, backup/restore and approved worker/server credentials/origin                                                                        |
+| CI for hardening commits                      | NOT RUN | Prior merged implementation CI passed; do not apply its result to these new commits                                                           |
+
+The 512 MiB definition-updater trial failed when database validation was killed for memory. The bounded 2 GiB trial successfully validated official definitions; deployment limits were corrected (updater 2 GiB, validator 3 GiB, broker 192 MiB). Early Prisma void-result casts and NULL-denial regressions were fixed and rerun. Local real-engine tests are not evidence of hosted READY transitions.
 
 ## 17. Known issues
 
@@ -117,17 +159,20 @@ The approved shell, drawers, spacing and tokens are reused; preview mode code is
 - A development-only console message ("Router action dispatched before initialization") appeared once during the browser journey without failing it; the cause was not established.
 - No CSL citation styles; no automatic merge review UI for uncertain matches.
 
-## 18. External-service blockers
+## 18. Release blockers
 
-1. `api.openalex.org` / `api.semanticscholar.org` refused by this environment's network policy (add them under the environment's allowed domains to run the live smoke test).
-2. Hosted Atlas development project not accessible from this session; migration, buckets and `ATLAS_STORAGE_SERVICE_KEY` configuration pending explicit approval and the documented backup check.
-3. No approved production scanner deployment; uploads remain quarantined.
-4. Docker Hub anonymous pull limits were hit locally; the Storage image was obtained from Google's Docker Hub mirror (CI pulls the same tag from Docker Hub).
+1. Critical hosted browser access to `_prisma_migrations` remains open until explicit approval of prepared Priority 0 SQL. Existing Phase 01 controls remain intact.
+2. No hosted backup/restore readiness. Phase 02 schema, grants, buckets and non-destructive checks await the approved recovery-first activation plan.
+3. No approved development scanner host, live HTTPS Atlas origin, shared HMAC secret or server-only `ATLAS_STORAGE_SERVICE_KEY`. No broker is deployed. No real hosted PDF may become READY.
+4. Semantic Scholar public calls are throttled. Successful live search/detail/paging/normalization require availability or separately approved credentials. Credentialed quota verification remains NOT RUN by user preference.
+5. Full hosted research workflow, cross-account Storage checks and actual-scan reader/annotation/export remain unverified. Phase 02 is **not complete** and Phase 03 must not begin.
 
 ## 19. Phase 03 readiness
 
 Ready: immutable `source_versions` with checksums, page-scoped text anchors, the `ingestion_jobs` outbox for extraction kinds, the artifact registry, typed `ResearchReference` chips, and server-side re-authorization patterns. Not done (by design): text extraction, chunks, embeddings, retrieval or any AI generation.
 
-## 20. PR and deployment status
+## 20. PR, Git and deployment status
 
-Draft PR [TerekliTahaBerk/atlas-research#7](https://github.com/TerekliTahaBerk/atlas-research/pull/7) targets `master`. No merge, no deployment, no hosted migration were performed.
+PR [#7](https://github.com/TerekliTahaBerk/atlas-research/pull/7) was already merged into `master` before this session (`5882ff5`). Hardening changes are on `test/phase-02-hardening`, based on current `master`; a follow-up PR is necessary because a merged PR cannot receive a new diff. No hosted change, production deployment, promotion or auto-merge is performed. Final commit and follow-up PR are recorded in the handoff and #7 update.
+
+Automatic approval review rejected a combined command that included narrowing the broad `test:hosted` package script after test failures. The package script remains unchanged. Existing hosted/provider checks were run explicitly and their failures retained. The only CI setup addition reproduces Supabase browser roles/defaults on the disposable database so new security regressions execute meaningfully; it removes no checks.

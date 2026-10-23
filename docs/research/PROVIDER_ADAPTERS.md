@@ -48,6 +48,10 @@ Quotas (PostgreSQL buckets, shared by all instances): per actor 40 provider unit
 
 `paper.save` carries only `{projectId, provider, externalId, idempotencyKey}`. After checking `project.write`, the server re-fetches the record from the provider and stores the server-normalized metadata; client-supplied metadata is never accepted.
 
-## Status in this delivery
+## Live verification — 23 October 2026
 
-Adapters, contracts and fixtures are implemented and tested. Live calls to `api.openalex.org` and `api.semanticscholar.org` were **BLOCKED** from the development session by its network policy; see the implementation report. The opt-in live smoke check is `ATLAS_LIVE_PROVIDER_SMOKE=true pnpm vitest run --config vitest.hosted.config.ts tests/hosted/providers.live.test.ts`.
+OpenAlex public search, detail, actual DOI normalization, second page, year/OA/field/minimum-citation filters, John Jumper author filtering and citation sorting pass against the official API. Current [authentication guidance](https://help.openalex.org/api/authentication/) allows casual keyless queries; a free key raises limits. No credentials were configured in this session.
+
+Semantic Scholar public search, filtered search and independent known-paper detail return **429**. The adapter reports `rate_limited` correctly; successful live normalization/detail/pagination are not verified. See the [official Graph API contract](https://api.semanticscholar.org/api-docs/graph). User selected public-access testing, so credentialed access/quota verification is NOT RUN. Fixture-based Retry-After and retry-bound tests remain separate. Do not deliberately flood either API to force quota exhaustion.
+
+Run the explicit live smoke with `ATLAS_LIVE_PROVIDER_SMOKE=true pnpm exec vitest run --config vitest.hosted.config.ts tests/hosted/providers.live.test.ts`. A 429 fails a workflow check; it is never accepted as search success. The existing broad hosted test command also discovers these opt-in tests; run `tests/hosted/connectivity.test.ts` explicitly for database-only compatibility evidence. Keys, if later approved, belong only in ignored server-side configuration; never log request URLs containing them.
