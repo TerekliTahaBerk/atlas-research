@@ -19,7 +19,6 @@ import {
   type LibraryQuery,
   type NormalizedPaper,
   type ProjectPaperDto,
-  type ResearchCommand,
   type ResearchCommandInput,
 } from '@atlas/core';
 import {
@@ -64,7 +63,9 @@ const libraryCursor = z.object({
   s: z.string().regex(/^[a-f0-9]{32}$/),
   a: z.uuid(),
 });
-function scopeDigest(projectId: string, query: LibraryQuery) {
+/** Any validated filter object; `cursor` itself is excluded from the digest. */
+type CursorFilters = { cursor?: string | undefined };
+function scopeDigest(projectId: string, query: CursorFilters) {
   const filters = Object.entries(query)
     .filter(([key, value]) => key !== 'cursor' && value !== undefined)
     .sort(([a], [b]) => a.localeCompare(b));
@@ -76,7 +77,7 @@ function scopeDigest(projectId: string, query: LibraryQuery) {
 export function encodeLibraryCursor(
   actorId: string,
   projectId: string,
-  query: LibraryQuery,
+  query: CursorFilters,
   offset: number,
 ) {
   const body = Buffer.from(
@@ -87,7 +88,7 @@ export function encodeLibraryCursor(
 export function decodeLibraryCursor(
   actorId: string,
   projectId: string,
-  query: LibraryQuery,
+  query: CursorFilters,
 ) {
   if (!query.cursor) return 0;
   const [body, signature] = query.cursor.split('.');
@@ -402,7 +403,7 @@ export async function exportProject(
 
 // --------------------------------------------------------------- commands
 
-export function requestHash(command: ResearchCommand) {
+export function requestHash(command: Record<string, unknown>) {
   // The key identifies the attempt; the hash covers everything else.
   const rest = Object.fromEntries(
     Object.entries(command).filter(([key]) => key !== 'idempotencyKey'),

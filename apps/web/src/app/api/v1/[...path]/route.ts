@@ -5,6 +5,8 @@ import { cookies } from 'next/headers';
 import { readNavigation } from '@/features/platform/navigation';
 import { z } from 'zod';
 import {
+  artifactCommand,
+  artifactCommandNames,
   platformCommand,
   researchCommand,
   researchCommandNames,
@@ -29,6 +31,12 @@ import { rateLimit } from '@/features/platform/server/limiter';
 import { PlatformError } from '@/features/platform/server/errors';
 import { executeResearchCommand } from '@/features/library/server/library';
 import { providerResolver } from '@/features/discovery/server/service';
+import { executeArtifactCommand } from '@/features/artifacts/server/commands';
+import {
+  artifactGet,
+  documentExportResponse,
+} from '@/features/artifacts/server/routes';
+import { buildProposal } from '@/features/ai/server/proposals';
 import {
   exportResponse,
   researchGet,
@@ -63,11 +71,23 @@ export async function POST(
     const path = segments.join('/');
     if (path === 'auth') return authenticate(await readJson(request));
     const actor = await verifyActor();
-    await rateLimit(
-      path === 'context' ? 'navigation' : 'write',
-      actor.id,
-      path === 'context' ? 120 : 30,
-    );
+    // Document bodies can exceed the 32 KiB default; the command schemas and
+    // SQL bound each payload again.
+    const body =
+      path === 'commands' ? await readJson(request, 524288) : undefined;
+    const name =
+      typeof body === 'object' && body !== null && 'command' in body
+        ? body.command
+        : undefined;
+    // Autosave has its own bucket so debounced saves cannot starve other writes.
+    if (name === 'document.save')
+      await rateLimit('document-save', actor.id, 120);
+    else
+      await rateLimit(
+        path === 'context' ? 'navigation' : 'write',
+        actor.id,
+        path === 'context' ? 120 : 30,
+      );
     if (path === 'context') {
       const input = z
         .object({ workspaceId: z.uuid(), projectId: z.uuid().optional() })
@@ -106,18 +126,24 @@ export async function POST(
       );
       return { selected: true };
     }
+    if (path === 'ai/proposals')
+      return buildProposal(actor, await readJson(request));
     if (segments[0] === 'ai') return aiPost(actor, segments, request);
     if (path !== 'commands') {
       const handled = await researchPost(actor, segments, request, requestId);
       if (handled !== undefined) return handled;
       throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
     }
-    const body = await readJson(request);
     // One command endpoint; research names dispatch to their fixed commands.
-    const name =
-      typeof body === 'object' && body !== null && 'command' in body
-        ? body.command
-        : undefined;
+    if (
+      typeof name === 'string' &&
+      (artifactCommandNames as string[]).includes(name)
+    )
+      return executeArtifactCommand(
+        actor,
+        artifactCommand.parse(body),
+        requestId,
+      );
     if (
       typeof name === 'string' &&
       (researchCommandNames as string[]).includes(name)
@@ -143,7 +169,9 @@ export async function GET(
     const failed = await respond(async () => {
       const actor = await verifyActor();
       await rateLimit('read', actor.id, 120);
-      file = await exportResponse(actor, path, url);
+      file =
+        (await documentExportResponse(actor, path, url)) ??
+        (await exportResponse(actor, path, url));
       if (!file) throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
       return null;
     });
@@ -186,6 +214,8 @@ export async function GET(
     }
     if (path.join('/') === 'invitations') return invitations(actor, listCursor);
     if (path[0] === 'ai') return aiGet(actor, path, url);
+    const artifacts = await artifactGet(actor, path, url);
+    if (artifacts !== undefined) return artifacts;
     const research = await researchGet(actor, path, url, request.signal);
     if (research !== undefined) return research;
     throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');

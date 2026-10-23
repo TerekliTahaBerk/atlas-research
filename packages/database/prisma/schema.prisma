@@ -228,6 +228,7 @@ model Artifact {
  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
  @@unique([projectId, id])
+ @@unique([projectId, id, kind])
  @@map("artifacts")
 }
 model ProjectPaper {
@@ -236,6 +237,7 @@ model ProjectPaper {
  workspaceId String @map("workspace_id") @db.Uuid
  projectId String @map("project_id") @db.Uuid
  artifactId String @unique @map("artifact_id") @db.Uuid
+ artifactKind String @default("PAPER") @map("artifact_kind") @db.VarChar(30)
  paperId String? @map("paper_id") @db.Uuid
  privateTitle String? @map("private_title") @db.VarChar(1000)
  metadata Json?
@@ -522,4 +524,118 @@ model AICitation {
  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
  @@unique([runId,ordinal])
  @@map("ai_citations")
+}
+
+
+// Phase 04 SQL owns composite FKs, checks, RLS, immutability and fixed commands.
+model Document {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ artifactId String @unique @map("artifact_id") @db.Uuid
+ artifactKind String @default("DOCUMENT") @map("artifact_kind") @db.VarChar(30)
+ title String @db.VarChar(200)
+ kind String @default("RESEARCH_NOTE") @db.VarChar(30)
+ createdById String @map("created_by_id") @db.Uuid
+ updatedById String @map("updated_by_id") @db.Uuid
+ currentVersionId String? @map("current_version_id") @db.Uuid
+ currentRevision Int @default(0) @map("current_revision")
+ contentSchemaVersion Int @default(1) @map("content_schema_version")
+ searchText String @default("") @map("search_text")
+ searchDocument Unsupported("tsvector")? @default(dbgenerated()) @map("search_document")
+ version Int @default(1)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@map("documents")
+}
+model DocumentVersion {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ documentId String @map("document_id") @db.Uuid
+ revision Int
+ authorId String @map("author_id") @db.Uuid
+ content Json
+ contentHash String @map("content_hash") @db.Char(64)
+ schemaVersion Int @map("schema_version")
+ changeSummary String? @map("change_summary") @db.VarChar(200)
+ source String @db.VarChar(20)
+ restoredFromRevision Int? @map("restored_from_revision")
+ aiRunId String? @map("ai_run_id") @db.Uuid
+ clientRequestId String @map("client_request_id") @db.Uuid
+ referenceArtifactIds String[] @default([]) @map("reference_artifact_ids") @db.Uuid
+ mentionedProfileIds String[] @default([]) @map("mentioned_profile_ids") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@unique([documentId, revision])
+ @@unique([documentId, id, revision])
+ @@unique([documentId, clientRequestId])
+ @@unique([projectId, id])
+ @@map("document_versions")
+}
+model TaskMilestone {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ title String @db.VarChar(120)
+ description String? @db.VarChar(1000)
+ targetDate DateTime? @map("target_date") @db.Date
+ status String @default("PLANNED") @db.VarChar(12)
+ createdById String @map("created_by_id") @db.Uuid
+ version Int @default(1)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@map("task_milestones")
+}
+model Task {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ artifactId String @unique @map("artifact_id") @db.Uuid
+ artifactKind String @default("TASK") @map("artifact_kind") @db.VarChar(30)
+ taskNumber Int @map("task_number")
+ title String @db.VarChar(200)
+ description String @default("")
+ status String @default("TODO") @db.VarChar(16)
+ priority String @default("NONE") @db.VarChar(8)
+ createdById String @map("created_by_id") @db.Uuid
+ updatedById String @map("updated_by_id") @db.Uuid
+ assigneeId String? @map("assignee_id") @db.Uuid
+ milestoneId String? @map("milestone_id") @db.Uuid
+ dueDate DateTime? @map("due_date") @db.Date
+ aiRunId String? @map("ai_run_id") @db.Uuid
+ version Int @default(1)
+ completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ searchDocument Unsupported("tsvector")? @default(dbgenerated()) @map("search_document")
+ @@unique([projectId, id])
+ @@unique([projectId, taskNumber])
+ @@map("tasks")
+}
+model ResearchArtifactLink {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ sourceArtifactId String @map("source_artifact_id") @db.Uuid
+ sourceKind String @map("source_kind") @db.VarChar(30)
+ targetArtifactId String @map("target_artifact_id") @db.Uuid
+ targetKind String @map("target_kind") @db.VarChar(30)
+ relationship String @db.VarChar(20)
+ origin String @default("MANUAL") @db.VarChar(10)
+ createdById String @map("created_by_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ archivedById String? @map("archived_by_id") @db.Uuid
+ @@unique([projectId, id])
+ @@map("research_artifact_links")
 }

@@ -53,3 +53,5 @@ export type TenantScope = Readonly<{
 export * from './platform';
 export * from './research';
 export * from './citation';
+export * from './documents';
+export * from './artifacts';
