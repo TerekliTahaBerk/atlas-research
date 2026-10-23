@@ -1,5 +1,9 @@
 # Security and privacy foundation
 
+## Phase 02 research and file boundary
+
+Every research read/write re-authorizes in SQL (RLS + `mutate_research`) as well as in services; revoked or never-granted members, including workspace administrators without a private-project grant, receive `NOT_FOUND`. Public metadata is visible only through readable associations. Provider calls go only to configured HTTPS hosts (or loopback fixtures), refuse redirects, cap size/time and never fetch user-supplied URLs; provider keys are server-only. Uploads use private buckets without browser policies, unpredictable keys, `upsert=false` single-object grants, server-measured size/SHA-256/signature checks, 15-minute actor-bound intents, quarantine and an HMAC scanner protocol; nothing is readable before an accepted scan verdict. Downloads are re-authorized 60-second grants, checksum-verified in the browser, rendered by PDF.js in a same-origin worker (`worker-src 'self'`). No AI, extraction, or remote PDF fetching exists. **A production scanner is not deployed, so real uploads stay quarantined.** See [PDF storage security](library/PDF_STORAGE_SECURITY.md) and [ADR 0014](decisions/0014-research-library-boundary.md).
+
 ## Phase 01 implementation and release gate
 
 Live mode implements verified Supabase `getUser`, PKCE callbacks, signed short-lived recovery markers, exact-origin JSON mutations, distributed SQL quotas, per-request script nonce CSP, no-store responses and safe error/request IDs. Runtime role validation rejects owner/superuser/BYPASSRLS access. RLS plus constrained SQL commands enforce live tenant/resource capabilities, invitation single use/recipient binding, parent revocation and concurrent last-owner protection. [Authorization](identity/AUTHORIZATION.md) and [authentication](identity/AUTHENTICATION.md) define the trust model and limits.

@@ -1,5 +1,9 @@
 # Atlas master plan
 
+## Phase 02 delivery state
+
+Research discovery, project libraries, private PDF storage, the PDF reader, anchored annotations and citation export are implemented on the Phase 02 branch with disposable-environment evidence; see the [implementation report](phases/PHASE_02_IMPLEMENTATION_REPORT.md). Live provider access, hosted migration/Storage activation and a production malware scanner remain external gates, so Phase 02 is not declared complete.
+
 ## Phase 01 delivery state
 
 Core platform implementation is present on `feat/phase-01-core-platform`: Supabase SSR, profile/onboarding drafts, idempotent personal environments, tenant/project management, hashed invitations, membership/owner guards, distributed SQL rate buckets and live UI adapters. See [the implementation report](phases/PHASE_01_IMPLEMENTATION_REPORT.md). Phase 01 remains behind its verification/release gates: hosted database/TLS/Prisma pooler checks pass; actual hosted signup/confirmation/onboarding and persisted-project logout/login pass; hosted recovery, Google/provider setup, deployed security and production invitation delivery remain unverified. Phase 02 is not implemented or approved by this change.

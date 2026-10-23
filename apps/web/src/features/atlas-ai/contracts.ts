@@ -1,3 +1,4 @@
+import type { ResearchReference } from '@atlas/ai';
 import type { ScreenKey } from '@/features/shell/navigation';
 import type { PaperId } from '@/lib/preview/research';
 /**
@@ -24,6 +25,8 @@ export interface ContextReference {
   id: string;
   kind: EntityKind;
   title: string;
+  /** Live research context for Phase 03; describes, never authorizes. */
+  research?: ResearchReference;
 }
 /** The five handoff modes; `inline` entry points live inside screens. */
 export type AtlasMode = 'compact' | 'open' | 'focus' | 'panel';

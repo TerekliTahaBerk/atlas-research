@@ -22,4 +22,28 @@ describe('environment boundary', () => {
     expect(() => validateEnvironment({ ATLAS_MODE: 'live' })).toThrow(
       'Missing live environment variables',
     ));
+  it('accepts only HTTPS or loopback provider hosts and hides secrets', () => {
+    expect(
+      validateEnvironment({
+        ATLAS_OPENALEX_BASE_URL: 'https://api.openalex.org',
+        ATLAS_SEMANTIC_SCHOLAR_BASE_URL: 'http://127.0.0.1:3199',
+      }).ATLAS_OPENALEX_BASE_URL,
+    ).toBe('https://api.openalex.org');
+    for (const value of [
+      'http://api.openalex.org',
+      'https://api.openalex.org/works',
+      'http://169.254.169.254',
+      'file:///etc/passwd',
+    ])
+      expect(() =>
+        validateEnvironment({ ATLAS_OPENALEX_BASE_URL: value }),
+      ).toThrow('ATLAS_OPENALEX_BASE_URL');
+    try {
+      validateEnvironment({ ATLAS_SCANNER_SECRET: 'too-short-secret' });
+      throw new Error('Expected validation failure');
+    } catch (error) {
+      expect(String(error)).toContain('ATLAS_SCANNER_SECRET');
+      expect(String(error)).not.toContain('too-short-secret');
+    }
+  });
 });

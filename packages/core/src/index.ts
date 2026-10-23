@@ -51,3 +51,5 @@ export type TenantScope = Readonly<{
   projectId?: string;
 }>;
 export * from './platform';
+export * from './research';
+export * from './citation';

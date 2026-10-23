@@ -78,3 +78,35 @@ export interface AIProvider {
   generate(request: AIRequest): Promise<AIResponse>;
   stream(request: AIRequest): AsyncIterable<AIStreamEvent>;
 }
+
+/**
+ * Typed research context attached to Atlas AI chips by the Phase 02 screens.
+ * It describes what the user pointed at; it never authorizes retrieval.
+ * Phase 03 must re-check the actor's live project access and resolve the
+ * immutable source version before reading any content.
+ */
+export type ResearchReference =
+  | { kind: 'project'; projectId: string }
+  | { kind: 'search-result'; projectId: string; candidateId: string }
+  | { kind: 'paper'; projectId: string; projectPaperId: string }
+  | {
+      kind: 'source-version';
+      projectId: string;
+      projectPaperId: string;
+      sourceVersionId: string;
+    }
+  | {
+      kind: 'selection';
+      projectId: string;
+      projectPaperId: string;
+      sourceVersionId: string;
+      pageNumber: number;
+      quote: string;
+    }
+  | {
+      kind: 'annotation';
+      projectId: string;
+      projectPaperId: string;
+      sourceVersionId: string;
+      annotationId: string;
+    };

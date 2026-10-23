@@ -14,6 +14,8 @@ export async function proxy(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     `connect-src 'self' ${provider} ${process.env.NODE_ENV === 'development' ? (process.env.ATLAS_ORIGIN ?? '').replace(/^http/, 'ws') : ''}`,
+    // PDF.js runs its parser in a same-origin worker module.
+    "worker-src 'self'",
     "font-src 'self'",
     "img-src 'self' data: blob:",
     "frame-src 'self'",

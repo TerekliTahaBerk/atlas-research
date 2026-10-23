@@ -63,7 +63,7 @@ jobs:
 
   isolated-auth:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       ATLAS_MODE: live
       ATLAS_ORIGIN: http://127.0.0.1:3102
@@ -74,6 +74,12 @@ jobs:
       ATLAS_RATE_SECRET: atlas-disposable-test-rate-secret-32-characters
       ATLAS_CURSOR_SECRET: atlas-disposable-test-cursor-secret-32-characters
       ATLAS_DEV_INVITATION_LINKS: 'true'
+      # Phase 02: loopback provider fixture, disposable Storage service key
+      # (signed with the harness-only JWT secret) and scanner protocol secret.
+      ATLAS_OPENALEX_BASE_URL: http://127.0.0.1:3199
+      ATLAS_SEMANTIC_SCHOLAR_BASE_URL: http://127.0.0.1:3199
+      ATLAS_STORAGE_SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoiYXRsYXMtZGlzcG9zYWJsZS10ZXN0IiwiaWF0IjoxNzYxMDAwMDAwLCJleHAiOjIwNzYwMDAwMDB9.vwfFL54Ji7i_UTmFN6ETLrQmYethv-rhB9XImN5WL_E
+      ATLAS_SCANNER_SECRET: atlas-disposable-test-scanner-secret-32-characters
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,7 +93,7 @@ jobs:
       - name: Start disposable Auth (startup diagnostics contain no user sessions)
         run: |
           if ! docker compose -f tests/auth/compose.yml up -d --wait; then
-            docker compose -f tests/auth/compose.yml logs --no-color auth
+            docker compose -f tests/auth/compose.yml logs --no-color auth storage
             exit 1
           fi
       - run: pnpm --filter @atlas/database exec prisma migrate deploy

@@ -61,13 +61,15 @@ export async function authenticate(raw: unknown) {
   }
   const input = parsed.data;
   await rateLimit('auth-global', 'all', 300, 60);
-  await rateLimit(
-    'auth-action',
-    'email' in input ? input.email.trim().toLowerCase() : input.action,
-    10,
-    900,
-  );
   const client = await serverSupabase(true);
+  // Session-bound actions are keyed by the verified user. Keying them by the
+  // action name alone made every account share one sign-out budget.
+  let limitKey = 'email' in input ? input.email.trim().toLowerCase() : '';
+  if (input.action === 'logout' || input.action === 'password') {
+    const { data } = await client.auth.getUser();
+    limitKey = data.user ? `${input.action}:${data.user.id}` : input.action;
+  } else if (!limitKey) limitKey = input.action;
+  await rateLimit('auth-action', limitKey, 10, 900);
   const origin = process.env.ATLAS_ORIGIN!;
   if (input.action === 'signin') {
     const { data, error } = await client.auth.signInWithPassword({

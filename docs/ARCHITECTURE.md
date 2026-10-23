@@ -1,5 +1,9 @@
 # System architecture
 
+## Phase 02 implemented boundary
+
+`features/discovery/server` holds provider adapters (OpenAlex, Semantic Scholar), the bounded HTTP client and orchestration; `features/library/server` holds library reads, commands, Storage signing, uploads/finalization, the scanner boundary and export routing. Presentation lives in `features/research/live-research.tsx`, `features/library/live-library.tsx` and `features/reader/live-reader.tsx`, which use typed client adapters (`features/library/client.ts`). Core owns research contracts and citation formatting; `@atlas/ai` owns the typed `ResearchReference` context description. PDF.js loads on demand in the reader only. Asynchronous scanning uses the transactional `ingestion_jobs` outbox and an external worker protocol (no Inngest yet, per ADR 0010). See [ADR 0014](decisions/0014-research-library-boundary.md).
+
 ## Phase 01 implemented boundary
 
 Web controllers validate and verify sessions, then call `features/platform/server` domain services. Services own actor-scoped Prisma transactions and typed DTOs. The database owns the central capability evaluator, constrained transactional commands and audit invariants. See [ADR 0013](decisions/0013-phase-01-actor-context.md), [authorization](identity/AUTHORIZATION.md), and [API contracts](API_CONTRACTS.md). Core/AI retain no database/UI dependencies. Only the server imports the database adapter.

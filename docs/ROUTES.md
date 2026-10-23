@@ -1,5 +1,9 @@
 # Route inventory · Phase 00.5A
 
+## Phase 02 live research routes
+
+In live mode `/app/projects/:projectId/research`, `/library` and `/reader` render real data for readable, non-archived projects (other modules keep their unavailable state). Research holds search state in the page; Library and Reader use `?paper=<projectPaperId>` (a UUID that grants nothing by itself; the APIs reauthorize). Inaccessible papers show an unavailable state without titles. Preview mode is unchanged and still uses only `sample` fixtures.
+
 ## Phase 01 live routing
 
 `ATLAS_MODE=live` activates the verified application. `/`, `/login`, `/register`, `/reset-password`, `/auth/callback`, `/update-password` and the metadata-free `/invite` landing are public Auth-related surfaces. `/onboarding` requires a verified actor and recovers their saved draft. All `/app` pages require verified identity; Home/workspace/project/settings loaders independently resolve authorized DTOs and completed setup. Invalid/sample/inaccessible resources return safe 404s. Unauthenticated access returns to login; allowlisted return destinations preserve deep-link intent.

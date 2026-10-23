@@ -9,6 +9,9 @@ export default defineConfig({
         new URL('./tests/mocks/navigation.ts', import.meta.url),
       ),
       '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
+      'server-only': fileURLToPath(
+        new URL('./tests/mocks/server-only.ts', import.meta.url),
+      ),
     },
   },
   test: {

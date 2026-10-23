@@ -167,3 +167,229 @@ model RateBucket {
  @@index([expiresAt])
  @@map("rate_buckets")
 }
+
+// Phase 02 research library. Composite tenant FKs, checks, RLS, triggers and
+// the fixed command boundary are hand-written in the reviewed migration SQL.
+enum ReadingStatus {
+ TO_READ
+ READING
+ READ
+ ARCHIVED
+}
+enum SourceState {
+ PENDING_UPLOAD
+ QUARANTINED
+ SCANNING
+ PROCESSING
+ READY
+ FAILED
+ REJECTED
+}
+enum AnnotationKind {
+ HIGHLIGHT
+ NOTE
+ PAGE_NOTE
+}
+enum AnnotationVisibility {
+ PROJECT
+ PRIVATE
+}
+enum JobState {
+ QUEUED
+ RUNNING
+ SUCCEEDED
+ RETRYABLE
+ FAILED
+}
+model ResearchPaper {
+ id String @id @db.Uuid
+ normalizedDoi String? @unique @map("normalized_doi") @db.VarChar(300)
+ title String @db.VarChar(1000)
+ metadata Json
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ @@map("research_papers")
+}
+model PaperExternalIdentifier {
+ provider String @db.VarChar(30)
+ externalId String @map("external_id") @db.VarChar(200)
+ paperId String @map("paper_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@id([provider, externalId])
+ @@index([paperId])
+ @@map("paper_external_identifiers")
+}
+model Artifact {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ kind String @db.VarChar(30)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@map("artifacts")
+}
+model ProjectPaper {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ artifactId String @unique @map("artifact_id") @db.Uuid
+ paperId String? @map("paper_id") @db.Uuid
+ privateTitle String? @map("private_title") @db.VarChar(1000)
+ metadata Json?
+ readingStatus ReadingStatus @default(TO_READ) @map("reading_status")
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ addedById String @map("added_by_id") @db.Uuid
+ version Int @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@unique([projectId, paperId])
+ @@index([projectId, createdAt, id])
+ @@map("project_papers")
+}
+model PaperCollection {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ name String @db.VarChar(120)
+ description String? @db.VarChar(500)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ createdById String @map("created_by_id") @db.Uuid
+ version Int @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@index([projectId, name, id])
+ @@map("paper_collections")
+}
+model CollectionMembership {
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ collectionId String @map("collection_id") @db.Uuid
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ addedById String @map("added_by_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@id([collectionId, projectPaperId])
+ @@index([projectPaperId])
+ @@map("collection_memberships")
+}
+model PaperTag {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ name String @db.VarChar(40)
+ normalizedName String @map("normalized_name") @db.VarChar(40)
+ createdById String @map("created_by_id") @db.Uuid
+ version Int @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@unique([projectId, normalizedName])
+ @@map("paper_tags")
+}
+model ProjectPaperTag {
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ tagId String @map("tag_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@id([projectPaperId, tagId])
+ @@index([tagId])
+ @@map("project_paper_tags")
+}
+model SourceVersion {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ ordinal Int
+ sourceType String @map("source_type") @db.VarChar(20)
+ rightsBasis String @map("rights_basis") @db.VarChar(30)
+ state SourceState @default(PENDING_UPLOAD)
+ fileName String @map("file_name") @db.VarChar(200)
+ mediaType String @map("media_type") @db.VarChar(100)
+ declaredSize BigInt @map("declared_size")
+ declaredSha256 String @map("declared_sha256") @db.Char(64)
+ byteSize BigInt? @map("byte_size")
+ sha256 String? @db.Char(64)
+ quarantineKey String @unique @map("quarantine_key") @db.VarChar(500)
+ objectKey String? @unique @map("object_key") @db.VarChar(500)
+ failure String? @db.VarChar(200)
+ scannedBy String? @map("scanned_by") @db.VarChar(120)
+ scanCompletedAt DateTime? @map("scan_completed_at") @db.Timestamptz(3)
+ readyAt DateTime? @map("ready_at") @db.Timestamptz(3)
+ createdById String @map("created_by_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@unique([projectPaperId, id])
+ @@unique([projectPaperId, ordinal])
+ @@map("source_versions")
+}
+model UploadIntent {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ sourceVersionId String @unique @map("source_version_id") @db.Uuid
+ actorId String @map("actor_id") @db.Uuid
+ expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+ finalizedAt DateTime? @map("finalized_at") @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@map("upload_intents")
+}
+model IngestionJob {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ sourceVersionId String @map("source_version_id") @db.Uuid
+ kind String @db.VarChar(30)
+ state JobState @default(QUEUED)
+ attempts Int @default(0)
+ availableAt DateTime @default(now()) @map("available_at") @db.Timestamptz(3)
+ lockedUntil DateTime? @map("locked_until") @db.Timestamptz(3)
+ lastError String? @map("last_error") @db.VarChar(200)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ @@unique([sourceVersionId, kind])
+ @@index([kind, state, availableAt])
+ @@map("ingestion_jobs")
+}
+model PaperAnnotation {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ sourceVersionId String @map("source_version_id") @db.Uuid
+ authorId String @map("author_id") @db.Uuid
+ kind AnnotationKind
+ visibility AnnotationVisibility @default(PROJECT)
+ body String?
+ anchor Json
+ anchorStatus String @default("PRECISE") @map("anchor_status") @db.VarChar(20)
+ version Int @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ @@index([sourceVersionId, createdAt, id])
+ @@map("paper_annotations")
+}
+model ResearchCommandKey {
+ actorId String @map("actor_id") @db.Uuid
+ idempotencyKey String @map("idempotency_key") @db.Uuid
+ command String @db.VarChar(60)
+ requestHash String @map("request_hash") @db.Char(64)
+ result Json
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@id([actorId, idempotencyKey])
+ @@map("research_command_keys")
+}

@@ -1,4 +1,14 @@
 import { z } from 'zod';
+// Fixed scholarly API hosts: HTTPS, or loopback for controlled test fixtures.
+const providerBase = z.url().refine((value) => {
+  const url = new URL(value);
+  return (
+    url.origin === value.replace(/\/$/, '') &&
+    (url.protocol === 'https:' ||
+      (url.protocol === 'http:' &&
+        ['127.0.0.1', 'localhost'].includes(url.hostname)))
+  );
+}, 'Provider base URLs must be HTTPS origins or loopback test fixtures.');
 const environment = z.object({
   ATLAS_MODE: z.enum(['preview', 'live']).default('preview'),
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
@@ -16,6 +26,14 @@ const environment = z.object({
   ATLAS_CURSOR_SECRET: z.string().min(32).optional(),
   ATLAS_GOOGLE_OAUTH: z.enum(['true', 'false']).default('false'),
   ATLAS_DEV_INVITATION_LINKS: z.enum(['true', 'false']).default('false'),
+  // Phase 02. All server-only; never prefix these with NEXT_PUBLIC_.
+  ATLAS_OPENALEX_API_KEY: z.string().min(1).max(200).optional(),
+  ATLAS_OPENALEX_MAILTO: z.email().optional(),
+  ATLAS_SEMANTIC_SCHOLAR_API_KEY: z.string().min(1).max(200).optional(),
+  ATLAS_OPENALEX_BASE_URL: providerBase.optional(),
+  ATLAS_SEMANTIC_SCHOLAR_BASE_URL: providerBase.optional(),
+  ATLAS_STORAGE_SERVICE_KEY: z.string().min(20).optional(),
+  ATLAS_SCANNER_SECRET: z.string().min(32).optional(),
 });
 export function validateEnvironment(input: Record<string, string | undefined>) {
   const result = environment.safeParse(input);

@@ -1,0 +1,49 @@
+{
+  "id": "https://openalex.org/W9900000001",
+  "doi": "https://doi.org/10.5555/atlas.fixture.0001",
+  "title": "Fixture: Sparse attention for protein structure prediction",
+  "publication_year": 2023,
+  "publication_date": "2023-05-14",
+  "type": "article",
+  "language": "en",
+  "cited_by_count": 412,
+  "authorships": [
+    {
+      "author": {
+        "display_name": "Ada Fixture",
+        "orcid": "https://orcid.org/0000-0002-1825-0097"
+      },
+      "raw_author_name": "A. Fixture"
+    },
+    {
+      "author": { "display_name": "Bao Ngọc Example", "orcid": null },
+      "raw_author_name": "Bao Ngoc Example"
+    }
+  ],
+  "primary_location": {
+    "landing_page_url": "https://example.org/fixture/0001",
+    "pdf_url": null,
+    "license": null,
+    "version": "publishedVersion",
+    "source": { "display_name": "Journal of Fixture Studies" }
+  },
+  "best_oa_location": {
+    "landing_page_url": "https://example.org/fixture/0001",
+    "pdf_url": "https://example.org/fixture/0001.pdf",
+    "license": "cc-by",
+    "version": "publishedVersion",
+    "source": { "display_name": "Journal of Fixture Studies" }
+  },
+  "open_access": { "is_oa": true, "oa_status": "gold" },
+  "abstract_inverted_index": {
+    "Sparse": [0],
+    "attention": [1],
+    "reduces": [2],
+    "memory": [3],
+    "use.": [4]
+  },
+  "primary_topic": {
+    "field": { "display_name": "Computer Science" },
+    "subfield": { "display_name": "Artificial Intelligence" }
+  }
+}

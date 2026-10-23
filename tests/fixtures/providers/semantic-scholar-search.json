@@ -1,0 +1,51 @@
+{
+  "total": 2,
+  "offset": 0,
+  "data": [
+    {
+      "paperId": "f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+      "externalIds": {
+        "DOI": "10.5555/atlas.fixture.0001",
+        "CorpusId": 990000001
+      },
+      "title": "Fixture: Sparse Attention for Protein Structure Prediction",
+      "abstract": "Provider abstract text for the shared fixture record.",
+      "year": 2023,
+      "publicationDate": "2023-05-14",
+      "venue": "J. Fixture Stud.",
+      "journal": { "name": "Journal of Fixture Studies" },
+      "authors": [
+        { "authorId": "1", "name": "Ada Fixture" },
+        { "authorId": "2", "name": "Bao Ngoc Example" }
+      ],
+      "citationCount": 398,
+      "fieldsOfStudy": ["Computer Science", "Biology"],
+      "isOpenAccess": true,
+      "openAccessPdf": {
+        "url": "https://example.org/fixture/0001.pdf",
+        "status": "GOLD",
+        "license": "CCBY"
+      },
+      "url": "https://www.semanticscholar.org/paper/f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+      "publicationTypes": ["JournalArticle"]
+    },
+    {
+      "paperId": "e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2",
+      "externalIds": { "CorpusId": 990000002 },
+      "title": "Fixture: Graph priors for protein folding without a DOI",
+      "abstract": null,
+      "year": 2021,
+      "publicationDate": null,
+      "venue": "",
+      "journal": null,
+      "authors": [{ "authorId": null, "name": "Chidi Placeholder" }],
+      "citationCount": 17,
+      "fieldsOfStudy": null,
+      "isOpenAccess": false,
+      "openAccessPdf": null,
+      "url": null,
+      "publicationTypes": null
+    },
+    { "paperId": "short", "title": "Fixture: invalid identifier is dropped" }
+  ]
+}

@@ -5,7 +5,7 @@ Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundat
 0.5. UI/UX master foundation: semantic V2 themes, responsive navigation, contextual AI presentation and pickers, coherent module screens, auth/onboarding previews, visual/interaction QA. No backend services. See [delivery plan](phases/PHASE_00_5.md).
 
 1. Core platform: identity, personal organizations, workspace/project CRUD, invitations, permissions.
-2. Research discovery/library: provider adapters, normalization, lawful private files, reading and annotations.
+2. Research discovery/library: provider adapters, normalization, lawful private files, reading and annotations. Implemented on the Phase 02 branch; live providers, hosted activation and a production scanner remain gates (see the Phase 02 report).
 3. AI research: extraction/chunks/embeddings, permission-scoped RAG, citation verification and usage ledger.
 4. Documents/tasks: versioned notes, assignments, typed artifact links and authorized search.
 5. Communication: channels, durable messages, private realtime, mentions/reactions/notifications.
