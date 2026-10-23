@@ -99,15 +99,15 @@ Stable artifact IDs for documents/tasks, typed links and `mentioned_profile_ids`
 
 [PR #10](https://github.com/TerekliTahaBerk/atlas-research/pull/10) merged into `master` by the repository owner.
 
-| Capability                                      | Code readiness | Hosted activation       |
-| ----------------------------------------------- | -------------- | ----------------------- |
-| Documents, versions, autosave, recovery, export | PASS           | BLOCKED                 |
-| Editor schema and XSS defences                  | PASS           | BLOCKED                 |
-| Citations and references                        | PASS           | BLOCKED                 |
-| Tasks, milestones, assignment, transitions      | PASS           | BLOCKED                 |
-| Artifact registry and typed links               | PASS           | BLOCKED                 |
-| Search and graph projection                     | PASS           | BLOCKED                 |
-| AI proposals (deterministic fixture)            | PASS           | BLOCKED (provider gate) |
-| Real-model AI proposal quality                  | NOT RUN        | BLOCKED                 |
-| Mobile QA of live screens                       | NOT RUN        | —                       |
-| CI `isolated-auth` on the PR head               | see section 17 | —                       |
+| Capability                                         | Code readiness                                          | Hosted activation       |
+| -------------------------------------------------- | ------------------------------------------------------- | ----------------------- |
+| Documents, versions, autosave, recovery, export    | PASS                                                    | BLOCKED                 |
+| Editor schema and XSS defences                     | PASS                                                    | BLOCKED                 |
+| Citations and references                           | PASS                                                    | BLOCKED                 |
+| Tasks, milestones, assignment, transitions         | PASS                                                    | BLOCKED                 |
+| Artifact registry and typed links                  | PASS                                                    | BLOCKED                 |
+| Search and graph projection                        | PASS                                                    | BLOCKED                 |
+| AI proposals (deterministic fixture)               | PASS                                                    | BLOCKED (provider gate) |
+| Real-model AI proposal quality                     | NOT RUN                                                 | BLOCKED                 |
+| Mobile QA of live screens                          | NOT RUN                                                 | —                       |
+| CI `isolated-auth` (PR head and post-merge master) | NOT RUN when written (runner still installing browsers) | —                       |
