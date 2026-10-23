@@ -1,6 +1,10 @@
 # Phase 03 — Atlas AI research
 
-Status: planned; not implemented
+## Current implementation and release state
+
+Local implementation is delivered for provider adapters, source processing, pgvector hybrid retrieval, exact citation locations, streaming conversations, conservative usage and shared Atlas UI. The user authorized Phase 03 development independently of hosted Phase 02 activation, and explicitly disabled paid calls. This supersedes the original “planned; not implemented” status. Hosted completion remains **BLOCKED**, and scientific claim support is not certified. [Implementation report](PHASE_03_IMPLEMENTATION_REPORT.md) records actual checks; [activation](PHASE_03_ACTIVATION_PLAN.md) preserves the security/recovery/credential gates.
+
+Status: locally implemented; release remains behind the documented hosted/provider gates
 
 ## 1. Objective
 
@@ -51,13 +55,13 @@ No private cross-tenant context, no prompt/tool self-authorization, provider dat
 
 Synthetic adapter/stream tests; adversarial paper prompt injection fixtures; two-tenant retrieval tests including private notes; quote/offset verification; usage settlement/retry concurrency; opt-in provider evals.
 
-## 12. Acceptance criteria
+## 12. Acceptance criteria — local deterministic verification
 
-- [ ] Every displayed verified citation resolves to an authorized exact source passage.
-- [ ] Unauthorized or revoked source text never enters retrieval context or citations.
-- [ ] Repeated or uncertain-completion requests cannot double-settle usage.
-- [ ] Streaming failures disclose interruption and preserve recoverable run state.
-- [ ] No paid requests occur in standard CI.
+- [x] Every displayed verified citation resolves to an authorized exact source passage.
+- [x] Unauthorized or revoked source text never enters retrieval context or citations.
+- [x] Repeated or uncertain-completion requests cannot double-settle usage.
+- [x] Streaming failures disclose interruption and preserve recoverable run state.
+- [x] No paid requests occur in standard CI.
 
 ## 13. Definition of Done
 

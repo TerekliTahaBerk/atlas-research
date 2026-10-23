@@ -1,5 +1,9 @@
 # Route inventory · Phase 00.5A
 
+## Phase 03 live AI routes
+
+`/app/projects/:projectId/ai` uses the existing full Atlas research surface with real authorized conversation persistence and streaming. Compact, Open, Focus, Panel and research inline entry points share it. Live Reader accepts authorized `?paper=<uuid>&source=<uuid>&page=<number>` citation navigation. `@` suggestions resolve saved research only; no live preview entities are loaded. Services remain explicitly unavailable when activation or provider prerequisites are absent. See [AI API](API_CONTRACTS.md) and [context](ai/CONTEXT_AND_MENTIONS.md).
+
 ## Phase 02 live research routes
 
 In live mode `/app/projects/:projectId/research`, `/library` and `/reader` render real data for readable, non-archived projects (other modules keep their unavailable state). Research holds search state in the page; Library and Reader use `?paper=<projectPaperId>` (a UUID that grants nothing by itself; the APIs reauthorize). Inaccessible papers show an unavailable state without titles. Preview mode is unchanged and still uses only `sample` fixtures.

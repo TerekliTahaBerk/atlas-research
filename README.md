@@ -1,8 +1,12 @@
 # Atlas Research OS
 
+## Phase 03 AI research implementation
+
+Phase 03 adds official OpenAI/Anthropic adapters, isolated source extraction, pgvector/keyword retrieval, exact citation locations, persisted conversations, SSE, cancellation and conservative usage reservations. All existing Atlas placements use the same live engine. Deterministic tests use local HTTP fixtures; paid calls remain disabled. Hosted operation is **BLOCKED** by the Phase 02 security/recovery/scanner gates and Phase 03 activation/provider review. See the [implementation report](docs/phases/PHASE_03_IMPLEMENTATION_REPORT.md), [AI architecture](docs/ai/AI_ARCHITECTURE.md) and [activation plan](docs/phases/PHASE_03_ACTIVATION_PLAN.md). Preview mode retains explicitly labelled samples.
+
 ## Phase 02 research discovery and library
 
-In live mode, projects now have working Research (OpenAlex and Semantic Scholar search with filters, partial-failure states, details, deterministic comparison and saving), Library (persisted papers, collections, tags, reading status, archive, search, BibTeX/RIS export) and a PDF.js Reader (authorized private PDFs, navigation, zoom, search, persisted anchored highlights and notes). Uploads go to private Supabase Storage, are verified by the server and stay **quarantined until an isolated scanner accepts them**; no production scanner is deployed yet. Atlas AI remains unconnected: chips carry typed context for Phase 03 but nothing is generated. Public OpenAlex checks pass; Semantic Scholar is rate-limited. Hosted migration/Storage activation and the isolated ClamAV/qpdf deployment require approval and recovery verification; see the [activation plan](docs/phases/PHASE_02_ACTIVATION_PLAN.md). For current evidence, see see the [Phase 02 report](docs/phases/PHASE_02_IMPLEMENTATION_REPORT.md), [provider adapters](docs/research/PROVIDER_ADAPTERS.md) and [PDF storage security](docs/library/PDF_STORAGE_SECURITY.md). New optional server settings are listed in `.env.example`.
+In live mode, projects now have working Research (OpenAlex and Semantic Scholar search with filters, partial-failure states, details, deterministic comparison and saving), Library (persisted papers, collections, tags, reading status, archive, search, BibTeX/RIS export) and a PDF.js Reader (authorized private PDFs, navigation, zoom, search, persisted anchored highlights and notes). Uploads go to private Supabase Storage, are verified by the server and stay **quarantined until an isolated scanner accepts them**; no production scanner is deployed yet. Phase 03 connects these chips to the gated AI research engine described above. Public OpenAlex checks pass; Semantic Scholar is rate-limited. Hosted migration/Storage activation and the isolated ClamAV/qpdf deployment require approval and recovery verification; see the [activation plan](docs/phases/PHASE_02_ACTIVATION_PLAN.md). For current evidence, see see the [Phase 02 report](docs/phases/PHASE_02_IMPLEMENTATION_REPORT.md), [provider adapters](docs/research/PROVIDER_ADAPTERS.md) and [PDF storage security](docs/library/PDF_STORAGE_SECURITY.md). New optional server settings are listed in `.env.example`.
 
 ## Phase 01 core platform
 
@@ -46,7 +50,7 @@ pnpm db:validate
 | `packages/ui`       | shadcn/Radix component source and shared class utility             |
 | `packages/core`     | Zod inputs, API errors, tenant scope contracts                     |
 | `packages/database` | Prisma schema, client factory, migrations                          |
-| `packages/ai`       | Provider-neutral interfaces; no provider implementation            |
+| `packages/ai`       | Provider-neutral contracts, verification and server SDK adapters   |
 | `tests`             | Unit, component, browser, and isolated database verification       |
 | `docs`              | Product, architecture, security, design, decisions, phase plans    |
 
