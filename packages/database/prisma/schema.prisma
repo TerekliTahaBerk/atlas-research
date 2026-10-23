@@ -402,3 +402,123 @@ model ScanObjectCleanup {
  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
  @@map("scan_object_cleanup")
 }
+
+// Phase 03 SQL owns composite FKs, RLS, derived indexes and fixed mutation APIs.
+model AIConversation {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ actorId String @map("actor_id") @db.Uuid
+ title String @db.VarChar(120)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ version Int @default(1)
+ @@map("ai_conversations")
+}
+model AIRun {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ actorId String @map("actor_id") @db.Uuid
+ conversationId String @map("conversation_id") @db.Uuid
+ idempotencyKey String @map("idempotency_key") @db.Uuid
+ requestHash String @map("request_hash") @db.Char(64)
+ state String @default("RESERVED") @db.VarChar(16)
+ provider String @db.VarChar(30)
+ model String @db.VarChar(120)
+ prompt String @db.VarChar(6000)
+ evidenceJson Json @default("[]") @map("evidence_json")
+ referencesJson Json @default("[]") @map("references_json")
+ answer String @default("")
+ citations Json @default("[]")
+ limitations Json @default("[]")
+ error String? @db.VarChar(80)
+ inputTokens Int? @map("input_tokens")
+ outputTokens Int? @map("output_tokens")
+ version Int @default(1)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ expiresAt DateTime @default(dbgenerated("(now() + '00:03:00'::interval)")) @map("expires_at") @db.Timestamptz
+ @@map("ai_runs")
+}
+model AIUsage {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ actorId String @map("actor_id") @db.Uuid
+ runId String? @unique @map("run_id") @db.Uuid
+ operationKey String @map("operation_key") @db.VarChar(160)
+ kind String @db.VarChar(20)
+ reservedMicros Int @map("reserved_micros")
+ chargedMicros Int @map("charged_micros")
+ settledAt DateTime? @map("settled_at") @db.Timestamptz
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ @@map("ai_usage")
+}
+model SourceChunk {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ sourceVersionId String @map("source_version_id") @db.Uuid
+ sourceSha256 String @map("source_sha256") @db.Char(64)
+ extractionVersion String @map("extraction_version") @db.VarChar(80)
+ ordinal Int
+ page Int
+ startOffset Int @map("start_offset")
+ endOffset Int @map("end_offset")
+ text String
+ checksum String @db.Char(64)
+ embeddingProvider String @map("embedding_provider") @db.VarChar(20)
+ embeddingRevision String @map("embedding_revision") @db.VarChar(30)
+ embeddingDimensions Int @default(768) @map("embedding_dimensions")
+ embeddingModel String @map("embedding_model") @db.VarChar(160)
+ embedding Unsupported("vector(768)")
+ searchDocument Unsupported("tsvector")? @default(dbgenerated()) @map("search_document")
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ @@map("source_chunks")
+}
+model AIProcessingJob {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ sourceVersionId String @map("source_version_id") @db.Uuid
+ actorId String @map("actor_id") @db.Uuid
+ extractionVersion String @map("extraction_version") @db.VarChar(80)
+ embeddingModel String @map("embedding_model") @db.VarChar(160)
+ state String @default("QUEUED") @db.VarChar(16)
+ attempts Int @default(0)
+ completionStartedAt DateTime? @map("completion_started_at") @db.Timestamptz
+ lockedUntil DateTime? @map("locked_until") @db.Timestamptz
+ availableAt DateTime @default(now()) @map("available_at") @db.Timestamptz
+ error String? @db.VarChar(80)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+ @@map("ai_processing_jobs")
+}
+
+model AICitation {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ runId String @map("run_id") @db.Uuid
+ ordinal Int
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ sourceVersionId String? @map("source_version_id") @db.Uuid
+ sourceChunkId String? @map("source_chunk_id") @db.Uuid
+ page Int?
+ quote String
+ startOffset Int @map("start_offset")
+ endOffset Int @map("end_offset")
+ checksum String @db.Char(64)
+ kind String @db.VarChar(20)
+ verification String @default("verified-location") @db.VarChar(30)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ @@unique([runId,ordinal])
+ @@map("ai_citations")
+}

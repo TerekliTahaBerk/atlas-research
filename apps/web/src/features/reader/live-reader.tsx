@@ -145,7 +145,12 @@ export function LiveReader({ project }: { project: ProjectDto }) {
     key: string;
     doc: DocState;
   } | null>(null);
-  const [page, setPage] = useState(1);
+  const requestedPage = Number(params.get('page') ?? 1);
+  const [page, setPage] = useState(
+    Number.isInteger(requestedPage) && requestedPage > 0 && requestedPage <= 500
+      ? requestedPage
+      : 1,
+  );
   const [zoom, setZoom] = useState(100);
   const [fit, setFit] = useState(true);
   const [annotationRefresh, setAnnotationRefresh] = useState(0);
@@ -212,7 +217,11 @@ export function LiveReader({ project }: { project: ProjectDto }) {
   const versionId =
     chosenVersion && chosenVersion.paperId === paper?.id
       ? chosenVersion.id
-      : (paper?.sources.find((s) => s.state === 'READY')?.id ?? null);
+      : (paper?.sources.find(
+          (s) => s.id === params.get('source') && s.state === 'READY',
+        )?.id ??
+        paper?.sources.find((s) => s.state === 'READY')?.id ??
+        null);
   const version = paper?.sources.find((s) => s.id === versionId) ?? null;
   const docKey = version ? `${version.id}:${docAttempt}` : '';
   const doc: DocState = !version
@@ -309,7 +318,12 @@ export function LiveReader({ project }: { project: ProjectDto }) {
         const opened = await openPdf(bytes);
         if (!active) return void opened.destroy();
         textCache.current.clear();
-        setPage(1);
+        const targetPage = Number(requestedPage ?? 1);
+        setPage(
+          Number.isInteger(targetPage)
+            ? Math.min(opened.pdf.numPages, Math.max(1, targetPage))
+            : 1,
+        );
         set({ kind: 'ready', ...opened });
       } catch (error) {
         const name = error instanceof Error ? error.name : '';
@@ -322,7 +336,7 @@ export function LiveReader({ project }: { project: ProjectDto }) {
     return () => {
       active = false;
     };
-  }, [versionKey, docKey]);
+  }, [versionKey, docKey, requestedPage]);
   const retryDocument = () => setDocAttempt((n) => n + 1);
   const destroy = doc.kind === 'ready' ? doc.destroy : null;
   useEffect(() => () => void destroy?.(), [destroy]);

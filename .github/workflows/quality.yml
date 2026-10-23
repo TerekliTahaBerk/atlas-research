@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:17
+        image: pgvector/pgvector:0.8.7-pg17
         env:
           POSTGRES_USER: atlas
           POSTGRES_PASSWORD: atlas_ci_only
@@ -29,6 +29,7 @@ jobs:
       DIRECT_URL: postgresql://atlas:atlas_ci_only@127.0.0.1:5432/atlas_p01_test_ci
       ATLAS_TEST_ADMIN_URL: postgresql://atlas:atlas_ci_only@127.0.0.1:5432/atlas_p01_test_ci
       ATLAS_TEST_DATABASE_URL: postgresql://atlas_p01_test_runtime:atlas_runtime_ci_only@127.0.0.1:5432/atlas_p01_test_ci
+      ATLAS_TEST_AI_WORKER_URL: postgresql://atlas_p01_test_ai_worker:atlas_ai_worker_ci_only@127.0.0.1:5432/atlas_p01_test_ci
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,12 +46,13 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/scanner -v
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/extractor -v
       - name: Reproduce Supabase browser defaults on the disposable database
         run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon,authenticated;'
       - run: pnpm --filter @atlas/database exec prisma migrate deploy
       - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -f tests/database/constraints.sql
       - name: Create isolated non-owner test role
-        run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE atlas_p01_test_runtime LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_runtime_ci_only'; GRANT atlas_runtime TO atlas_p01_test_runtime;"
+        run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE atlas_p01_test_runtime LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_runtime_ci_only'; GRANT atlas_runtime TO atlas_p01_test_runtime; CREATE ROLE atlas_p01_test_ai_worker LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_ai_worker_ci_only'; GRANT atlas_ai_worker TO atlas_p01_test_ai_worker;"
       - run: pnpm test:integration
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
@@ -83,6 +85,16 @@ jobs:
       ATLAS_SEMANTIC_SCHOLAR_BASE_URL: http://127.0.0.1:3199
       ATLAS_STORAGE_SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoiYXRsYXMtZGlzcG9zYWJsZS10ZXN0IiwiaWF0IjoxNzYxMDAwMDAwLCJleHAiOjIwNzYwMDAwMDB9.vwfFL54Ji7i_UTmFN6ETLrQmYethv-rhB9XImN5WL_E
       ATLAS_SCANNER_SECRET: atlas-disposable-test-scanner-secret-32-characters
+      ATLAS_EXTRACTION_SECRET: atlas-disposable-test-extraction-secret-32-characters
+      ATLAS_AI_WORKER_DATABASE_URL: postgresql://atlas_auth_ai_worker:atlas_ai_worker_test_only@127.0.0.1:55432/atlas_auth_test
+      ATLAS_AI_ACTIVATION: isolated-local
+      ATLAS_AI_FIXTURE_ORIGIN: http://127.0.0.1:3198
+      ATLAS_AI_MODEL_POLICY: '{"provider":"openai","model":"synthetic-model","contextTokens":64000,"maxOutputTokens":1000,"inputMicrosPerMillion":100000,"outputMicrosPerMillion":200000}'
+      ATLAS_AI_MONTHLY_LIMIT_MICROS: '10000000'
+      ATLAS_AI_EMBEDDING_PROVIDER: openai
+      ATLAS_AI_EMBEDDING_MODEL: synthetic-embedding
+      ATLAS_AI_EMBEDDING_REVISION: v1
+      ATLAS_AI_EMBEDDING_MICROS_PER_MILLION: '1000'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -100,7 +112,7 @@ jobs:
             exit 1
           fi
       - run: pnpm --filter @atlas/database exec prisma migrate deploy
-      - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c 'GRANT atlas_runtime TO atlas_auth_runtime;'
+      - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c "GRANT atlas_runtime TO atlas_auth_runtime; CREATE ROLE atlas_auth_ai_worker LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_ai_worker_test_only'; GRANT atlas_ai_worker TO atlas_auth_ai_worker;"
       - run: pnpm db:generate
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:auth:e2e

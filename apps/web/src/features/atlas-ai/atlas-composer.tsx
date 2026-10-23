@@ -29,6 +29,9 @@ import {
   Square,
   User,
 } from 'lucide-react';
+import { z } from 'zod';
+import { reference, researchCommands } from '@atlas/ai';
+import { requestData } from '@/features/platform/client';
 import { cn } from '@atlas/ui/lib/utils';
 import {
   commandsFor,
@@ -92,12 +95,68 @@ export function AtlasComposer({
         : slash
           ? 'slash'
           : null;
+  const [liveResult, setLiveResult] = useState<{
+    projectId: string;
+    query: string;
+    items: MentionItem[];
+  }>();
+  const query = mention?.[2] ?? '';
+  const projectId = atlas.projectId;
+  const live = atlas.live;
+  useEffect(() => {
+    if (!live || kind !== 'mention' || !projectId) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      void requestData(
+        `/api/v1/ai/mentions?projectId=${projectId}&q=${encodeURIComponent(query)}`,
+        z.array(
+          z.object({
+            id: z.string(),
+            kind: z.enum(['paper', 'project', 'selection']),
+            title: z.string(),
+            sub: z.string(),
+            research: reference,
+          }),
+        ),
+      )
+        .then((items) => {
+          if (active) setLiveResult({ projectId, query, items });
+        })
+        .catch(() => {
+          if (active) setLiveResult({ projectId, query, items: [] });
+        });
+    }, 200);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [live, kind, projectId, query]);
   const groups =
-    !atlas.live && kind === 'mention' ? filterMentions(mention?.[2] ?? '') : [];
+    kind === 'mention'
+      ? atlas.live
+        ? [
+            {
+              group: 'Authorized research',
+              items:
+                liveResult?.projectId === projectId &&
+                liveResult.query === query
+                  ? liveResult.items
+                  : [],
+            },
+          ]
+        : filterMentions(query)
+      : [];
   const mentionItems = groups.flatMap((g) => g.items);
   const commands =
-    !atlas.live && kind === 'slash'
-      ? commandsFor(atlas.screen, slash?.[1] ?? '')
+    kind === 'slash'
+      ? atlas.live
+        ? researchCommands
+            .filter((c) => c.includes(slash?.[1] ?? ''))
+            .map((id) => ({
+              id,
+              description: 'Read authorized research context',
+            }))
+        : commandsFor(atlas.screen, slash?.[1] ?? '')
       : [];
   const count = kind === 'mention' ? mentionItems.length : commands.length;
   const active = Math.min(index, Math.max(0, count - 1));
@@ -124,7 +183,12 @@ export function AtlasComposer({
   }
   function pickMention(item: MentionItem) {
     atlas.setInput(value.replace(/@[\w\-ğüşöçıİ]*$/i, ''));
-    atlas.addChip({ id: item.id, kind: item.kind, title: item.title });
+    atlas.addChip({
+      id: item.id,
+      kind: item.kind,
+      title: item.title,
+      ...(item.research ? { research: item.research } : {}),
+    });
     if (atlas.mode === 'compact') atlas.setMode('open');
     inputRef.current?.focus();
   }

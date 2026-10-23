@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/auth/e2e',
+  outputDir: 'test-results/auth',
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
@@ -24,6 +25,12 @@ export default defineConfig({
       : {}),
   },
   webServer: [
+    {
+      command: 'node tests/auth/ai-fixture.mjs',
+      url: 'http://127.0.0.1:3198/health',
+      reuseExistingServer: false,
+      timeout: 30000,
+    },
     {
       // Loopback scholarly API fixture used by the real provider adapters.
       command: 'node tests/auth/provider-fixture.mjs',

@@ -4,10 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./providers": "./src/providers.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@ai-sdk/google": "4.0.102",
+    "@anthropic-ai/sdk": "1.1.0",
+    "ai": "7.0.148",
+    "openai": "7.42.0",
+    "zod": "4.6.7"
+  }
 }

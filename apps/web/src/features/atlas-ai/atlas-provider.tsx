@@ -9,6 +9,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useLiveConversation } from './use-live-conversation';
+import { usePlatformOptional } from '@/features/platform/platform-context';
 import { usePathname } from 'next/navigation';
 import { screenFromPath, type ScreenKey } from '@/features/shell/navigation';
 import {
@@ -26,6 +28,8 @@ import { initialMessages, previewSteps, sampleReply } from './sample-replies';
  * read or generated. Reduced-motion users get the final state immediately.
  */
 export interface AtlasApi {
+  engine: ReturnType<typeof useLiveConversation>;
+  projectId: string | undefined;
   screen: ScreenKey;
   live: boolean;
   mode: AtlasMode;
@@ -99,6 +103,11 @@ export function AtlasProvider({
   live?: boolean;
 }) {
   const pathname = usePathname();
+  const platform = usePlatformOptional();
+  const projectId = pathname?.match(
+    /^\/app\/projects\/([0-9a-f-]{36})(?:\/|$)/,
+  )?.[1];
+  const engine = useLiveConversation(live && Boolean(platform), projectId);
   const screen = screenOverride ?? screenFromPath(pathname ?? '/app/home');
   const [mode, setModeState] = useState<AtlasMode>('compact');
   const [closing, setClosing] = useState(false);
@@ -112,6 +121,7 @@ export function AtlasProvider({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editorComposer, setEditorComposer] = useState(true);
   const [prevScreen, setPrevScreen] = useState(screen);
+  const [previousProject, setPreviousProject] = useState(projectId);
   const ambient = useRef({
     screen,
     context: live ? [] : screenContexts[screen].chips,
@@ -123,7 +133,9 @@ export function AtlasProvider({
   );
   // Route change: context follows the screen; an expanded float collapses
   // and focus mode steps back to open (prototype `go()`).
-  if (screen !== prevScreen) {
+  if (screen !== prevScreen || (live && previousProject !== projectId)) {
+    if (live && previousProject !== projectId) setInput('');
+    setPreviousProject(projectId);
     setPrevScreen(screen);
     setChips(live ? [] : screenContexts[screen].chips);
     setClosing(false);
@@ -165,7 +177,10 @@ export function AtlasProvider({
       const text = (raw ?? input).trim();
       if (!text || busyId) return;
       if (live) {
-        setModeState('open');
+        setModeState((m) => (m === 'compact' ? 'open' : m));
+        void engine.send(text, context).then((sent) => {
+          if (sent) setInput('');
+        });
         return;
       }
       const contextLabel = context[0]?.title ?? 'this workspace';
@@ -200,7 +215,7 @@ export function AtlasProvider({
       setModeState((m) => (m === 'compact' ? 'open' : m));
       if (!instant) setBusyId(id);
     },
-    [busyId, chips, input, screen, live],
+    [busyId, chips, input, screen, live, engine],
   );
   const update = useCallback(
     (id: string, patch: (m: AssistantMessage) => Partial<AssistantMessage>) =>
@@ -251,6 +266,10 @@ export function AtlasProvider({
     return () => clearTimeout(done);
   }, [busyId, phase, step, update]);
   const stop = useCallback(() => {
+    if (live) {
+      engine.stop();
+      return;
+    }
     if (!busyId) return;
     update(busyId, (m) =>
       m.phase === 'think'
@@ -265,9 +284,14 @@ export function AtlasProvider({
         : { phase: 'done', stopped: true },
     );
     setBusyId(null);
-  }, [busyId, update]);
+  }, [busyId, update, live, engine]);
   const retry = useCallback(
     (id: string) => {
+      if (live) {
+        const previous = engine.messages.find((m) => m.id === id);
+        if (previous?.role === 'assistant') send(previous.query);
+        return;
+      }
       if (prefersReducedMotion()) {
         update(id, (m) => ({
           phase: 'done',
@@ -284,7 +308,7 @@ export function AtlasProvider({
       }));
       setBusyId(id);
     },
-    [update],
+    [update, live, engine, send],
   );
   const ask = useCallback<AtlasApi['ask']>(
     ({ prompt, chips: extra, mode: nextMode, draft }) => {
@@ -362,7 +386,7 @@ export function AtlasProvider({
       )
         return;
       if (menuOpen.current) return;
-      if (busyId) {
+      if (busyId || (live && engine.busy)) {
         event.preventDefault();
         stop();
         return;
@@ -375,7 +399,7 @@ export function AtlasProvider({
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [busyId, collapse, mode, stop, toggleFocus]);
+  }, [busyId, collapse, mode, stop, toggleFocus, live, engine.busy]);
   useEffect(() => () => clearTimeout(closeTimer.current), []);
   // `?atlas=open|focus|panel` deep link (QA frames and tests). Deferred so
   // the server-rendered compact state hydrates first.
@@ -390,6 +414,8 @@ export function AtlasProvider({
     () => ({
       screen,
       live,
+      engine,
+      projectId,
       mode,
       closing,
       setMode,
@@ -404,13 +430,13 @@ export function AtlasProvider({
           list.some((c) => c.id === chip.id) ? list : [...list, chip],
         ),
       removeChip: (id) => setChips((list) => list.filter((c) => c.id !== id)),
-      messages,
-      busy: Boolean(busyId),
+      messages: live ? engine.messages : messages,
+      busy: live ? engine.busy : Boolean(busyId),
       send,
       ask,
       stop,
       retry,
-      clear: () => setMessages([]),
+      clear: () => (live ? engine.clear() : setMessages([])),
       toggleSteps: (id) => update(id, (m) => ({ showSteps: !m.showSteps })),
       menuOpen,
       setMenuOpen,
@@ -421,6 +447,8 @@ export function AtlasProvider({
     }),
     [
       ask,
+      engine,
+      projectId,
       busyId,
       chips,
       closing,

@@ -23,6 +23,7 @@ import {
 } from './contracts';
 import { useAtlas } from './atlas-provider';
 import { AtlasComposer, kindIcons } from './atlas-composer';
+import { LiveControls } from './live-controls';
 import { AtlasMessageView } from './atlas-message';
 /**
  * One assistant surface, positioned by mode (handoff §5). The same composer,
@@ -108,11 +109,14 @@ export function AtlasSurface({ placement }: { placement: AtlasPlacement }) {
         <AtlasComposer
           tone={neutral ? 'neutral' : 'green'}
           placeholder={
-            atlas.live ? 'Atlas AI · not connected' : ctx.placeholder
+            atlas.live
+              ? 'Ask about authorized research — @papers or /summarize'
+              : ctx.placeholder
           }
           height={placement === 'page' ? 46 : 42}
         />
       </div>
+      {expanded && atlas.live ? <LiveControls /> : null}
       {expanded ? (
         <div
           className={cn(
@@ -192,18 +196,20 @@ export function AtlasSurface({ placement }: { placement: AtlasPlacement }) {
                 />
                 <div className="mt-2 text-tx2">
                   {atlas.live
-                    ? 'Atlas AI is not connected yet.'
+                    ? 'Ask a grounded research question.'
                     : 'Ask about anything in this context.'}
                 </div>
                 <div>
                   {atlas.live
-                    ? 'No prompt is sent, no research is read, and no model runs.'
+                    ? 'Attach papers with @ and approve processing above before sending.'
                     : 'Type @ to reference a paper, task or person, or / for commands.'}
                 </div>
                 <div className="mt-2">
                   <SampleTag>
                     {atlas.live
-                      ? 'Available in a later phase'
+                      ? atlas.engine.service.enabled
+                        ? 'Authorized research context only'
+                        : 'Provider configuration and security activation required'
                       : 'Answers are prewritten samples'}
                   </SampleTag>
                 </div>

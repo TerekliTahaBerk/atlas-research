@@ -1,4 +1,4 @@
-/** Provider-neutral design contracts. No provider, network calls, or tools are executed. */
+/** Provider-neutral contracts; execution adapters are a separate server import. */
 export interface AIModelConfig {
   provider: string;
   model: string;
@@ -31,6 +31,7 @@ export interface ResearchContext {
   workspaceId: string;
   projectId: string;
   permissionSnapshotId: string;
+  evidence?: readonly import('./research').Evidence[];
   sources: ReadonlyArray<{
     sourceId: string;
     versionId: string;
@@ -59,12 +60,18 @@ export interface AIResponse {
   text: string;
   citations: readonly ResearchCitation[];
   usage: AIUsage;
+  grounded?: ReturnType<typeof import('./research').verifyCitations>;
   finishReason: 'stop' | 'length' | 'tool' | 'blocked';
 }
 export type AIStreamEvent =
   | { type: 'delta'; text: string }
   | { type: 'complete'; response: AIResponse }
-  | { type: 'error'; code: AIErrorCode; retryable: boolean };
+  | {
+      type: 'error';
+      code: AIErrorCode;
+      retryable: boolean;
+      finishReason?: AIResponse['finishReason'];
+    };
 export type AIErrorCode =
   | 'RATE_LIMITED'
   | 'TIMEOUT'
@@ -110,3 +117,5 @@ export type ResearchReference =
       sourceVersionId: string;
       annotationId: string;
     };
+
+export * from './research';
