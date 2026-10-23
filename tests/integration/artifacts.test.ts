@@ -1302,3 +1302,63 @@ describe.sequential('typed links, search, graph and AI proposals', () => {
     ).toBe('NOT_FOUND');
   });
 });
+
+describe.sequential('performance boundaries', () => {
+  it('keeps board, search, graph and history reads bounded at scale', async () => {
+    const scale = (
+      await platform(owner, {
+        command: 'project.create',
+        workspaceId,
+        name: 'Scale probe',
+        visibility: 'PRIVATE',
+        idempotencyKey: randomUUID(),
+      })
+    ).id!;
+    // Bulk fixture rows through the owner role; reads run as the runtime.
+    await admin.$executeRaw`WITH p AS (SELECT * FROM projects WHERE id=${scale}::uuid),
+      a AS (INSERT INTO artifacts(id,organization_id,workspace_id,project_id,kind)
+        SELECT gen_random_uuid(),p.organization_id,p.workspace_id,p.id,'TASK' FROM p, generate_series(1,500) RETURNING id)
+      INSERT INTO tasks(id,organization_id,workspace_id,project_id,artifact_id,task_number,title,description,created_by_id,updated_by_id)
+      SELECT gen_random_uuid(),p.organization_id,p.workspace_id,p.id,a.id,row_number() OVER (),'Scale task '||row_number() OVER (),
+        'Synthetic segmentation workload description',${owner.id}::uuid,${owner.id}::uuid FROM p, a`;
+    for (let i = 0; i < 20; i++)
+      await run(owner, {
+        command: 'document.create',
+        projectId: scale,
+        title: `Scale document ${i}`,
+        content: doc(para(text(`Segmentation notes ${i} `.repeat(200)))),
+        idempotencyKey: randomUUID(),
+      });
+    const time = async <T>(work: () => Promise<T>) => {
+      const start = performance.now();
+      const result = await work();
+      return { result, ms: Math.round(performance.now() - start) };
+    };
+    const board = await time(() => listTasks(owner, scale, {}));
+    const search = await time(() =>
+      searchArtifacts(owner, scale, { q: 'segmentation' }),
+    );
+    const graph = await time(() => projectGraph(owner, scale));
+    const options = await time(() =>
+      artifactOptions(owner, scale, { q: 'scale' }),
+    );
+    expect(board.result.items).toHaveLength(300);
+    expect(board.result.nextCursor).not.toBeNull();
+    expect(search.result.items).toHaveLength(20);
+    expect(graph.result.nodes).toHaveLength(300);
+    expect(graph.result.truncated).toBe(true);
+    process.stdout.write(
+      `ARTIFACT_PERFORMANCE ${JSON.stringify({
+        tasks: 500,
+        documents: 20,
+        boardPageMs: board.ms,
+        searchMs: search.ms,
+        graphMs: graph.ms,
+        mentionOptionsMs: options.ms,
+      })}\n`,
+    );
+    // Generous ceilings catch accidental N+1 or unbounded scans in CI.
+    for (const ms of [board.ms, search.ms, graph.ms, options.ms])
+      expect(ms).toBeLessThan(5000);
+  });
+});
