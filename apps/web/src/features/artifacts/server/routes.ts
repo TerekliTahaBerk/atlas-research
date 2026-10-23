@@ -104,9 +104,6 @@ export async function documentExportResponse(
       'Content-Disposition': `attachment; filename="${name}.${types[format].extension}"`,
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
-      // Even if opened directly, exported HTML cannot run script or load resources.
-      'Content-Security-Policy':
-        "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     },
   });
 }

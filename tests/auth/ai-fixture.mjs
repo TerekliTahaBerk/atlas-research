@@ -78,14 +78,29 @@ const server = createServer(async (req, res) => {
     /*invalid fixture context*/
   }
   const selected = evidence.slice(0, 4);
-  const text = selected.length
-    ? selected
+  // Phase 04 approval journeys: a deterministic bulleted plan.
+  const plan = prompt.includes('fixture-plan')
+    ? [
+        'Prepare evaluation splits',
+        'Train baseline model',
+        'Compare Dice scores',
+      ]
         .map(
-          (s) =>
-            `Synthetic fixture interpretation: ${s.text.slice(0, 100)} [[${s.id}]]`,
+          (line, i) =>
+            `- ${line}${selected[i] ? ` [[${selected[i].id}]]` : ''}`,
         )
         .join('\n')
-    : 'No relevant authorized evidence is available.';
+    : null;
+  const text = plan
+    ? plan
+    : selected.length
+      ? selected
+          .map(
+            (s) =>
+              `Synthetic fixture interpretation: ${s.text.slice(0, 100)} [[${s.id}]]`,
+          )
+          .join('\n')
+      : 'No relevant authorized evidence is available.';
   const answer = {
     text,
     citations: selected.map((s) => ({

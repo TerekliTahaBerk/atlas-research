@@ -228,13 +228,14 @@ export function AtlasSurface({ placement }: { placement: AtlasPlacement }) {
       ) : placement === 'canvas' ? (
         <button
           type="button"
-          aria-label="Expand Atlas conversation"
           onClick={() => {
             atlas.setMode('open');
             atlas.focusInput();
           }}
           className="atlas-strip flex h-[26px] w-full animate-atlas-fade items-center gap-1.5 px-3.5 text-xs text-tx3 hover:text-tx2"
         >
+          {/* The visible text names the control (WCAG 2.5.3). */}
+          <span className="sr-only">Expand Atlas conversation:</span>
           {atlas.busy ? (
             <span className="size-1.5 animate-atlas-pulse rounded-full bg-actx" />
           ) : null}
