@@ -1,5 +1,9 @@
 # Route inventory · Phase 00.5A
 
+## Phase 04 live routes
+
+In live mode `/app/projects/:projectId/documents` lists documents (with project search) and `?doc=<uuid>` opens the live editor; `/tasks` renders the real board/list and `?task=<uuid>` the detail panel; `/graph` renders the authorized artifact projection; the overview shows recent documents and open tasks. IDs in query strings grant nothing; unavailable documents show a safe state without titles. Preview routes and `sample` fixtures are unchanged.
+
 ## Phase 03 live AI routes
 
 `/app/projects/:projectId/ai` uses the existing full Atlas research surface with real authorized conversation persistence and streaming. Compact, Open, Focus, Panel and research inline entry points share it. Live Reader accepts authorized `?paper=<uuid>&source=<uuid>&page=<number>` citation navigation. `@` suggestions resolve saved research only; no live preview entities are loaded. Services remain explicitly unavailable when activation or provider prerequisites are absent. See [AI API](API_CONTRACTS.md) and [context](ai/CONTEXT_AND_MENTIONS.md).

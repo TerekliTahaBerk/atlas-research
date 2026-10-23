@@ -1,6 +1,6 @@
 # Phase 04 — Documents and tasks
 
-Status: planned; not implemented
+Status: implemented locally; hosted activation blocked (see [implementation report](PHASE_04_IMPLEMENTATION_REPORT.md))
 
 ## 1. Objective
 
@@ -53,11 +53,11 @@ Editor schema/XSS fixtures; version conflict recovery; assignment revocation; te
 
 ## 12. Acceptance criteria
 
-- [ ] Concurrent saves detect conflict without overwriting another version.
-- [ ] Only eligible same-project participants can be assigned.
-- [ ] Every link validates endpoint kinds and same-project permissions.
-- [ ] Search and snippets exclude revoked/private content.
-- [ ] Keyboard users can complete document and task workflows.
+- [x] Concurrent saves detect conflict without overwriting another version (integration + browser Journey B).
+- [x] Only eligible same-project participants can be assigned (integration + Journey D).
+- [x] Every link validates endpoint kinds and same-project permissions (SQL CHECK/FK + integration + Journey E).
+- [x] Search and snippets exclude revoked/private content (integration search ACL tests).
+- [x] Keyboard users can complete document and task workflows (Journey A/D keyboard steps; see report for limits).
 
 ## 13. Definition of Done
 

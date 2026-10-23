@@ -1,5 +1,9 @@
 # Atlas Research OS
 
+## Phase 04 documents, tasks and knowledge links
+
+Live projects now have persisted research documents (Tiptap, immutable versions, autosave with conflict and draft recovery, source-aware citations, Markdown/text/HTML export), tasks (board/list, assignments, priorities, due dates, milestones, keyboard moves), typed artifact links, project search and a live graph. Atlas AI can propose document inserts and task plans that change nothing until explicitly approved. Hosted activation is **BLOCKED** behind the Phase 02/03 gates; see the [Phase 04 report](docs/phases/PHASE_04_IMPLEMENTATION_REPORT.md) and [activation plan](docs/phases/PHASE_04_ACTIVATION_PLAN.md). No new environment variables are required.
+
 ## Phase 03 AI research implementation
 
 Phase 03 adds official OpenAI/Anthropic adapters, isolated source extraction, pgvector/keyword retrieval, exact citation locations, persisted conversations, SSE, cancellation and conservative usage reservations. All existing Atlas placements use the same live engine. Deterministic tests use local HTTP fixtures; paid calls remain disabled. Hosted operation is **BLOCKED** by the Phase 02 security/recovery/scanner gates and Phase 03 activation/provider review. See the [implementation report](docs/phases/PHASE_03_IMPLEMENTATION_REPORT.md), [AI architecture](docs/ai/AI_ARCHITECTURE.md) and [activation plan](docs/phases/PHASE_03_ACTIVATION_PLAN.md). Preview mode retains explicitly labelled samples.

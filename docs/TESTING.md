@@ -1,5 +1,9 @@
 # Testing strategy
 
+## Phase 04 validation
+
+Unit: `tests/unit/documents.test.ts` (schema acceptance, 22 XSS/forgery rejections, limits, Markdown/HTML escaping, diff, transitions, link matrix, capabilities, tsquery building) and `tests/unit/drafts.test.ts` (keying, expiry, account switch and sign-out purge). Integration (`tests/integration/artifacts.test.ts`, real PostgreSQL, non-owner runtime): atomic create, idempotent replay/conflict, optimistic and concurrent saves, immutability (even for the owner role), restore, malicious/forged content at server and SQL boundaries, annotation/checksum citation forgery, archived-paper history, unauthorized read/history/export/raw SQL, duplication/archive, task numbering under concurrency, assignment eligibility and revocation, transitions/concurrent updates, link matrix/cross-project/cycles/DB-level rejection, search ACL/snippets/cursor binding, graph/options scope, AI proposal approval/stale/revocation, and a performance probe (`ARTIFACT_PERFORMANCE`). Browser (`tests/auth/e2e/documents-tasks.spec.ts`): Journeys A–F on the isolated Auth harness, including two-session conflict, draft recovery, viewer revocation, drag and keyboard task moves, revocation of an assignee, search and the AI approval boundary using the deterministic `fixture-plan` loopback provider branch, plus axe.
+
 ## Phase 02 validation
 
 Unit (`pnpm test`): DOI/provider identity normalization, search/command/upload/anchor contracts, BibTeX/RIS escaping, keys and missing fields, provider adapters against synthetic documented-shape fixtures (`tests/fixtures/providers`, not recorded live), bounded HTTP retry/Retry-After/timeouts/cancellation/size limits, partial and total provider failure without fake results, DOI-only merging, request-bound cursors, reader anchor offsets/rectangles/recovery and the sign-in feedback regression.

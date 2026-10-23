@@ -1,5 +1,9 @@
 # System architecture
 
+## Phase 04 implemented boundary
+
+`features/documents/server`, `features/tasks/server` and `features/artifacts/server` hold actor-scoped reads (documents, versions, export, tasks, milestones, participants, links, search, graph, mention options) and one command executor (`commands.ts`) that validates Tiptap JSON with the shared `@atlas/core` schema and calls fixed SQL commands (`atlas_private.mutate_artifacts` behind the existing `atlas_private.mutate` dispatcher). `features/ai/server/proposals.ts` derives read-only AI proposals. Live UI: `features/documents/live-documents.tsx` (reusing `DocEditor` in live mode), `features/tasks/live-tasks.tsx`, `features/graph/live-graph.tsx`, `features/artifacts/artifact-search.tsx`, `features/atlas-ai/proposal-review.tsx`. Core stays database-free. See [ADR 0017](decisions/0017-documents-tasks-artifact-links.md).
+
 ## Phase 03 implemented boundary
 
 `@atlas/ai` now has pure contracts/chunking/verification and a separate server provider entry point using official OpenAI and Anthropic SDKs. `features/ai/server` composes actor-scoped repositories, audited read tools, model configuration, budget reservations and POST SSE. `ops/extractor` follows the scanner broker/offline-parser isolation model with a separate database worker role. Existing Atlas placements share one live hook. [AI architecture](ai/AI_ARCHITECTURE.md) and [ADR 0016](decisions/0016-ai-research-engine.md) supersede earlier descriptions of AI as contracts-only; hosted activation is still gated.

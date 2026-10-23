@@ -1,5 +1,9 @@
 # Security and privacy foundation
 
+## Phase 04 documents, tasks and links boundary
+
+Rich-text JSON is untrusted: server-side schema validation (types, marks, attributes, link schemes, depth, counts, sizes) plus SQL type allowlisting and in-project reference resolution; forged, foreign or unverifiable citations fail. Rendering never uses stored HTML; exports are escaped by construction. Every read/write re-authorizes in services and RLS; IDs grant nothing; workspace/org admins without a project grant get 404. Assignments require live OWNER/EDITOR grants; revoked assignees are hidden and cannot be re-assigned. Links are same-project by schema and never confer access. Search runs ACL predicates in SQL and excludes archived content. AI proposals are previews; applications require explicit approval and pass the same checks plus revision/run validation. Local drafts are bounded, per-actor, expiring, purged on sign-out and never authoritative. See [ADR 0017](decisions/0017-documents-tasks-artifact-links.md) and [assignment/roles](tasks/ASSIGNMENT_AND_ROLES.md).
+
 ## Phase 03 research AI boundary
 
 AI uses server identity, existing actor transactions/RLS, composite source/citation keys, exact quote verification, live evidence rechecks and atomic conservative cost reservations. Providers receive bounded authorized context after explicit processing consent, never all workspace files, credentials or executable tools. The extractor has a separate narrow worker database role and a secret-free offline parser. Conversation erasure preserves only accounting identity; logs exclude research content. [AI security/privacy](ai/SECURITY_AND_PRIVACY.md) defines provider sharing and remaining evaluation gates. Earlier “no AI/extraction” statements describe prior phases/preview; they do not describe the new isolated live implementation. Hosted history exposure and recovery/scanner activation remain unresolved until the separately approved process.

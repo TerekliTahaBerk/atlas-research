@@ -1,5 +1,9 @@
 # Roadmap
 
+## Phase 04 implementation update
+
+Phase 04 code and local verification are complete (documents, versions, tasks, links, search, AI proposals). Hosted activation remains gated; Phase 05 (communication) can build on stable artifact IDs and `mentioned_profile_ids`.
+
 ## Phase 03 implementation update
 
 Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are not implemented. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).

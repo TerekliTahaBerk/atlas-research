@@ -1,5 +1,11 @@
 # API contracts and service boundaries
 
+## Phase 04 implemented interfaces
+
+Commands through `POST /api/v1/commands` (`artifactCommand` in `packages/core/src/artifacts.ts`): `document.create/save/rename/restore-version/duplicate/archive/restore`, `milestone.create/update/archive`, `task.create/update/assign/transition/archive/restore`, `artifact.link.create/remove`, `ai.document-proposal.apply`, `ai.task-proposal.apply`. Creates take a UUID `idempotencyKey`; saves take `expectedRevision` + `clientRequestId`; other edits take `expectedVersion`; AI applications require `approved: true` and the previewed `proposalHash`. Command bodies may be up to 512 KiB (content ≤400 KB); `document.save` uses its own 120/min bucket, other writes 30/min.
+
+Reads (120/min, private no-store): `GET projects/:id/{documents,tasks,milestones,participants,artifacts,search,graph}`, `GET documents/:id`, `GET documents/:id/versions[?cursor]`, `GET documents/:id/versions/:revision`, `GET documents/:id/export?format=markdown|text|html` (attachment), `GET tasks/:id`, `GET artifacts/:id/links`. `POST ai/proposals` returns a read-only proposal. Inaccessible and foreign resources return 404; stale versions/revisions and invalid transitions 409; schema/eligibility violations 400. See [documents](documents/VERSIONING.md), [search](artifacts/SEARCH_AND_ACL.md) and [AI actions](ai/DOCUMENT_TASK_ACTIONS.md).
+
 ## Phase 03 implemented AI API
 
 All paths below are under `/api/v1`, with verified identity, existing rate/origin/body protections and private/no-store responses. GET: `ai/conversations?projectId=`, `ai/conversations/:id?projectId=` (history), `ai/runs/:id?projectId=` (authorized recovery snapshot), `ai/mentions?projectId=&q=`, `ai/status?projectId=`, `ai/configuration?projectId=` and `ai/usage?projectId=`. POST: `ai/conversations` (strict create/rename/archive/delete with project, id and optimistic version), `ai/runs` (project, optional conversation, UUID idempotency key, text, references, consent:true), `ai/runs/:id/cancel`, `ai/index` (sourceVersionId, consent:true), `ai/references/resolve` and `ai/citation` (runId, citation index). Unknown extra path segments fail closed.
