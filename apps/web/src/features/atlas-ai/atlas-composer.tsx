@@ -138,7 +138,8 @@ export function AtlasComposer({
             {
               group: 'Authorized research',
               items:
-                liveResult?.projectId === projectId &&
+                liveResult &&
+                liveResult.projectId === projectId &&
                 liveResult.query === query
                   ? liveResult.items
                   : [],
