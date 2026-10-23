@@ -21,7 +21,7 @@ This file is canonical for every coding agent. `CLAUDE.md` points here and must 
 - Use shared UI and tokens; accessible names, focus, keyboard behavior, responsive states, contrast, and reduced motion are required. Preserve SSR/client boundaries.
 - Add meaningful regression tests for new behavior and critical failure paths. Never weaken checks or tests merely to pass.
 - Migrations require an explicitly identified development target. Never migrate an unknown or production database from local automation. Use expand/backfill/contract migrations and verified backups for data-bearing changes. Avoid research-data cascades.
-- Keep synthetic UI fixtures separate from production domain models. Persist only appearance and navigation preferences; never store preview prompts, drafts, messages or onboarding content in browser storage.
+- Keep synthetic UI fixtures separate from production domain models. Persist only appearance and navigation preferences; never store preview prompts, drafts, messages or onboarding content in browser storage. The only exception is the documented live document draft-recovery store (`docs/documents/AUTOSAVE_AND_RECOVERY.md`): actor/project/document-keyed, expiring, purged on sign-out and never authoritative.
 - Keep docs, ADRs, contracts, and phase acceptance criteria aligned with delivered behavior. Record consequential deviations and revisit conditions.
 
 ## Completion gate

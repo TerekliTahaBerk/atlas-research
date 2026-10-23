@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { purgeDrafts } from '@/features/documents/drafts';
 import { usePathname } from 'next/navigation';
 import {
   House,
@@ -147,6 +148,8 @@ export function LiveSidebar({
         className={row}
         onClick={async () => {
           try {
+            // Unsaved document drafts never outlive the signed-in session.
+            purgeDrafts();
             const result = await requestData(
               '/api/v1/auth',
               z.object({ redirect: z.string() }),

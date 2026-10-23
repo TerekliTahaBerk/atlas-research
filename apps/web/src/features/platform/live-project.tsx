@@ -10,6 +10,7 @@ import { modules } from '@/features/shell/navigation';
 import { mutate } from './client';
 import { buttonClass, inputClass } from './live-home';
 import { MembershipPanel } from './membership-panel';
+import { ProjectWork } from './project-work';
 export function LiveProject({
   project,
   initialMembers,
@@ -170,6 +171,10 @@ export function LiveProject({
                 >
                   Restore project
                 </button>
+              ) : null}
+              {project.capabilities.includes('project.read') &&
+              !project.archived ? (
+                <ProjectWork project={project} />
               ) : null}
               {project.capabilities.includes('project.read') ? (
                 <MembershipPanel

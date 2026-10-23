@@ -39,8 +39,8 @@ export async function readBoundedText(request: Request, maximum = 32768) {
   }
   return new TextDecoder().decode(bytes);
 }
-export async function readJson(request: Request) {
-  const body = await readBoundedText(request);
+export async function readJson(request: Request, maximum = 32768) {
+  const body = await readBoundedText(request, maximum);
   try {
     return JSON.parse(body) as unknown;
   } catch {

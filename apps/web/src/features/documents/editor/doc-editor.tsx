@@ -16,10 +16,15 @@ import {
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extensions';
+import { TaskItem, TaskList } from '@tiptap/extension-list';
 import {
   BookOpen,
   Bold,
+  CheckSquare,
+  Code,
+  FileText,
   Heading2,
+  Minus,
   Image,
   Italic,
   Link as LinkIcon,
@@ -41,6 +46,19 @@ import { usePreviewStore } from '@/features/shell/preview-store';
 import { people } from '@/lib/preview/people';
 import { papers } from '@/lib/preview/research';
 import { tasks } from '@/lib/preview/workspace';
+import type {
+  AnnotationDto,
+  ArtifactOption,
+  ParticipantDto,
+} from '@atlas/core';
+import { fetchAnnotations, fetchPaper } from '@/features/library/client';
+import { readySource } from '@/features/library/paper-format';
+import {
+  LiveCitation,
+  LiveDocumentRef,
+  LivePersonMention,
+  LiveTaskRef,
+} from './live-nodes';
 import {
   AISuggestion,
   Citation,
@@ -52,6 +70,59 @@ import {
   TrackedChange,
 } from './nodes';
 type MenuKind = 'slash' | 'mention' | 'cite';
+/**
+ * Live (Phase 04) editing: real persistence callbacks, authorized reference
+ * search and schema-v1 extensions. Without it the editor is the in-memory
+ * design preview.
+ */
+export interface LiveEditorConfig {
+  editable: boolean;
+  onChange: (content: JSONContent) => void;
+  onSave: () => void;
+  search: (
+    query: string,
+    kind?: 'PAPER' | 'DOCUMENT' | 'TASK' | 'PERSON',
+  ) => Promise<{ items: ArtifactOption[]; people: ParticipantDto[] }>;
+  /** Records a server-provided option so its chip renders before reload. */
+  remember: (option: ArtifactOption) => void;
+  rememberPerson: (person: ParticipantDto) => void;
+  /** Hands selected text to Atlas as a visible, user-editable prompt draft. */
+  askAbout: (selection: string) => void;
+}
+const liveExtensions = () => [
+  StarterKit.configure({
+    heading: { levels: [2, 3] },
+    // Appending an empty paragraph on load would create revisions nobody wrote.
+    trailingNode: false,
+    link: {
+      openOnClick: false,
+      autolink: true,
+      protocols: ['mailto'],
+      defaultProtocol: 'https',
+    },
+  }),
+  TaskList,
+  TaskItem.configure({ nested: true }),
+  Placeholder.configure({
+    placeholder:
+      'Type / for commands, @ to reference a paper, document, task or person…',
+    showOnlyCurrent: false,
+  }),
+  LiveCitation,
+  LiveDocumentRef,
+  LiveTaskRef,
+  LivePersonMention,
+];
+const safeLink = (value: string) => {
+  try {
+    const url = new URL(value);
+    return (
+      ['http:', 'https:', 'mailto:'].includes(url.protocol) && !/\s/.test(value)
+    );
+  } catch {
+    return false;
+  }
+};
 interface MenuState {
   kind: MenuKind;
   query: string;
@@ -76,7 +147,7 @@ function countWords(editor: Editor) {
     .filter(Boolean).length;
 }
 const SLASH = /(?:^|\s)\/([\w-]*)$/;
-const MENTION = /(?:^|\s)@([\w\-ğüşöçıİ]*)$/i;
+const MENTION = /(?:^|\s)@([\w\-#ğüşöçıİ]*)$/i;
 /**
  * Atlas document editor (Tiptap). Local, in-memory editing only: content is
  * never persisted or sent. `/` opens block commands, `@` inserts structured
@@ -88,7 +159,9 @@ export function DocEditor({
   onDirty,
   onOpenComments,
   flash,
+  live,
 }: {
+  live?: LiveEditorConfig;
   content: JSONContent;
   onWords: (words: number) => void;
   onDirty: () => void;
@@ -103,23 +176,41 @@ export function DocEditor({
   const [citeQuery, setCiteQuery] = useState('');
   const keyHandler = useRef<(event: KeyboardEvent) => boolean>(() => false);
   const listId = useId();
+  const liveRef = useRef(live);
+  useLayoutEffect(() => {
+    liveRef.current = live;
+  });
+  const [options, setOptions] = useState<{
+    key: string;
+    items: ArtifactOption[];
+    people: ParticipantDto[];
+  } | null>(null);
+  const [passages, setPassages] = useState<{
+    paper: ArtifactOption;
+    sourceVersionId: string;
+    sha256: string | null;
+    items: AnnotationDto[];
+  } | null>(null);
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({ link: false, heading: { levels: [2, 3] } }),
-      Placeholder.configure({
-        placeholder: 'Type / for commands, @ to reference a paper or task…',
-        showOnlyCurrent: false,
-      }),
-      Citation,
-      TaskRef,
-      PersonMention,
-      CommentMark,
-      CommentCount,
-      TrackedChange,
-      Presence,
-      AISuggestion,
-    ],
+    editable: live?.editable ?? true,
+    extensions: live
+      ? liveExtensions()
+      : [
+          StarterKit.configure({ link: false, heading: { levels: [2, 3] } }),
+          Placeholder.configure({
+            placeholder: 'Type / for commands, @ to reference a paper or task…',
+            showOnlyCurrent: false,
+          }),
+          Citation,
+          TaskRef,
+          PersonMention,
+          CommentMark,
+          CommentCount,
+          TrackedChange,
+          Presence,
+          AISuggestion,
+        ],
     content,
     editorProps: {
       attributes: {
@@ -128,7 +219,18 @@ export function DocEditor({
         'aria-multiline': 'true',
         'aria-label': 'Document body',
       },
-      handleKeyDown: (_view, event) => keyHandler.current(event),
+      handleKeyDown: (_view, event) => {
+        if (
+          liveRef.current &&
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === 's'
+        ) {
+          event.preventDefault();
+          liveRef.current.onSave();
+          return true;
+        }
+        return keyHandler.current(event);
+      },
       handleClickOn: (_view, _pos, _node, _nodePos, event) => {
         const target = event.target as HTMLElement | null;
         if (target?.closest('mark[data-comment]')) {
@@ -142,6 +244,7 @@ export function DocEditor({
     onUpdate: ({ editor: e }) => {
       onDirty();
       onWords(countWords(e));
+      liveRef.current?.onChange(e.getJSON());
     },
   });
   const place = useCallback(
@@ -223,8 +326,301 @@ export function DocEditor({
     setCiteQuery('');
     place('cite', to, to, '');
   }, [editor, place]);
+  // Live: authorized, project-scoped suggestions for the open picker.
+  const liveQuery = menu
+    ? `${menu.kind}:${menu.kind === 'cite' ? citeQuery : menu.query}`
+    : null;
+  useEffect(() => {
+    if (!live || !menu || menu.kind === 'slash' || !liveQuery) return;
+    let active = true;
+    const q = menu.kind === 'cite' ? citeQuery : menu.query;
+    const timer = setTimeout(() => {
+      liveRef.current
+        ?.search(q, menu.kind === 'cite' ? 'PAPER' : undefined)
+        .then((result) => {
+          if (active) setOptions({ key: liveQuery, ...result });
+        })
+        .catch(() => {
+          if (active) setOptions({ key: liveQuery, items: [], people: [] });
+        });
+    }, 150);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [citeQuery, live, liveQuery, menu]);
+  const insertLive = useCallback(
+    (nodes: JSONContent[], range?: { from: number; to: number }) => {
+      if (!editor) return;
+      const chain = editor.chain().focus();
+      (range ? chain.deleteRange(range) : chain)
+        .insertContent([...nodes, { type: 'text', text: ' ' }])
+        .run();
+    },
+    [editor],
+  );
+  const citeLive = useCallback(
+    async (paper: ArtifactOption, range?: { from: number; to: number }) => {
+      live?.remember(paper);
+      // Offer verified passages (highlights on the accepted source version).
+      try {
+        const dto = await fetchPaper(paper.id);
+        const source = readySource(dto);
+        const highlights = source
+          ? (await fetchAnnotations(source.id)).filter((a) => a.anchor.quote)
+          : [];
+        if (source && highlights.length) {
+          setPassages({
+            paper,
+            sourceVersionId: source.id,
+            sha256: source.sha256,
+            items: highlights,
+          });
+          if (range && editor) editor.chain().focus().deleteRange(range).run();
+          const { to } = editor?.state.selection ?? { to: 0 };
+          setCiteQuery('');
+          place('cite', to, to, '');
+          return;
+        }
+      } catch {
+        // Fall back to a paper-level citation; nothing is fabricated.
+      }
+      insertLive(
+        [{ type: 'citation', attrs: { projectPaperId: paper.id } }],
+        range,
+      );
+      flash(`Cited ${paper.detail ?? paper.title}`, 'done');
+    },
+    [editor, flash, insertLive, live, place],
+  );
+  function liveItems(): MenuItem[] {
+    if (!menu || !editor) return [];
+    const range = { from: menu.from, to: menu.to };
+    const q = (menu.kind === 'cite' ? citeQuery : menu.query).toLowerCase();
+    const block = (
+      id: string,
+      label: string,
+      icon: typeof Type,
+      run: (e: Editor) => void,
+      sub?: string,
+    ): MenuItem => ({
+      id,
+      group: 'Blocks',
+      label,
+      icon,
+      run,
+      ...(sub ? { sub } : {}),
+    });
+    if (menu.kind === 'slash') {
+      const all: MenuItem[] = [
+        block('text', 'Text', Type, (e) =>
+          e.chain().focus().deleteRange(range).setParagraph().run(),
+        ),
+        block(
+          'heading',
+          'Heading',
+          Heading2,
+          (e) =>
+            e.chain().focus().deleteRange(range).setHeading({ level: 2 }).run(),
+          '##',
+        ),
+        block(
+          'list',
+          'Bulleted list',
+          List,
+          (e) => e.chain().focus().deleteRange(range).toggleBulletList().run(),
+          '-',
+        ),
+        block(
+          'checklist',
+          'Checklist',
+          CheckSquare,
+          (e) => e.chain().focus().deleteRange(range).toggleTaskList().run(),
+          '[]',
+        ),
+        block(
+          'quote',
+          'Quote',
+          Quote,
+          (e) => e.chain().focus().deleteRange(range).toggleBlockquote().run(),
+          '>',
+        ),
+        block(
+          'code',
+          'Code block',
+          Code,
+          (e) => e.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+          '```',
+        ),
+        block(
+          'divider',
+          'Divider',
+          Minus,
+          (e) => e.chain().focus().deleteRange(range).setHorizontalRule().run(),
+          '---',
+        ),
+        {
+          id: 'citation',
+          group: 'References',
+          label: 'Citation',
+          sub: 'cite',
+          icon: BookOpen,
+          run: (e) => {
+            e.chain().focus().deleteRange(range).run();
+            setPassages(null);
+            openCite();
+          },
+        },
+        {
+          id: 'reference',
+          group: 'References',
+          label: 'Reference',
+          sub: '@',
+          icon: FileText,
+          run: (e) =>
+            e.chain().focus().deleteRange(range).insertContent('@').run(),
+        },
+        {
+          id: 'task',
+          group: 'References',
+          label: 'Task reference',
+          sub: '@task',
+          icon: ListTodo,
+          run: (e) =>
+            e.chain().focus().deleteRange(range).insertContent('@#').run(),
+        },
+        {
+          id: 'ask',
+          group: 'Atlas',
+          tone: 'ai',
+          label: 'Ask Atlas',
+          sub: 'proposal only',
+          icon: Sparkles,
+          run: (e) => {
+            e.chain().focus().deleteRange(range).run();
+            atlas.ask({ mode: 'open' });
+          },
+        },
+      ];
+      return all.filter(
+        (b) => !q || b.label.toLowerCase().includes(q) || b.id.includes(q),
+      );
+    }
+    const current = options?.key === liveQuery ? options : null;
+    if (menu.kind === 'cite' && passages) {
+      const { paper } = passages;
+      return [
+        {
+          id: `paper-${paper.id}`,
+          group: paper.detail ?? 'Paper',
+          label: 'Cite the whole paper',
+          sub: 'no passage',
+          icon: BookOpen,
+          run: () => {
+            setPassages(null);
+            insertLive([
+              { type: 'citation', attrs: { projectPaperId: paper.id } },
+            ]);
+          },
+        },
+        ...passages.items
+          .filter((a) => !q || (a.anchor.quote ?? '').toLowerCase().includes(q))
+          .map<MenuItem>((a) => ({
+            id: a.id,
+            group: 'Highlighted passages',
+            label: `“${a.anchor.quote}”`,
+            sub: `p. ${a.anchor.pageNumber}`,
+            icon: Quote,
+            run: () => {
+              setPassages(null);
+              insertLive([
+                {
+                  type: 'citation',
+                  attrs: {
+                    projectPaperId: paper.id,
+                    sourceVersionId: passages.sourceVersionId,
+                    annotationId: a.id,
+                    page: a.anchor.pageNumber,
+                    quote: a.anchor.quote,
+                    startOffset: a.anchor.startOffset,
+                    endOffset: a.anchor.endOffset,
+                    sourceChecksum: passages.sha256,
+                  },
+                },
+              ]);
+              flash(
+                `Cited p. ${a.anchor.pageNumber} of ${paper.detail ?? paper.title}`,
+                'done',
+              );
+            },
+          })),
+      ];
+    }
+    if (!current) return [];
+    const wantTasks = menu.kind === 'mention' && menu.query.startsWith('#');
+    const groups: Record<string, string> = {
+      PAPER: 'Papers',
+      DOCUMENT: 'Documents',
+      TASK: 'Tasks',
+    };
+    const artifacts = current.items
+      .filter((o) =>
+        menu.kind === 'cite'
+          ? o.kind === 'PAPER'
+          : !wantTasks || o.kind === 'TASK',
+      )
+      .map<MenuItem>((o) => ({
+        id: o.artifactId,
+        group: menu.kind === 'cite' ? 'Project library' : groups[o.kind]!,
+        label:
+          menu.kind !== 'cite' && o.kind === 'TASK'
+            ? `${o.detail} ${o.title}`
+            : o.title,
+        ...(o.kind === 'PAPER' && o.detail ? { sub: o.detail } : {}),
+        icon:
+          o.kind === 'PAPER'
+            ? BookOpen
+            : o.kind === 'TASK'
+              ? ListTodo
+              : FileText,
+        run: () => {
+          if (o.kind === 'PAPER') {
+            void citeLive(o, menu.kind === 'cite' ? undefined : range);
+            return;
+          }
+          live?.remember(o);
+          insertLive(
+            [
+              o.kind === 'TASK'
+                ? { type: 'taskRef', attrs: { taskId: o.id } }
+                : { type: 'documentRef', attrs: { documentId: o.id } },
+            ],
+            range,
+          );
+        },
+      }));
+    const people =
+      menu.kind === 'mention' && !wantTasks
+        ? current.people.map<MenuItem>((person) => ({
+            id: person.id,
+            group: 'People',
+            label: person.name,
+            sub: 'no notification',
+            icon: User,
+            run: () => {
+              live?.rememberPerson(person);
+              insertLive(
+                [{ type: 'personMention', attrs: { profileId: person.id } }],
+                range,
+              );
+            },
+          }))
+        : [];
+    return [...artifacts, ...people];
+  }
   const items: MenuItem[] = (() => {
     if (!menu || !editor) return [];
+    if (live) return liveItems();
     const q = (menu.kind === 'cite' ? citeQuery : menu.query).toLowerCase();
     const range = { from: menu.from, to: menu.to };
     if (menu.kind === 'slash') {
@@ -506,6 +902,7 @@ export function DocEditor({
     <>
       <BubbleMenu
         editor={editor}
+        {...(live && !live.editable ? { shouldShow: () => false } : {})}
         options={{ placement: 'top-end', offset: 8 }}
         className="z-[40] flex items-center gap-0.5 rounded-lg border border-bd bg-pop p-1 font-sans text-ctl shadow-pop"
       >
@@ -525,7 +922,31 @@ export function DocEditor({
         </ToolbarBtn>
         <ToolbarBtn
           label="Link"
-          onClick={() => flash('Link insertion is UI-only in this preview')}
+          active={live ? editor.isActive('link') : undefined}
+          onClick={() => {
+            if (!live) {
+              flash('Link insertion is UI-only in this preview');
+              return;
+            }
+            if (editor.isActive('link')) {
+              editor.chain().focus().unsetLink().run();
+              return;
+            }
+            const href = window
+              .prompt('Link address (https:// or mailto:)')
+              ?.trim();
+            if (!href) return;
+            if (!safeLink(href)) {
+              flash('Only http, https and mailto links are allowed');
+              return;
+            }
+            editor
+              .chain()
+              .focus()
+              .extendMarkRange('link')
+              .setLink({ href })
+              .run();
+          }}
         >
           <LinkIcon aria-hidden="true" />
         </ToolbarBtn>
@@ -543,6 +964,10 @@ export function DocEditor({
             const selected = editor.state.doc.textBetween(from, to, ' ');
             const excerpt =
               selected.length > 36 ? `${selected.slice(0, 36)}…` : selected;
+            if (live) {
+              live.askAbout(selected.slice(0, 2000));
+              return;
+            }
             atlas.ask({
               mode: 'open',
               chips: [
@@ -565,6 +990,7 @@ export function DocEditor({
       <div
         role="toolbar"
         aria-label="Format"
+        hidden={live ? !live.editable : undefined}
         className="sticky bottom-0 z-[4] -mx-5 mt-6 flex h-[52px] items-center gap-1 border-t border-bd2 bg-pop px-2 font-sans sm:hidden"
       >
         <ToolbarBtn
@@ -732,9 +1158,11 @@ export function DocEditor({
             {menu.kind === 'cite' ? (
               <div className="flex gap-3 border-t border-bd2 px-3 py-[7px] text-[11px] text-tx3">
                 <span>↵ insert</span>
-                <span>Adds to References</span>
+                <span>
+                  {live ? 'Then pick a passage' : 'Adds to References'}
+                </span>
                 <span className="flex-1" />
-                <span>Sample library</span>
+                <span>{live ? 'Project library' : 'Sample library'}</span>
               </div>
             ) : null}
           </div>
@@ -750,7 +1178,7 @@ function ToolbarBtn({
   children,
 }: {
   label: string;
-  active?: boolean;
+  active?: boolean | undefined;
   onClick: () => void;
   children: React.ReactNode;
 }) {

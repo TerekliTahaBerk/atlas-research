@@ -5,6 +5,7 @@ import { verifiedCitation, type VerifiedCitation } from '@atlas/ai';
 import { requestData } from '@/features/platform/client';
 import { useAtlas } from './atlas-provider';
 import type { AssistantMessage } from './contracts';
+import { ProposalActions } from './proposal-review';
 function Citation({
   citation,
   runId,
@@ -132,6 +133,9 @@ export function LiveMessage({ message: m }: { message: AssistantMessage }) {
         </button>
       ) : null}
       {copyError ? <p role="alert">{copyError}</p> : null}
+      {m.phase === 'done' && m.runId && atlas.live ? (
+        <ProposalActions runId={m.runId} />
+      ) : null}
     </article>
   );
 }

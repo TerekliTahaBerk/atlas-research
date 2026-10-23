@@ -16,6 +16,9 @@ import { LiveProject } from '@/features/platform/live-project';
 import { LiveResearch } from '@/features/research/live-research';
 import { LiveLibrary } from '@/features/library/live-library';
 import { LiveReader } from '@/features/reader/live-reader';
+import { LiveDocuments } from '@/features/documents/live-documents';
+import { LiveTasks } from '@/features/tasks/live-tasks';
+import { LiveGraph } from '@/features/graph/live-graph';
 export async function generateMetadata({
   params,
 }: {
@@ -67,6 +70,25 @@ export default async function Page({
             <LiveLibrary project={project} />
           ) : (
             <LiveReader project={project} />
+          )}
+        </Suspense>
+      </LiveFrame>
+    );
+  // Phase 04 documents and tasks use real persisted, authorized records.
+  if (research && selected.slug === 'graph')
+    return (
+      <LiveFrame state={state}>
+        <LiveGraph project={project} />
+      </LiveFrame>
+    );
+  if (research && (selected.slug === 'documents' || selected.slug === 'tasks'))
+    return (
+      <LiveFrame state={state}>
+        <Suspense fallback={<WorkspaceLoading />}>
+          {selected.slug === 'documents' ? (
+            <LiveDocuments project={project} />
+          ) : (
+            <LiveTasks project={project} />
           )}
         </Suspense>
       </LiveFrame>
