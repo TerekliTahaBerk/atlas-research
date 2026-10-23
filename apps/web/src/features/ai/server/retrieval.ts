@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import {
   evidence,
+  reference,
   tokenBound,
   type Evidence,
   type ResearchReference,
@@ -24,32 +25,15 @@ export async function resolveReferences(
   projectId: string,
   refs: readonly ResearchReference[],
 ) {
+  const checked = reference.array().max(12).parse(refs);
   return withActor(actor, async (tx) => {
-    await requireProject(tx, projectId, 'project.read');
-    for (const ref of refs) {
-      if (ref.projectId !== projectId || ref.kind === 'search-result')
-        throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      if (ref.kind === 'project') continue;
-      const papers = await tx.$queryRaw<
-        unknown[]
-      >`SELECT id FROM project_papers WHERE id=${ref.projectPaperId}::uuid AND project_id=${projectId}::uuid AND archived_at IS NULL`;
-      if (!papers.length)
-        throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      if ('sourceVersionId' in ref) {
-        const sources = await tx.$queryRaw<
-          unknown[]
-        >`SELECT id FROM source_versions WHERE id=${ref.sourceVersionId}::uuid AND project_paper_id=${ref.projectPaperId}::uuid AND project_id=${projectId}::uuid AND state='READY'`;
-        if (!sources.length)
-          throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      }
-      if (ref.kind === 'annotation') {
-        const notes = await tx.$queryRaw<
-          unknown[]
-        >`SELECT id FROM paper_annotations WHERE id=${ref.annotationId}::uuid AND source_version_id=${ref.sourceVersionId}::uuid AND project_paper_id=${ref.projectPaperId}::uuid AND deleted_at IS NULL`;
-        if (!notes.length)
-          throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      }
-    }
+    const [row] = z
+      .array(z.object({ allowed: z.boolean() }))
+      .parse(
+        await tx.$queryRaw`SELECT atlas_private.ai_references_visible(${projectId}::uuid,${JSON.stringify(checked)}::jsonb) AS allowed`,
+      );
+    if (!row?.allowed)
+      throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
   });
 }
 export async function retrieve(
@@ -228,48 +212,17 @@ export async function revalidateEvidence(
   projectId: string,
   sources: readonly Evidence[],
 ) {
-  await resolveReferences(
-    actor,
-    projectId,
-    sources.map((s) =>
-      s.sourceVersionId
-        ? {
-            kind: 'source-version' as const,
-            projectId,
-            projectPaperId: s.projectPaperId,
-            sourceVersionId: s.sourceVersionId,
-          }
-        : {
-            kind: 'paper' as const,
-            projectId,
-            projectPaperId: s.projectPaperId,
-          },
-    ),
-  );
+  const checked = evidence.array().max(24).parse(sources);
+  if (checked.some((source) => source.projectId !== projectId))
+    throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
   return withActor(actor, async (tx) => {
-    for (const source of sources) {
-      if (source.kind === 'annotation') {
-        const rows = await tx.$queryRaw<
-          unknown[]
-        >`SELECT id FROM paper_annotations WHERE id=${source.id.replace('annotation:', '')}::uuid AND deleted_at IS NULL AND body=${source.text}`;
-        if (!rows.length)
-          throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      } else if (source.kind === 'full-text') {
-        const rows = await tx.$queryRaw<
-          unknown[]
-        >`SELECT id FROM source_chunks WHERE id=${source.id}::uuid AND project_id=${projectId}::uuid AND project_paper_id=${source.projectPaperId}::uuid AND source_version_id=${source.sourceVersionId}::uuid AND page=${source.page} AND start_offset=${source.startOffset} AND text=${source.text} AND source_sha256=${source.checksum}`;
-        if (!rows.length)
-          throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      } else {
-        const [row] = z
-          .array(z.object({ text: z.string() }))
-          .parse(
-            await tx.$queryRaw`SELECT left(coalesce(metadata->>'abstract',private_title,metadata->>'title','Untitled'),4000) AS text FROM project_papers WHERE id=${source.projectPaperId}::uuid AND archived_at IS NULL`,
-          );
-        if (!row || hashText(row.text) !== source.checksum)
-          throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
-      }
-    }
+    const [row] = z
+      .array(z.object({ allowed: z.boolean() }))
+      .parse(
+        await tx.$queryRaw`SELECT atlas_private.can('project',${projectId}::uuid,'project.read') AND atlas_private.ai_evidence_visible(${JSON.stringify(checked)}::jsonb) AS allowed`,
+      );
+    if (!row?.allowed)
+      throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
   });
 }
 
@@ -308,12 +261,19 @@ export async function authorizeCitation(
   });
   if (
     !source ||
+    (cite.kind !== 'full-text' &&
+      (cite.page !== null ||
+        (cite.kind !== 'annotation' &&
+          (cite.sourceVersionId !== null ||
+            cite.evidenceId !== `metadata:${cite.projectPaperId}`)))) ||
     source.projectId !== cite.projectId ||
     source.checksum !== cite.checksum ||
     source.projectPaperId !== cite.projectPaperId ||
     source.sourceVersionId !== cite.sourceVersionId ||
     source.page !== cite.page ||
     cite.startOffset < source.startOffset ||
+    cite.endOffset <= cite.startOffset ||
+    cite.endOffset > source.startOffset + source.text.length ||
     source.text.slice(
       cite.startOffset - source.startOffset,
       cite.endOffset - source.startOffset,

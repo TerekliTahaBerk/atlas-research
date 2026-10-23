@@ -1,6 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
-import { modelPolicy } from '@atlas/ai';
+import { modelPolicy, type AIProvider } from '@atlas/ai';
 import {
   GoogleEmbeddings,
   OpenAIEmbeddings,
@@ -135,7 +135,9 @@ export function aiConfig() {
     );
   return { policy, key, cap: cap.data, transport };
 }
-export const generationProvider = (config: ReturnType<typeof aiConfig>) =>
+export const generationProvider = (
+  config: ReturnType<typeof aiConfig>,
+): AIProvider =>
   new SDKResearchProvider(config.policy, config.key, config.transport);
 export function embeddingConfig() {
   requireAIActivation();

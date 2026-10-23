@@ -40,7 +40,56 @@ import {
 import { extractionResponse } from '../../apps/web/src/features/ai/server/ingestion';
 import { executeResearchTool } from '../../apps/web/src/features/ai/server/tools';
 import { aiPolicy } from '../fixtures/ai-wire';
+import {
+  evidence as evidenceSchema,
+  verifyCitations,
+  type AIStreamEvent,
+  type AIRequest,
+  type Evidence,
+} from '../../packages/ai/src';
+import * as configuration from '../../apps/web/src/features/ai/server/config';
 import type { PlatformCommand } from '../../packages/core/src/platform';
+// Count application SQL round trips without logging SQL, values or research text.
+const measurements = vi.hoisted(() => ({ queries: 0, transactions: 0 }));
+vi.mock(
+  '../../apps/web/src/features/platform/server/database',
+  async (original) => {
+    const actual =
+      await original<
+        typeof import('../../apps/web/src/features/platform/server/database')
+      >();
+    return {
+      ...actual,
+      async withActor<T>(
+        actor: import('../../apps/web/src/features/platform/server/database').VerifiedActor,
+        work: (
+          tx: import('../../packages/database/src').Prisma.TransactionClient,
+        ) => Promise<T>,
+      ) {
+        measurements.transactions++;
+        measurements.queries += 2; // Runtime-role check and transaction-local actor setup.
+        return actual.withActor(actor, (tx) =>
+          work(
+            new Proxy(tx, {
+              get(target, key, receiver) {
+                const value: unknown = Reflect.get(target, key, receiver);
+                if (
+                  (key === '$queryRaw' || key === '$executeRaw') &&
+                  typeof value === 'function'
+                )
+                  return (...args: unknown[]) => {
+                    measurements.queries++;
+                    return Reflect.apply(value, target, args);
+                  };
+                return value;
+              },
+            }),
+          ),
+        );
+      },
+    };
+  },
+);
 const runtime = process.env.ATLAS_TEST_DATABASE_URL,
   adminUrl = process.env.ATLAS_TEST_ADMIN_URL,
   worker = process.env.ATLAS_TEST_AI_WORKER_URL;
@@ -657,6 +706,129 @@ describe('conversation persistence, streamed citations and budget safety', () =>
         authorizeCitation(owner, { ...state.citations[0]!, ...changed }),
       ).rejects.toThrow();
   });
+  it('bounds SQL round trips for evidence batches and 100/500 provider deltas', async () => {
+    const results: {
+      scenario: string;
+      queries: number;
+      transactions: number;
+      milliseconds: number;
+    }[] = [];
+    async function measure(scenario: string, work: () => Promise<unknown>) {
+      measurements.queries = 0;
+      measurements.transactions = 0;
+      const start = performance.now();
+      await work();
+      results.push({
+        scenario,
+        ...measurements,
+        milliseconds: Math.round(performance.now() - start),
+      });
+    }
+    const metadata: Evidence[] = [];
+    for (let i = 0; i < 12; i++) {
+      const projectPaperId = await makePaper(
+        project,
+        `Performance synthetic ${i}`,
+      );
+      const rows = await retrieve(owner, project, 'Performance', [
+        { kind: 'paper', projectId: project, projectPaperId },
+      ]);
+      metadata.push(rows[0]!);
+    }
+    // Distinct immutable fixture chunks, representing a maximum-size validation batch.
+    await admin.$executeRaw`INSERT INTO source_chunks(id,organization_id,workspace_id,project_id,project_paper_id,source_version_id,source_sha256,extraction_version,ordinal,page,start_offset,end_offset,text,checksum,embedding_provider,embedding_revision,embedding_dimensions,embedding_model,embedding)
+      SELECT gen_random_uuid(),c.organization_id,c.workspace_id,c.project_id,c.project_paper_id,c.source_version_id,c.source_sha256,c.extraction_version,1000+g,c.page,c.start_offset,c.end_offset,c.text,c.checksum,c.embedding_provider,c.embedding_revision,c.embedding_dimensions,c.embedding_model,c.embedding FROM (SELECT * FROM source_chunks WHERE source_version_id=${source}::uuid LIMIT 1) c CROSS JOIN generate_series(1,24) g`;
+    const chunks = evidenceSchema
+      .array()
+      .parse(
+        await withActor(
+          owner,
+          (tx) =>
+            tx.$queryRaw`SELECT id::text,project_id AS "projectId",project_paper_id AS "projectPaperId",source_version_id AS "sourceVersionId",page,start_offset AS "startOffset",text,source_sha256 AS checksum,'full-text' AS kind,'Synthetic' AS title FROM source_chunks WHERE source_version_id=${source}::uuid AND ordinal>1000 ORDER BY ordinal LIMIT 24`,
+        ),
+      );
+    expect(chunks).toHaveLength(24);
+    await measure('1 source', () =>
+      revalidateEvidence(owner, project, metadata.slice(0, 1)),
+    );
+    await measure('12 sources', () =>
+      revalidateEvidence(owner, project, metadata),
+    );
+    await measure('24 evidence chunks', () =>
+      revalidateEvidence(owner, project, chunks),
+    );
+    for (const count of [100, 500]) {
+      const stub = vi
+        .spyOn(configuration, 'generationProvider')
+        .mockReturnValue({
+          id: 'synthetic-performance',
+          supports: () => true,
+          async generate() {
+            throw new Error('Stream fixture only');
+          },
+          async *stream(
+            request: AIRequest,
+          ): AsyncGenerator<AIStreamEvent, void, unknown> {
+            expect(request.context.evidence?.length).toBeGreaterThan(0);
+            for (let i = 0; i < count; i++) yield { type: 'delta', text: 'x' };
+            yield {
+              type: 'complete',
+              response: {
+                text: 'x'.repeat(count),
+                citations: [],
+                grounded: {
+                  text: 'x'.repeat(count),
+                  citations: [],
+                  limitations: ['Synthetic performance fixture.'],
+                },
+                usage: { inputTokens: 200, outputTokens: count },
+                finishReason: 'stop',
+              },
+            };
+          },
+        });
+      try {
+        const prepared = await prepareRun(owner, input());
+        await measure(`${count} provider deltas`, async () => {
+          const body = await (
+            await streamRun(owner, prepared, new AbortController().signal)
+          ).text();
+          expect(body).toContain('event: run.completed');
+          expect(body).not.toContain('event: run.failed');
+        });
+      } finally {
+        stub.mockRestore();
+      }
+    }
+    for (const row of results.slice(0, 3)) {
+      expect(row.queries).toBe(3);
+      expect(row.transactions).toBe(1);
+    }
+    for (const row of results.slice(3)) {
+      expect(row.queries).toBeLessThanOrEqual(90);
+      expect(row.transactions).toBeLessThanOrEqual(25);
+    }
+    process.stdout.write(`AI_PERFORMANCE ${JSON.stringify(results)}\n`);
+  }, 120000);
+  it('validates complete evidence identity in one live RLS batch', async () => {
+    const sources = await retrieve(owner, project, 'memory', [
+      { kind: 'paper', projectId: project, projectPaperId: paper },
+    ]);
+    const full = sources.find((item) => item.kind === 'full-text')!;
+    for (const change of [
+      { page: 99 },
+      { startOffset: 999 },
+      { sourceVersionId: pendingSource },
+      { projectPaperId: secondPaper },
+      { projectId: otherProject },
+      { id: randomUUID() },
+      { checksum: '0'.repeat(64) },
+      { text: 'fabricated' },
+    ])
+      await expect(
+        revalidateEvidence(owner, project, [{ ...full, ...change }]),
+      ).rejects.toThrow();
+  });
   it('executes authorized read tools with a content-free audit event', async () => {
     expect(
       (
@@ -784,6 +956,20 @@ describe('conversation persistence, streamed citations and budget safety', () =>
       await streamRun(owner, prepared, new AbortController().signal)
     ).text();
     const state = await snapshot(owner, prepared.id);
+    const followup = await prepareRun(owner, {
+      ...input(),
+      conversationId: state.conversationId,
+    });
+    await (
+      await streamRun(owner, followup, new AbortController().signal)
+    ).text();
+    const beforeErase = await admin.aIRun.findUniqueOrThrow({
+      where: { id: followup.id },
+    });
+    expect(beforeErase.contextJson).not.toEqual({
+      evidence: [],
+      references: [],
+    });
     await post('conversations', {
       projectId: project,
       id: state.conversationId,
@@ -806,12 +992,135 @@ describe('conversation persistence, streamed citations and budget safety', () =>
       where: { id: state.id },
     });
     expect(saved.prompt).toBe('[deleted]');
+    expect(
+      (await admin.aIRun.findUniqueOrThrow({ where: { id: followup.id } }))
+        .contextJson,
+    ).toEqual({ evidence: [], references: [] });
     expect(saved.answer).toBe('');
     expect(saved.evidenceJson).toEqual([]);
     expect(await admin.aICitation.count({ where: { runId: state.id } })).toBe(
       0,
     );
     expect(await admin.aIUsage.count({ where: { runId: state.id } })).toBe(1);
+  });
+  it('rejects fabricated metadata anchors and retains the scientific-support distinction', async () => {
+    const sources = await retrieve(owner, project, 'Metadata', [
+      { kind: 'paper', projectId: project, projectPaperId: secondPaper },
+    ]);
+    const item = sources[0]!;
+    expect(item.page).toBeNull();
+    const verified = verifyCitations(
+      {
+        text: `Metadata [[${item.id}]]`,
+        citations: [
+          {
+            evidenceId: item.id,
+            quote: item.text,
+            startOffset: 0,
+            endOffset: item.text.length,
+          },
+        ],
+        limitations: [],
+      },
+      sources,
+    ).citations[0]!;
+    expect(await authorizeCitation(owner, verified)).toMatchObject({
+      page: null,
+      claimSupport: 'not-evaluated',
+    });
+    for (const changed of [
+      { page: 1 },
+      { sourceVersionId: source },
+      { evidenceId: `metadata:${randomUUID()}` },
+      { kind: 'abstract' as const },
+      { endOffset: item.text.length + 1 },
+    ])
+      await expect(
+        authorizeCitation(owner, { ...verified, ...changed }),
+      ).rejects.toThrow();
+  });
+  it('does not release buffered output after a historical source is archived', async () => {
+    const first = await prepareRun(owner, {
+      ...input(),
+      references: [
+        { kind: 'paper', projectId: project, projectPaperId: secondPaper },
+      ],
+    });
+    await (await streamRun(owner, first, new AbortController().signal)).text();
+    const prior = await snapshot(owner, first.id);
+    const followup = await prepareRun(owner, {
+      ...input(),
+      conversationId: prior.conversationId,
+      text: 'fixture-slow memory',
+    });
+    const reader = (
+      await streamRun(owner, followup, new AbortController().signal)
+    ).body!.getReader();
+    let seen = '';
+    while (!seen.includes('response.delta')) {
+      const part = await reader.read();
+      if (part.done) break;
+      seen += new TextDecoder().decode(part.value);
+    }
+    expect(seen).toContain('response.delta');
+    await executeResearchCommand(
+      owner,
+      { command: 'paper.archive', id: secondPaper, expectedVersion: 1 },
+      randomUUID(),
+      {
+        async resolve() {
+          throw new Error('No provider resolution');
+        },
+      },
+    );
+    let rest = '';
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      rest += new TextDecoder().decode(part.value);
+    }
+    expect(rest).not.toContain('response.delta');
+    expect(rest).not.toContain('citation.verified');
+    expect(rest).not.toContain('run.completed');
+    await expect(snapshot(owner, followup.id)).rejects.toThrow();
+    expect(await history(owner, project, prior.conversationId)).toEqual([]);
+  });
+  it('settles a disconnected reader once and never completes a timed-out request', async () => {
+    const disconnected = await prepareRun(owner, {
+      ...input(),
+      text: 'fixture-slow memory',
+    });
+    const reader = (
+      await streamRun(owner, disconnected, new AbortController().signal)
+    ).body!.getReader();
+    let seen = '';
+    while (!seen.includes('response.delta')) {
+      const part = await reader.read();
+      if (part.done) break;
+      seen += new TextDecoder().decode(part.value);
+    }
+    await reader.cancel();
+    await vi.waitFor(async () => {
+      expect((await snapshot(owner, disconnected.id)).state).toBe('CANCELLED');
+    });
+    const charge = (await snapshot(owner, disconnected.id)).costMicros;
+    expect(charge).toBeGreaterThan(0);
+    expect(await updateRun(owner, disconnected.id, 'cancel')).toBe(false);
+    expect((await snapshot(owner, disconnected.id)).costMicros).toBe(charge);
+    const expired = await prepareRun(owner, {
+      ...input(),
+      text: 'fixture-slow memory',
+    });
+    const body = await (
+      await streamRun(owner, expired, AbortSignal.timeout(250))
+    ).text();
+    expect(body).not.toContain('run.completed');
+    expect(body).not.toContain('citation.verified');
+    expect(await snapshot(owner, expired.id)).toMatchObject({
+      state: 'UNCERTAIN',
+      error: 'TIMEOUT',
+      citations: [],
+    });
   });
   it('honors revocation during generation before releasing further text or citations', async () => {
     const prepared = await prepareRun(viewer, {
@@ -858,6 +1167,11 @@ describe('conversation persistence, streamed citations and budget safety', () =>
     ).toBe('CANCELLED');
   });
   it('fails closed when a source is archived between retrieval and delivery', async () => {
+    const prepared = await prepareRun(owner, input());
+    await (
+      await streamRun(owner, prepared, new AbortController().signal)
+    ).text();
+    const completed = await snapshot(owner, prepared.id);
     const evidence = await retrieve(owner, project, 'memory', [
       { kind: 'paper', projectId: project, projectPaperId: paper },
     ]);
@@ -871,6 +1185,10 @@ describe('conversation persistence, streamed citations and budget safety', () =>
         },
       },
     );
+    await expect(snapshot(owner, prepared.id)).rejects.toThrow();
+    await expect(
+      authorizeCitation(owner, completed.citations[0]!),
+    ).rejects.toThrow();
     await expect(
       revalidateEvidence(owner, project, evidence),
     ).rejects.toThrow();

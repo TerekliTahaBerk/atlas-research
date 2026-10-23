@@ -16,8 +16,15 @@ import {
 import { PlatformError, publicError } from '@/features/platform/server/errors';
 import { aiConfig, embeddingConfig, generationProvider } from './config';
 import { executeResearchTool } from './tools';
-import { history, snapshot, updateRun } from './repository';
+import {
+  bindHistory,
+  modelHistory,
+  snapshot,
+  streamState,
+  updateRun,
+} from './repository';
 import { hashText, revalidateEvidence, resolveReferences } from './retrieval';
+import { coalesceDeltas } from './stream-buffer';
 
 export async function prepareRun(actor: VerifiedActor, raw: unknown) {
   const input = runInput.parse(raw);
@@ -121,14 +128,14 @@ export async function streamRun(
         return state;
       };
       try {
-        await emitSnapshot('run.started');
-        const previous = await history(
+        const initial = await emitSnapshot('run.started');
+        const previous = await modelHistory(
           actor,
           input.projectId,
-          (await snapshot(actor, id)).conversationId,
+          initial.conversationId,
         );
         const messages: AIRequest['messages'] = previous
-          .filter((r) => r.id !== id && r.state === 'COMPLETED')
+          .filter((r) => r.id !== id)
           .slice(-4)
           .flatMap((r) => [
             { role: 'user' as const, content: r.prompt.slice(0, 2000) },
@@ -215,32 +222,44 @@ export async function streamRun(
             'VALIDATION_ERROR',
             'The selected context is too large. Attach fewer sources or start a new conversation.',
           );
+        await bindHistory(actor, id, previous);
         signal.throwIfAborted();
-        if (!(await updateRun(actor, id, 'dispatch', { evidence })))
-          throw new Error('CANCELLED');
+        const provider = generationProvider(config);
+        // Roll back dispatch if the same transaction's live RLS gate rejects context.
+        await streamState(actor, id, {
+          operation: 'dispatch',
+          payload: { evidence },
+        });
         dispatched = true;
+        signal.throwIfAborted();
         let checking = false;
+        let finalizing = false;
         heartbeat = setInterval(() => {
           if (checking) return;
           checking = true;
-          void snapshot(actor, id)
+          void streamState(actor, id)
             .then((state) => {
-              if (state.state !== 'RUNNING') abort.abort();
+              if (!finalizing && state.state !== 'RUNNING') abort.abort();
             })
-            .catch(() => abort.abort())
+            .catch(() => {
+              if (!finalizing) abort.abort();
+            })
             .finally(() => {
               checking = false;
             });
         }, 1000);
-        const provider = generationProvider(config);
         let complete = false;
-        for await (const event of provider.stream(request)) {
+        for await (const event of coalesceDeltas(
+          provider.stream(request),
+          signal,
+        )) {
           signal.throwIfAborted();
-          await revalidateEvidence(actor, input.projectId, evidence);
           if (event.type === 'delta') {
-            if (!(await updateRun(actor, id, 'delta', { text: event.text })))
-              throw new Error('CANCELLED');
-            const state = await snapshot(actor, id);
+            const state = await streamState(actor, id, {
+              operation: 'delta',
+              payload: { text: event.text },
+            });
+            signal.throwIfAborted();
             emit(
               'response.delta',
               { text: event.text, provisional: true, runId: id },
@@ -249,6 +268,11 @@ export async function streamRun(
           } else if (event.type === 'error') throw new Error(event.code);
           else {
             if (!event.response.grounded) throw new Error('INVALID_OUTPUT');
+            finalizing = true;
+            if (heartbeat) {
+              clearInterval(heartbeat);
+              heartbeat = undefined;
+            }
             const { usage, grounded } = event.response;
             const actual = costMicros(
               usage.inputTokens,
@@ -264,22 +288,23 @@ export async function streamRun(
               }))
             )
               throw new Error('CANCELLED');
-            for (const citation of grounded.citations)
-              emit(
-                'citation.verified',
-                citation,
-                (await snapshot(actor, id)).version,
-              );
+            // One authoritative final projection revalidates all sources and references.
+            // No final citation/usage event is sent if access changed or completion lost a race.
+            const final = await snapshot(actor, id);
+            signal.throwIfAborted();
+            if (final.state !== 'COMPLETED') throw new Error('INTERRUPTED');
+            for (const citation of final.citations)
+              emit('citation.verified', citation, final.version);
             emit(
               'usage.updated',
               {
-                costMicros: actual,
-                inputTokens: usage.inputTokens,
-                outputTokens: usage.outputTokens,
+                costMicros: final.costMicros,
+                inputTokens: final.inputTokens,
+                outputTokens: final.outputTokens,
               },
-              (await snapshot(actor, id)).version,
+              final.version,
             );
-            await emitSnapshot('run.completed');
+            emit('run.completed', final, final.version);
             complete = true;
           }
         }

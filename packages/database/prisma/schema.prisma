@@ -431,6 +431,7 @@ model AIRun {
  model String @db.VarChar(120)
  prompt String @db.VarChar(6000)
  evidenceJson Json @default("[]") @map("evidence_json")
+ contextJson Json @default("{\"evidence\":[],\"references\":[]}") @map("context_json")
  referencesJson Json @default("[]") @map("references_json")
  answer String @default("")
  citations Json @default("[]")
