@@ -16,6 +16,7 @@ export interface SourceStorage {
   createUploadGrant(key: string): Promise<{ url: string; token: string }>;
   readQuarantined(key: string, maxBytes: number): Promise<Uint8Array | null>;
   removeQuarantined(key: string): Promise<void>;
+  removeAccepted(key: string): Promise<void>;
   accept(quarantineKey: string, acceptedKey: string): Promise<void>;
   signDownload(acceptedKey: string, seconds: number): Promise<string>;
   signQuarantineRead(key: string, seconds: number): Promise<string>;
@@ -41,7 +42,18 @@ export function supabaseSourceStorage(env = process.env): SourceStorage {
   const client = createClient(
     env.NEXT_PUBLIC_SUPABASE_URL!,
     env.ATLAS_STORAGE_SERVICE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (input, init) =>
+          fetch(input, {
+            ...init,
+            signal: init?.signal
+              ? AbortSignal.any([init.signal, AbortSignal.timeout(10000)])
+              : AbortSignal.timeout(10000),
+          }),
+      },
+    },
   );
   const quarantine = () => client.storage.from(QUARANTINE_BUCKET);
   const sources = () => client.storage.from(SOURCE_BUCKET);
@@ -61,7 +73,12 @@ export function supabaseSourceStorage(env = process.env): SourceStorage {
       return new Uint8Array(await data.arrayBuffer());
     },
     async removeQuarantined(key) {
-      await quarantine().remove([key]);
+      const { error } = await quarantine().remove([key]);
+      if (error) unavailable();
+    },
+    async removeAccepted(key) {
+      const { error } = await sources().remove([key]);
+      if (error) unavailable();
     },
     async accept(quarantineKey, acceptedKey) {
       const { error } = await quarantine().copy(quarantineKey, acceptedKey, {

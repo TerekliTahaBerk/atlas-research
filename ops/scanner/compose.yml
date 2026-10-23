@@ -1,0 +1,50 @@
+# Deployment integration only. Apply after approving the host/origin/secrets.
+name: atlas-dev-scanner
+services:
+  broker:
+    build: { context: ., target: broker }
+    environment:
+      ATLAS_SCANNER_ORIGIN: ${ATLAS_SCANNER_ORIGIN:?approved HTTPS Atlas development origin required}
+      ATLAS_SCANNER_PROJECT: hgngonpirctrwbckhbmy
+    secrets: [scanner_secret]
+    networks: [egress, scanning]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    cpus: 0.5
+    pids_limit: 32
+    restart: unless-stopped
+  validator:
+    build: { context: ., target: validator }
+    networks: [scanning]
+    volumes: [signatures:/signatures:ro]
+    tmpfs: ['/tmp:size=64m,mode=1777,noexec,nosuid,nodev']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 3g
+    cpus: 1
+    pids_limit: 32
+    restart: unless-stopped
+  definitions:
+    build: { context: ., target: validator }
+    command: [freshclam, --daemon, --config-file=/etc/clamav/freshclam.conf]
+    networks: [egress]
+    volumes: [signatures:/signatures]
+    tmpfs: ['/tmp:size=16m,mode=1777,noexec,nosuid,nodev']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2g
+    cpus: 0.5
+    pids_limit: 16
+    restart: unless-stopped
+networks:
+  scanning: { internal: true }
+  egress: {}
+volumes:
+  signatures: {}
+secrets:
+  scanner_secret:
+    file: ${ATLAS_SCANNER_SECRET_FILE:?path to approved HMAC secret file required}

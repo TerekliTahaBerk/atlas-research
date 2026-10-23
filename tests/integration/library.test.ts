@@ -23,6 +23,7 @@ import {
 } from '../../apps/web/src/features/library/server/library';
 import {
   claimScanJobs,
+  cleanupScanObjects,
   completeScan,
   createUpload,
   finalizeUpload,
@@ -134,6 +135,9 @@ function memoryStorage(): SourceStorage & { objects: Map<string, Uint8Array> } {
       return objects.get(key) ?? null;
     },
     async removeQuarantined(key) {
+      objects.delete(key);
+    },
+    async removeAccepted(key) {
       objects.delete(key);
     },
     async accept(from, to) {
@@ -693,6 +697,7 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
       await completeScan(
         {
           jobId: job.jobId,
+          attempt: job.attempt,
           verdict: 'ERROR',
           sha256: job.sha256,
           scanner: 'test-protocol',
@@ -710,6 +715,7 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
       completeScan(
         {
           jobId: job.jobId,
+          attempt: again!.attempt,
           verdict: 'CLEAN',
           sha256: 'f'.repeat(64),
           scanner: 'test-protocol',
@@ -746,6 +752,7 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
       await completeScan(
         {
           jobId: job!.jobId,
+          attempt: job!.attempt,
           verdict: 'CLEAN',
           sha256: sha(bytes),
           scanner: 'test-protocol',
@@ -772,6 +779,91 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
     await expect(
       admin.$executeRaw`DELETE FROM source_versions WHERE id=${sourceVersionId}::uuid`,
     ).rejects.toThrow();
+  });
+  it('fences stale attempts, concurrent completions and cleans losing copies after failure', async () => {
+    const bytes = pdf('racing scans');
+    const raceStorage = memoryStorage();
+    const intent = await createUpload(
+      owner,
+      project,
+      {
+        fileName: 'race.pdf',
+        mediaType: 'application/pdf',
+        byteSize: bytes.length,
+        sha256: sha(bytes),
+        projectPaperId: paperId,
+        idempotencyKey: randomUUID(),
+      },
+      randomUUID(),
+      raceStorage,
+    );
+    const source = await admin.sourceVersion.findUniqueOrThrow({
+      where: { id: intent.sourceVersionId },
+    });
+    raceStorage.objects.set(source.quarantineKey, bytes);
+    await finalizeUpload(owner, intent.id, randomUUID(), raceStorage);
+    const [old] = await claimScanJobs(
+      { max: 1, leaseSeconds: 30 },
+      raceStorage,
+    );
+    await admin.$executeRaw`UPDATE ingestion_jobs SET locked_until=now()-interval '1 second' WHERE id=${old!.jobId}::uuid`;
+    const [current] = await claimScanJobs(
+      { max: 1, leaseSeconds: 60 },
+      raceStorage,
+    );
+    const verdict = {
+      jobId: old!.jobId,
+      attempt: old!.attempt,
+      verdict: 'CLEAN' as const,
+      sha256: sha(bytes),
+      scanner: 'test-race',
+    };
+    expect(await failure(completeScan(verdict, raceStorage))).toBe('CONFLICT');
+    // Both copies finish before either database verdict; exactly one wins.
+    const copy = raceStorage.accept;
+    let copies = 0;
+    let release: () => void = () => {};
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    raceStorage.accept = async (from, to) => {
+      await copy(from, to);
+      if (++copies === 2) release();
+      await barrier;
+    };
+    const results = await Promise.allSettled([
+      completeScan({ ...verdict, attempt: current!.attempt }, raceStorage),
+      completeScan({ ...verdict, attempt: current!.attempt }, raceStorage),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
+    const ready = await admin.sourceVersion.findUniqueOrThrow({
+      where: { id: intent.sourceVersionId },
+    });
+    expect(ready.state).toBe('READY');
+    expect(
+      [...raceStorage.objects.keys()].filter((k) => k.startsWith('accepted/')),
+    ).toHaveLength(2);
+    await admin.$executeRaw`UPDATE scan_object_cleanup SET created_at=now()-interval '2 hours'`;
+    const remove = raceStorage.removeAccepted;
+    raceStorage.removeAccepted = async () => {
+      throw new Error('storage unavailable');
+    };
+    await expect(cleanupScanObjects(raceStorage)).rejects.toThrow(
+      'storage unavailable',
+    );
+    expect(await admin.scanObjectCleanup.count()).toBeGreaterThan(0);
+    raceStorage.removeAccepted = remove;
+    await cleanupScanObjects(raceStorage);
+    expect(
+      [...raceStorage.objects.keys()].filter((k) => k.startsWith('accepted/')),
+    ).toEqual([ready.objectKey]);
+    expect(await admin.scanObjectCleanup.count()).toBe(0);
+    expect(
+      await failure(
+        completeScan({ ...verdict, attempt: current!.attempt }, raceStorage),
+      ),
+    ).toBe('CONFLICT');
   });
   it('anchors annotations to the version with author-only private notes', async () => {
     const shared = await research(editor, {
@@ -881,6 +973,27 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
     ).toBe('CONFLICT');
   });
   it('revokes library, annotation and file access with the project membership', async () => {
+    const bytes = pdf('revoked during scanning');
+    const pending = await createUpload(
+      editor,
+      project,
+      {
+        fileName: 'revoked.pdf',
+        mediaType: 'application/pdf',
+        byteSize: bytes.length,
+        sha256: sha(bytes),
+        projectPaperId: paperId,
+        idempotencyKey: randomUUID(),
+      },
+      randomUUID(),
+      storage,
+    );
+    const pendingSource = await admin.sourceVersion.findUniqueOrThrow({
+      where: { id: pending.sourceVersionId },
+    });
+    storage.objects.set(pendingSource.quarantineKey, bytes);
+    await finalizeUpload(editor, pending.id, randomUUID(), storage);
+    const [leased] = await claimScanJobs({ max: 1, leaseSeconds: 60 }, storage);
     const member = await admin.projectMembership.findUniqueOrThrow({
       where: {
         projectId_profileId: { projectId: project, profileId: editor.id },
@@ -903,6 +1016,30 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
       'NOT_FOUND',
     );
     expect(await failure(save(editor, project))).toBe('NOT_FOUND');
+    expect(
+      await failure(
+        completeScan(
+          {
+            jobId: leased!.jobId,
+            attempt: leased!.attempt,
+            verdict: 'CLEAN',
+            sha256: sha(bytes),
+            scanner: 'revocation-test',
+          },
+          storage,
+        ),
+      ),
+    ).toBe('CONFLICT');
+    expect(await claimScanJobs({ max: 1, leaseSeconds: 60 }, storage)).toEqual(
+      [],
+    );
+    expect(
+      (
+        await admin.sourceVersion.findUniqueOrThrow({
+          where: { id: pending.sourceVersionId },
+        })
+      ).state,
+    ).toBe('FAILED');
   });
   it('records audit events for research mutations without content', async () => {
     const events = await admin.auditEvent.findMany({

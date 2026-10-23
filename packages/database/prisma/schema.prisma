@@ -393,3 +393,12 @@ model ResearchCommandKey {
  @@id([actorId, idempotencyKey])
  @@map("research_command_keys")
 }
+
+// Internal durable cleanup reservations; no runtime table access.
+model ScanObjectCleanup {
+ attempt Int
+ objectKey String @id @map("object_key")
+ jobId String @map("job_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@map("scan_object_cleanup")
+}
