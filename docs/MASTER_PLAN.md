@@ -1,5 +1,9 @@
 # Atlas master plan
 
+## Phase 03 delivery state
+
+Phase 03 local implementation is authorized independently of pending hosted Phase 02 activation. Official providers, isolated extraction/outbox, scoped hybrid retrieval, exact citations, persisted streaming conversations, quotas and the shared UI are implemented with deterministic verification. Real-provider scientific evaluation, hosted security/recovery/migrations and worker deployment remain release gates. See the [Phase 03 report](phases/PHASE_03_IMPLEMENTATION_REPORT.md) and [activation plan](phases/PHASE_03_ACTIVATION_PLAN.md). No Phase 04/05 write service is enabled.
+
 ## Phase 02 delivery state
 
 Research discovery, project libraries, private PDF storage, the PDF reader, anchored annotations and citation export are implemented on the Phase 02 branch with disposable-environment evidence; see the [implementation report](phases/PHASE_02_IMPLEMENTATION_REPORT.md). Live provider access, hosted migration/Storage activation and a production malware scanner remain external gates, so Phase 02 is not declared complete.

@@ -1,5 +1,9 @@
 # System architecture
 
+## Phase 03 implemented boundary
+
+`@atlas/ai` now has pure contracts/chunking/verification and a separate server provider entry point using official OpenAI and Anthropic SDKs. `features/ai/server` composes actor-scoped repositories, audited read tools, model configuration, budget reservations and POST SSE. `ops/extractor` follows the scanner broker/offline-parser isolation model with a separate database worker role. Existing Atlas placements share one live hook. [AI architecture](ai/AI_ARCHITECTURE.md) and [ADR 0016](decisions/0016-ai-research-engine.md) supersede earlier descriptions of AI as contracts-only; hosted activation is still gated.
+
 ## Phase 02 implemented boundary
 
 `features/discovery/server` holds provider adapters (OpenAlex, Semantic Scholar), the bounded HTTP client and orchestration; `features/library/server` holds library reads, commands, Storage signing, uploads/finalization, the scanner boundary and export routing. Presentation lives in `features/research/live-research.tsx`, `features/library/live-library.tsx` and `features/reader/live-reader.tsx`, which use typed client adapters (`features/library/client.ts`). Core owns research contracts and citation formatting; `@atlas/ai` owns the typed `ResearchReference` context description. PDF.js loads on demand in the reader only. Asynchronous scanning uses the transactional `ingestion_jobs` outbox and an external worker protocol (no Inngest yet, per ADR 0010). See [ADR 0014](decisions/0014-research-library-boundary.md).

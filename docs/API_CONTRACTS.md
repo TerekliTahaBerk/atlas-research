@@ -1,5 +1,11 @@
 # API contracts and service boundaries
 
+## Phase 03 implemented AI API
+
+All paths below are under `/api/v1`, with verified identity, existing rate/origin/body protections and private/no-store responses. GET: `ai/conversations?projectId=`, `ai/conversations/:id?projectId=` (history), `ai/runs/:id?projectId=` (authorized recovery snapshot), `ai/mentions?projectId=&q=`, `ai/status?projectId=`, `ai/configuration?projectId=` and `ai/usage?projectId=`. POST: `ai/conversations` (strict create/rename/archive/delete with project, id and optimistic version), `ai/runs` (project, optional conversation, UUID idempotency key, text, references, consent:true), `ai/runs/:id/cancel`, `ai/index` (sourceVersionId, consent:true), `ai/references/resolve` and `ai/citation` (runId, citation index). Unknown extra path segments fail closed.
+
+Run submission streams typed SSE, while ordinary failures/replays use the standard envelope. Recovery uses snapshots/history; the older illustrative detached GET events endpoint remains unimplemented. Internal `POST internal/extraction/{claim,complete}` uses bounded action-specific HMAC authentication and the separate worker role. See [streaming](ai/STREAMING_AND_CONVERSATIONS.md), [context](ai/CONTEXT_AND_MENTIONS.md) and [costs](ai/USAGE_AND_COSTS.md). This section supersedes earlier statements that AI endpoints or quotas do not exist; hosted activation remains pending.
+
 ## Phase 02 implemented interfaces
 
 Research mutations use the existing `POST /api/v1/commands`: `paper.save` (provider identity only; server re-fetches metadata), `paper.create` (private title), `paper.update` (reading status), `paper.archive`, `collection.create/update/archive`, `collection.paper.add/remove`, `tag.create`, `paper.tag.add/remove`, `annotation.create/update/delete` (`researchCommand` in `packages/core/src/research.ts`). Creates require UUID `idempotencyKey` (actor-scoped, payload-hashed: replay returns the original result, changed payloads return 409); edits require `expectedVersion`.

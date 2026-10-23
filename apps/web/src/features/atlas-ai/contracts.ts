@@ -336,6 +336,11 @@ export interface UserMessage {
   text: string;
 }
 export interface AssistantMessage {
+  live?: boolean;
+  runId?: string;
+  liveCitations?: import('@atlas/ai').VerifiedCitation[];
+  limitations?: string[];
+  error?: string | undefined;
   id: string;
   role: 'assistant';
   phase: 'think' | 'stream' | 'done' | 'error';

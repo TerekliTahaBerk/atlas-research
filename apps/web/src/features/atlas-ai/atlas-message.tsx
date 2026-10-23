@@ -18,6 +18,7 @@ import { SampleTag } from '@/components/atlas/chips';
 import { useToast } from '@/components/atlas/toast';
 import type { AssistantMessage, AtlasMessage, ReplyPart } from './contracts';
 import { useAtlas } from './atlas-provider';
+import { LiveMessage } from './live-message';
 import { CitePill, SourcePill } from './citations';
 /** Visible slice of the answer while the sample "streams". */
 function visibleParts(m: AssistantMessage): ReplyPart[] {
@@ -56,7 +57,11 @@ export function AtlasMessageView({
         </div>
       </div>
     );
-  return <AssistantBlock message={message} last={last} />;
+  return message.live ? (
+    <LiveMessage message={message} />
+  ) : (
+    <AssistantBlock message={message} last={last} />
+  );
 }
 function AssistantBlock({
   message: m,

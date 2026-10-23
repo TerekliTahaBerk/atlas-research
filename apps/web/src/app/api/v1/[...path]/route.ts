@@ -1,3 +1,6 @@
+import { extractionResponse } from '@/features/ai/server/ingestion';
+import { aiGet, aiPost } from '@/features/ai/server/routes';
+import { prepareRun, streamRun } from '@/features/ai/server/engine';
 import { cookies } from 'next/headers';
 import { readNavigation } from '@/features/platform/navigation';
 import { z } from 'zod';
@@ -39,7 +42,22 @@ export async function POST(
 ) {
   const segments = (await context.params).path;
   // Isolated scanner calls are HMAC-authenticated server-to-server requests.
-  if (segments[0] === 'internal') return scannerResponse(segments, request);
+  if (segments[0] === 'internal')
+    return segments[1] === 'extraction'
+      ? extractionResponse(segments, request)
+      : scannerResponse(segments, request);
+  if (segments.join('/') === 'ai/runs') {
+    let stream: Response | undefined;
+    const failure = await respond(async () => {
+      checkOrigin(request);
+      const actor = await verifyActor();
+      await rateLimit('ai:run', actor.id, 12);
+      const prepared = await prepareRun(actor, await readJson(request));
+      stream = await streamRun(actor, prepared, request.signal);
+      return null;
+    });
+    return stream ?? failure;
+  }
   return respond(async (requestId) => {
     checkOrigin(request);
     const path = segments.join('/');
@@ -88,6 +106,7 @@ export async function POST(
       );
       return { selected: true };
     }
+    if (segments[0] === 'ai') return aiPost(actor, segments, request);
     if (path !== 'commands') {
       const handled = await researchPost(actor, segments, request, requestId);
       if (handled !== undefined) return handled;
@@ -166,6 +185,7 @@ export async function GET(
       return members(actor, scope, z.uuid().parse(path[1]), listCursor);
     }
     if (path.join('/') === 'invitations') return invitations(actor, listCursor);
+    if (path[0] === 'ai') return aiGet(actor, path, url);
     const research = await researchGet(actor, path, url, request.signal);
     if (research !== undefined) return research;
     throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');

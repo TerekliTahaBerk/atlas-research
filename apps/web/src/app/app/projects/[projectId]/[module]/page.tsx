@@ -1,3 +1,4 @@
+import { AtlasWorkspace } from '@/features/atlas-ai/atlas-workspace';
 import WorkspaceLoading from '@/features/shell/workspace-loading';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
@@ -46,6 +47,12 @@ export default async function Page({
   // Phase 02 modules use live research services for readable projects.
   const research =
     !project.archived && project.capabilities.includes('project.read');
+  if (research && selected.slug === 'ai')
+    return (
+      <LiveFrame state={state}>
+        <AtlasWorkspace />
+      </LiveFrame>
+    );
   if (research && selected.slug === 'research')
     return (
       <LiveFrame state={state}>

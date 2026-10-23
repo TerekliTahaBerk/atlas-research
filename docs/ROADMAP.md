@@ -1,5 +1,9 @@
 # Roadmap
 
+## Phase 03 implementation update
+
+Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are not implemented. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).
+
 Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundation and explicit local interaction demonstrations. Phases 01–07 are planned with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
 
 0.5. UI/UX master foundation: semantic V2 themes, responsive navigation, contextual AI presentation and pickers, coherent module screens, auth/onboarding previews, visual/interaction QA. No backend services. See [delivery plan](phases/PHASE_00_5.md).

@@ -2,7 +2,7 @@
 name: atlas-phase01-auth-test
 services:
   db:
-    image: postgres:17
+    image: pgvector/pgvector:0.8.7-pg17
     environment:
       POSTGRES_USER: atlas_test_migrator
       POSTGRES_PASSWORD: atlas_local_test_only
