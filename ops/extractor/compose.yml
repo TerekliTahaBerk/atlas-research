@@ -1,0 +1,34 @@
+# Activation requires approved Atlas development host, recovery proof and secrets.
+name: atlas-dev-extractor
+services:
+  broker:
+    build: { context: .., dockerfile: extractor/Dockerfile, target: broker }
+    environment:
+      ATLAS_EXTRACTION_ORIGIN: ${ATLAS_EXTRACTION_ORIGIN:?approved Atlas HTTPS origin required}
+      ATLAS_EXTRACTION_PROJECT: hgngonpirctrwbckhbmy
+    secrets: [extraction_secret]
+    networks: [egress, extraction]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    cpus: 0.5
+    pids_limit: 32
+    restart: unless-stopped
+  extractor:
+    build: { context: .., dockerfile: extractor/Dockerfile, target: extractor }
+    networks: [extraction]
+    tmpfs: ['/tmp:size=64m,mode=1777,noexec,nosuid,nodev']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 640m
+    cpus: 1
+    pids_limit: 16
+    restart: unless-stopped
+networks:
+  extraction: { internal: true }
+  egress: {}
+secrets:
+  extraction_secret:
+    file: ${ATLAS_EXTRACTION_SECRET_FILE:?approved dedicated HMAC secret file required}
