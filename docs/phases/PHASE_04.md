@@ -59,6 +59,10 @@ Editor schema/XSS fixtures; version conflict recovery; assignment revocation; te
 - [x] Search and snippets exclude revoked/private content (integration search ACL tests).
 - [x] Keyboard users can complete document and task workflows (Journey A/D keyboard steps; see report for limits).
 
+## 12.1 Post-merge hardening
+
+Phase 04.1 adds direct archive-list restoration using the existing authorized command, shared progressive task pagination with race isolation, and autosave completion cleanup after navigation. The [implementation report](PHASE_04_IMPLEMENTATION_REPORT.md) records executed tests, CI evidence, known offset-pagination limits, and the separate hosted activation blocker. No Phase 05 behavior is introduced.
+
 ## 13. Definition of Done
 
 Each acceptance criterion has recorded evidence; applicable unit/integration/E2E and quality checks pass; migration SQL is reviewed against an identified environment; docs/API/security/ADRs reflect behavior; no unresolved critical defects; actual NOT RUN checks and external blockers are explicit. No later-phase behavior is implied by completion.
