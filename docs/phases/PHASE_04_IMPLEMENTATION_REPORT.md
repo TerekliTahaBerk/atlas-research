@@ -99,7 +99,7 @@ Environment: macOS, Node 24.21.0, pnpm 11.25.0, pinned Playwright 1.64.1 Chromiu
 | Extractor Python suite                            | PASS    | **6/6** tests.                                                                                                                                                                                                                                               |
 | Hosted workflow / real paid AI / deployed scanner | NOT RUN | Separate activation and provider approvals remain required.                                                                                                                                                                                                  |
 
-Six existing preview snapshot comparisons must use the pinned browser; no visual snapshot was regenerated. Live screenshot evidence contains only synthetic fixtures and resides in the system temporary directory, outside Git. Desktop/mobile task screenshots demonstrate access beyond row 300; the archive screenshot shows the explicit listing action. No Auth screenshots, cookie/storage-state export or authenticated traces were retained.
+Six existing preview snapshot comparisons must use the pinned browser; no visual snapshot was regenerated. Live screenshot evidence contains only synthetic fixtures and resides in the system temporary directory, outside Git. Desktop/mobile task screenshots demonstrate access beyond row 300; the archive screenshot shows the explicit listing action. No Auth screenshots, cookie/storage-state export or authenticated traces were retained. Disposable local services were removed after testing.
 
 ## GitHub Actions evidence
 
@@ -109,8 +109,9 @@ Read the final job results rather than relying on the earlier in-progress observ
 | ----------------------------------------------------------------------------------------- | ---------------------------- | ------- | ------------- |
 | [40027687291](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/40027687291) | Phase 04 PR #10, `ec414b9`   | PASS    | PASS          |
 | [40028609337](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/40028609337) | Post-merge master, `c086013` | PASS    | PASS          |
+| [40084999978](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/40084999978) | Phase 04.1 PR #11, `7b87337` | PASS    | PASS          |
 
-Both runs finished successfully. No newer master commit existed at preflight. Hardening PR CI is **NOT RUN** until the branch is pushed and the PR workflow completes; it must be verified independently before declaring final code readiness. This paragraph is updated with observed evidence before handoff.
+All three observed runs finished successfully. No newer master commit existed at preflight. [Hardening PR #11](https://github.com/TerekliTahaBerk/atlas-research/pull/11) passed both jobs on `7b873370902c422f5196a9c5c21382be9aa5cced`; its application, test and SQL files match the implementation commit above. This evidence update changes documentation only. The current [PR checks](https://github.com/TerekliTahaBerk/atlas-research/pull/11/checks) must also remain green before merge; no automatic merge is enabled.
 
 ## Hosted security and release gates
 
@@ -129,4 +130,4 @@ Exact ten-migration ordering and remaining gates are in the [updated Phase 04 ac
 - Two tabs share one latest local draft per actor/project/document; browser storage can be unavailable and drafts expire after seven days. Existing account/sign-out purge remains deliberate. No CRDT/realtime co-editing is introduced.
 - Scientific validity of real-model output, hosted recovery, hosted HTTP denial, scanner/extractor deployment, non-Chromium browsers and human screen-reader testing remain unverified release work.
 - Phase 05 can plan against stable artifact IDs, revision retention, same-project typed links and live capability checks. Channels/messages require their own reviewed persistence, membership, private Realtime, reconnect/backfill and notification boundaries; links never grant access. No Phase 05 code has been started.
-- Local code verification is PASS. Final PR readiness still requires successful hardening CI as recorded above. Hosted operation remains BLOCKED even after code checks pass; merging code does not authorize hosted activation or deployment.
+- Local code verification is PASS. Hardening CI is PASS on the source-equivalent commit recorded above; review the current PR checks before merge. Hosted operation remains BLOCKED even after code checks pass; merging code does not authorize hosted activation or deployment.
