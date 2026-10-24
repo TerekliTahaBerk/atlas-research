@@ -61,6 +61,7 @@ const editor = actor();
 const viewer = actor();
 const outsider = actor(); // other tenant
 const wsAdmin = actor(); // workspace admin without a project grant
+const revokedRestorer = actor();
 const leaver = actor(); // editor whose access is revoked mid-suite
 const failure = (work: Promise<unknown>) =>
   work.then(
@@ -120,7 +121,15 @@ beforeAll(async () => {
   vi.stubEnv('ATLAS_ORIGIN', 'http://127.0.0.1:3102');
   vi.stubEnv('ATLAS_DEV_INVITATION_LINKS', 'true');
   vi.stubEnv('NODE_ENV', 'development');
-  for (const who of [owner, editor, viewer, outsider, wsAdmin, leaver])
+  for (const who of [
+    owner,
+    editor,
+    viewer,
+    outsider,
+    wsAdmin,
+    leaver,
+    revokedRestorer,
+  ])
     await platform(who, {
       command: 'bootstrap',
       displayName: `Tester ${who.id.slice(0, 4)}`,
@@ -192,6 +201,7 @@ beforeAll(async () => {
   await grant(editor, 'project', project, 'EDITOR');
   await grant(viewer, 'project', project, 'VIEWER');
   await grant(leaver, 'project', project, 'EDITOR');
+  await grant(revokedRestorer, 'project', project, 'EDITOR');
   await grant(wsAdmin, 'workspace', workspaceId, 'ADMIN');
   paper = await paperOf(
     owner,
@@ -737,6 +747,37 @@ describe.sequential('documents on real non-owner PostgreSQL', () => {
       expectedVersion: current.version,
     });
     expect(await failure(getDocument(viewer, copy.id))).toBe('NOT_FOUND');
+    expect(await failure(getDocument(owner, copy.id))).toBe('NOT_FOUND');
+    expect(await failure(listVersions(owner, copy.id, undefined))).toBe(
+      'NOT_FOUND',
+    );
+    await platform(owner, {
+      command: 'membership.remove',
+      scope: 'project',
+      scopeId: project,
+      profileId: revokedRestorer.id,
+      expectedVersion: await memberVersion(project, revokedRestorer.id),
+    });
+    for (const who of [viewer, outsider, wsAdmin, revokedRestorer]) {
+      expect(
+        await failure(
+          run(who, {
+            command: 'document.restore',
+            id: copy.id,
+            expectedVersion: current.version + 1,
+          }),
+        ),
+      ).toBe('NOT_FOUND');
+    }
+    expect(
+      await failure(
+        run(owner, {
+          command: 'document.restore',
+          id: copy.id,
+          expectedVersion: current.version,
+        }),
+      ),
+    ).toBe('CONFLICT');
     expect(await failure(exportDocument(owner, copy.id, 'text'))).toBe(
       'NOT_FOUND',
     );
@@ -761,7 +802,17 @@ describe.sequential('documents on real non-owner PostgreSQL', () => {
       id: copy.id,
       expectedVersion: current.version + 1,
     });
-    expect((await getDocument(viewer, copy.id)).archived).toBe(false);
+    const restored = await getDocument(viewer, copy.id);
+    expect(restored.archived).toBe(false);
+    expect(restored.content).toEqual(current.content);
+    expect(restored.revision).toBe(current.revision);
+    expect(restored.versionId).toBe(current.versionId);
+    expect(restored.references).toEqual(current.references);
+    expect(
+      (await listVersions(owner, copy.id, undefined)).items.map(
+        (v) => v.revision,
+      ),
+    ).toContain(current.revision);
   });
 });
 
@@ -1208,16 +1259,32 @@ describe.sequential('typed links, search, graph and AI proposals', () => {
         } as unknown as ArtifactCommandInput),
       ),
     ).toBe('VALIDATION_ERROR');
+    const insertRequest = randomUUID();
     const applied = await run(editor, {
       command: 'ai.document-proposal.apply',
       id: docId,
       runId,
       expectedRevision: before,
       proposalHash: preview.proposalHash,
-      clientRequestId: randomUUID(),
+      clientRequestId: insertRequest,
       approved: true,
     });
     expect(applied.revision).toBe(before + 1);
+    expect(
+      await failure(
+        run(editor, {
+          command: 'ai.document-proposal.apply',
+          id: docId,
+          runId,
+          expectedRevision: before,
+          proposalHash: preview.proposalHash,
+          clientRequestId: insertRequest,
+          approved: true,
+        }),
+      ),
+    ).toBe('CONFLICT');
+    expect((await getDocument(editor, docId)).revision).toBe(before + 1);
+
     expect((await getVersion(editor, docId, before + 1)).source).toBe(
       'AI_PROPOSAL',
     );
@@ -1263,6 +1330,7 @@ describe.sequential('typed links, search, graph and AI proposals', () => {
         }),
       ),
     ).toBe('VALIDATION_ERROR');
+    const approvalKey = randomUUID();
     const created = await run(editor, {
       command: 'ai.task-proposal.apply',
       projectId: project,
@@ -1270,9 +1338,20 @@ describe.sequential('typed links, search, graph and AI proposals', () => {
       proposalHash: plan.proposalHash,
       selected: [0, 2],
       approved: true,
-      idempotencyKey: randomUUID(),
+      idempotencyKey: approvalKey,
     });
     expect(created.taskIds).toHaveLength(2);
+    const replay = await run(editor, {
+      command: 'ai.task-proposal.apply',
+      projectId: project,
+      runId,
+      proposalHash: plan.proposalHash,
+      selected: [0, 2],
+      approved: true,
+      idempotencyKey: approvalKey,
+    });
+    expect(replay.taskIds).toEqual(created.taskIds);
+
     const detail = await getTask(editor, created.taskIds![0]!);
     expect(detail.task.title).toBe('Prepare splits');
     expect(detail.links[0]).toMatchObject({
@@ -1344,6 +1423,95 @@ describe.sequential('performance boundaries', () => {
     );
     expect(board.result.items).toHaveLength(300);
     expect(board.result.nextCursor).not.toBeNull();
+    const next = await listTasks(owner, scale, {
+      cursor: board.result.nextCursor!,
+    });
+    expect(next.items).toHaveLength(200);
+    expect(next.nextCursor).toBeNull();
+    const all = [...board.result.items, ...next.items];
+    expect(new Set(all.map((t) => t.id)).size).toBe(500);
+    expect(all.map((t) => t.number)).toEqual(
+      Array.from({ length: 500 }, (_, i) => i + 1),
+    );
+    const later = next.items[199]!;
+    await run(owner, {
+      command: 'task.transition',
+      id: later.id,
+      expectedVersion: later.version,
+      status: 'IN_PROGRESS',
+    });
+    await run(owner, {
+      command: 'task.assign',
+      id: later.id,
+      expectedVersion: later.version + 1,
+      assigneeId: owner.id,
+    });
+    expect((await getTask(owner, later.id)).task).toMatchObject({
+      status: 'IN_PROGRESS',
+      assignee: { id: owner.id },
+    });
+    const milestone = await run(owner, {
+      command: 'milestone.create',
+      projectId: scale,
+      title: 'Scale milestone',
+      idempotencyKey: randomUUID(),
+    });
+    await admin.$executeRaw`UPDATE tasks SET priority='HIGH', milestone_id=${milestone.id}::uuid, assignee_id=${owner.id}::uuid WHERE project_id=${scale}::uuid`;
+    const filteredQuery = {
+      priority: 'HIGH',
+      assignee: 'me',
+      milestone: milestone.id,
+    };
+    const filtered = await listTasks(owner, scale, filteredQuery);
+    expect(filtered.items).toHaveLength(300);
+    expect(
+      (
+        await listTasks(owner, scale, {
+          ...filteredQuery,
+          cursor: filtered.nextCursor!,
+        })
+      ).items,
+    ).toHaveLength(200);
+    expect(
+      await failure(
+        listTasks(owner, scale, {
+          priority: 'LOW',
+          cursor: filtered.nextCursor!,
+        }),
+      ),
+    ).toBe('VALIDATION_ERROR');
+    expect(
+      await failure(
+        listTasks(outsider, scale, { cursor: board.result.nextCursor! }),
+      ),
+    ).toBe('VALIDATION_ERROR');
+    expect(
+      await failure(
+        listTasks(owner, project, { cursor: board.result.nextCursor! }),
+      ),
+    ).toBe('VALIDATION_ERROR');
+    expect(await failure(listTasks(outsider, scale, {}))).toBe('NOT_FOUND');
+    // Recheck actual membership on every page, even with a valid signed cursor.
+    await admin.projectMembership.delete({
+      where: { projectId_profileId: { projectId: scale, profileId: owner.id } },
+    });
+    expect(
+      await failure(
+        listTasks(owner, scale, { cursor: board.result.nextCursor! }),
+      ),
+    ).toBe('NOT_FOUND');
+    await admin.projectMembership.create({
+      data: {
+        projectId: scale,
+        profileId: owner.id,
+        workspaceId,
+        organizationId: (
+          await admin.project.findUniqueOrThrow({ where: { id: scale } })
+        ).organizationId,
+        role: 'OWNER',
+      },
+    });
+
     expect(search.result.items).toHaveLength(20);
     expect(graph.result.nodes).toHaveLength(300);
     expect(graph.result.truncated).toBe(true);

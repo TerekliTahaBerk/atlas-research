@@ -6,6 +6,7 @@
 - States: Unsaved changes, Saving…, Saved (only after the server confirms the commit), Offline, Failed, Conflict, plus a recoverable-draft banner.
 - Each distinct content attempt gets a `clientRequestId`; a retry of the same content reuses it, so a lost response never creates a duplicate revision. Network/429/500 failures retry with bounded backoff (max ~64 s) and on the browser `online` event.
 - `CONFLICT` stops autosave. The user keeps their editor content and chooses: compare revisions, **Save mine as a new revision** (explicitly saves on top; the other revision stays in history) or **Discard mine and load latest**. Nothing is overwritten silently.
+- Unmount cancels timers and invalidates in-flight completion callbacks: an old document cannot schedule another save/retry after navigation. The document subtree remounts per actor/project/document, retaining unsaved drafts until recovery (or the existing account/sign-out purge). A request already dispatched may still commit; reopening reconciles it with the server.
 - `beforeunload` warns while unsaved content exists. An approved Atlas proposal reloads an open document only when it has no unsaved edits.
 
 Local draft store (`features/documents/drafts.ts`):

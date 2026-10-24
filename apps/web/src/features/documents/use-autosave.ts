@@ -56,6 +56,7 @@ export function useAutosave({
     conflict: false,
   });
   const onSavedRef = useRef(onSaved);
+  const lifetime = useRef({ active: false });
   useEffect(() => {
     onSavedRef.current = onSaved;
   });
@@ -63,8 +64,9 @@ export function useAutosave({
   const saveRef = useRef<() => Promise<void>>(async () => {});
   const save = useCallback(async (): Promise<void> => {
     const s = state.current;
+    const pending = lifetime.current;
     clearTimeout(s.timer);
-    if (!enabled || s.conflict) return;
+    if (!pending.active || !enabled || s.conflict) return;
     if (s.inflight) return;
     const body = s.latest;
     if (body === s.saved) {
@@ -85,6 +87,7 @@ export function useAutosave({
         content: JSON.parse(body) as unknown,
       });
       s.inflight = false;
+      if (!pending.active) return;
       s.revision = result.revision ?? s.revision;
       s.saved = body;
       s.attempt = null;
@@ -105,6 +108,7 @@ export function useAutosave({
       }
     } catch (e) {
       s.inflight = false;
+      if (!pending.active) return;
       const code = e instanceof ApiError ? e.code : 'INTERNAL_ERROR';
       setError(e instanceof Error ? e.message : 'Unable to save.');
       if (code === 'CONFLICT') {
@@ -183,6 +187,8 @@ export function useAutosave({
   }, []);
 
   useEffect(() => {
+    const pending = { active: true };
+    lifetime.current = pending;
     const online = () => {
       if (state.current.latest !== state.current.saved) void save();
     };
@@ -193,6 +199,7 @@ export function useAutosave({
     window.addEventListener('beforeunload', leave);
     const s = state.current;
     return () => {
+      pending.active = false;
       window.removeEventListener('online', online);
       window.removeEventListener('beforeunload', leave);
       clearTimeout(s.timer);

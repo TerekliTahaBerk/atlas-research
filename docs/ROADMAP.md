@@ -2,11 +2,11 @@
 
 ## Phase 04 implementation update
 
-Phase 04 code and local verification are complete (documents, versions, tasks, links, search, AI proposals). Hosted activation remains gated; Phase 05 (communication) can build on stable artifact IDs and `mentioned_profile_ids`.
+Phase 04 implementation and the Phase 04.1 hardening pass cover documents, versions, tasks, links, search and AI proposals, including archive-list restoration and progressive Board/List pagination. Actual verification and remaining gates are recorded in the [Phase 04 implementation report](phases/PHASE_04_IMPLEMENTATION_REPORT.md). Hosted activation remains blocked; Phase 05 planning can use stable artifact IDs and `mentioned_profile_ids` after reviewing that evidence. Phase 05 implementation is not part of this pass.
 
 ## Phase 03 implementation update
 
-Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are not implemented. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).
+Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are documented in the current Phase 04 report. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).
 
 Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundation and explicit local interaction demonstrations. Phases 01–07 are planned with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
 
