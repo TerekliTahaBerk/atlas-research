@@ -86,10 +86,12 @@ const message = (e: unknown, fallback: string) =>
 /** Live Documents (Phase 04): real project documents in the approved design. */
 export function LiveDocuments({ project }: { project: ProjectDto }) {
   const params = useSearchParams();
+  const platform = usePlatform();
+  const scope = `${platform.profile?.id ?? ''}:${project.id}`;
   const id = params.get('doc');
   if (id && /^[0-9a-f-]{36}$/i.test(id))
-    return <LiveDocument key={id} project={project} id={id} />;
-  return <DocumentIndex project={project} />;
+    return <LiveDocument key={`${scope}:${id}`} project={project} id={id} />;
+  return <DocumentIndex key={scope} project={project} />;
 }
 
 function DocumentIndex({ project }: { project: ProjectDto }) {
@@ -105,7 +107,14 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
     error: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
-  const key = String(archived);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const restorePending = useRef(false);
+  const [notice, setNotice] = useState('');
+  const [restored, setRestored] = useState<DocumentSummaryDto | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [pagingKey, setPagingKey] = useState<string | null>(null);
+  const request = useRef({ active: false, paging: false });
+  const key = `${archived}:${refresh}`;
   useEffect(() => {
     setContext([
       {
@@ -117,16 +126,17 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
     ]);
   }, [project.id, project.name, setContext]);
   useEffect(() => {
-    let alive = true;
+    const currentRequest = { active: true, paging: false };
+    request.current = currentRequest;
     fetchDocuments(project.id, archived)
       .then(
         (p) =>
-          alive &&
+          currentRequest.active &&
           setPage({ key, items: p.items, next: p.nextCursor, error: '' }),
       )
       .catch(
         (e: unknown) =>
-          alive &&
+          currentRequest.active &&
           setPage({
             key,
             items: [],
@@ -135,10 +145,74 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
           }),
       );
     return () => {
-      alive = false;
+      currentRequest.active = false;
     };
   }, [archived, key, project.id]);
   const current = page?.key === key ? page : null;
+  async function restore(document: DocumentSummaryDto) {
+    if (restorePending.current) return;
+    restorePending.current = true;
+    setRestoring(document.id);
+    setNotice('');
+    const pending = request.current;
+    try {
+      await artifactCommand({
+        command: 'document.restore',
+        id: document.id,
+        expectedVersion: document.version,
+      });
+      if (!pending.active) return;
+      setRestored(document);
+      setNotice(`Restored “${document.title}”.`);
+      flash(`Restored “${document.title}”.`, 'done');
+      setArchived(false);
+      setRefresh((n) => n + 1);
+    } catch (e) {
+      if (!pending.active) return;
+      setNotice(
+        e instanceof ApiError && e.code === 'CONFLICT'
+          ? 'The document changed. The list has been refreshed; review it and try again.'
+          : e instanceof ApiError && e.code === 'NETWORK'
+            ? 'Restore could not be confirmed. Check Active and Archived before retrying.'
+            : message(e, 'The document could not be restored.'),
+      );
+      setRefresh((n) => n + 1);
+    } finally {
+      restorePending.current = false;
+      setRestoring(null);
+    }
+  }
+  async function loadMore() {
+    const pending = request.current;
+    if (!current?.next || pending.paging) return;
+    pending.paging = true;
+    setPagingKey(key);
+    try {
+      const next = await fetchDocuments(project.id, archived, current.next);
+      if (pending.active)
+        setPage((previous) =>
+          previous?.key === key
+            ? {
+                ...previous,
+                items: [
+                  ...new Map(
+                    [...previous.items, ...next.items].map((d) => [d.id, d]),
+                  ).values(),
+                ],
+                next: next.nextCursor,
+              }
+            : previous,
+        );
+    } catch (e) {
+      if (pending.active)
+        setNotice(
+          message(e, 'More documents could not be loaded. Retry Load more.'),
+        );
+    } finally {
+      pending.paging = false;
+      if (pending.active) setPagingKey(null);
+    }
+  }
   async function create() {
     setBusy(true);
     try {
@@ -192,6 +266,17 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
             ) : null}
           </div>
           <ArtifactSearch projectId={project.id} />
+          <div role="status" className="mb-3 text-ctl text-tx2">
+            {notice}
+          </div>
+          {restored ? (
+            <Link
+              className="mb-3 inline-block text-ctl text-actx underline"
+              href={`/app/projects/${project.id}/documents?doc=${restored.id}`}
+            >
+              Open restored document
+            </Link>
+          ) : null}
           {!current ? (
             <SkeletonLines widths={[90, 72, 84]} />
           ) : current.error ? (
@@ -226,29 +311,59 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
               className="border-t border-bd2"
             >
               {current.items.map((d) => (
-                <li key={d.id}>
-                  <Link
-                    href={`/app/projects/${project.id}/documents?doc=${d.id}`}
-                    className="flex items-center gap-3 border-b border-bd2 px-2 py-3 hover:bg-card focus-visible:bg-card"
-                  >
-                    <FileText
-                      aria-hidden="true"
-                      className="size-[15px] shrink-0 text-tx3"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-serif text-[17px]">
-                        {d.title}
+                <li
+                  key={d.id}
+                  className="flex items-center gap-2 border-b border-bd2"
+                >
+                  {d.archived ? (
+                    <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-3">
+                      <FileText
+                        aria-hidden="true"
+                        className="size-[15px] shrink-0 text-tx3"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-serif text-[17px]">
+                          {d.title}
+                        </span>
+                        <span className="text-[11.5px] text-tx3">
+                          {documentKindLabels[d.kind]} · revision {d.revision} ·
+                          edited {ago(d.updatedAt)}
+                          {d.updatedBy ? ` by ${d.updatedBy.name}` : ''}
+                        </span>
                       </span>
-                      <span className="text-[11.5px] text-tx3">
-                        {documentKindLabels[d.kind]} · revision {d.revision} ·
-                        edited {ago(d.updatedAt)}
-                        {d.updatedBy ? ` by ${d.updatedBy.name}` : ''}
+                    </div>
+                  ) : (
+                    <Link
+                      href={`/app/projects/${project.id}/documents?doc=${d.id}`}
+                      className="flex min-w-0 flex-1 items-center gap-3 px-2 py-3 hover:bg-card focus-visible:bg-card"
+                    >
+                      <FileText
+                        aria-hidden="true"
+                        className="size-[15px] shrink-0 text-tx3"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-serif text-[17px]">
+                          {d.title}
+                        </span>
+                        <span className="text-[11.5px] text-tx3">
+                          {documentKindLabels[d.kind]} · revision {d.revision} ·
+                          edited {ago(d.updatedAt)}
+                          {d.updatedBy ? ` by ${d.updatedBy.name}` : ''}
+                        </span>
                       </span>
-                    </span>
-                    {d.archived ? (
-                      <span className="text-[11.5px] text-tx3">Archived</span>
-                    ) : null}
-                  </Link>
+                    </Link>
+                  )}
+                  {d.archived && canWrite ? (
+                    <Btn
+                      size="sm"
+                      disabled={restoring !== null}
+                      aria-label={`Restore ${d.title}`}
+                      onClick={() => void restore(d)}
+                    >
+                      <ArchiveRestore aria-hidden="true" />
+                      {restoring === d.id ? 'Restoring…' : 'Restore'}
+                    </Btn>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -256,21 +371,10 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
           {current?.next ? (
             <Btn
               className="mt-3"
-              onClick={() =>
-                void fetchDocuments(project.id, archived, current.next!).then(
-                  (p) =>
-                    setPage(
-                      (prev) =>
-                        prev && {
-                          ...prev,
-                          items: [...prev.items, ...p.items],
-                          next: p.nextCursor,
-                        },
-                    ),
-                )
-              }
+              disabled={pagingKey === key}
+              onClick={() => void loadMore()}
             >
-              Load more
+              {pagingKey === key ? 'Loading…' : 'Load more'}
             </Btn>
           ) : null}
         </div>
