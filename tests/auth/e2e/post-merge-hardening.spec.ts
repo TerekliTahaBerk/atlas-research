@@ -521,3 +521,133 @@ test('500 real tasks paginate in Board/List with retry, filters, later-page edit
   ).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('explicit recovery retains an uncertain draft and retries one committed revision', async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await register(page);
+  const p = await project(page, 'Confirmed document recovery');
+  const created = await ok(page.request, {
+    command: 'document.create',
+    projectId: p.id,
+    title: 'Recovery confirmation',
+    idempotencyKey: randomUUID(),
+  });
+  await page.goto(`/app/projects/${p.id}/documents?doc=${created.id}`);
+  const editor = page.getByRole('textbox', { name: 'Document body' });
+  await expect(editor).toBeVisible();
+  const otherContent = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Other participant revision.' }],
+      },
+    ],
+  };
+  await ok(page.request, {
+    command: 'document.save',
+    id: created.id,
+    expectedRevision: 1,
+    clientRequestId: randomUUID(),
+    content: otherContent,
+  });
+  await editor.fill('My retained research draft.');
+  await expect(page.getByText('Someone saved a newer revision')).toBeVisible();
+  let release!: () => void;
+  let started!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const arrived = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  let requestBody: unknown;
+  await page.route(
+    '**/api/v1/commands',
+    async (route) => {
+      const command: unknown = route.request().postDataJSON();
+      const parsed = z.object({ command: z.string() }).parse(command);
+      if (parsed.command !== 'document.save') return route.continue();
+      requestBody = command;
+      started();
+      await gate;
+      const response = await route.fetch();
+      expect(response.ok()).toBe(true);
+      // Real transaction commits, but its response never reaches the caller.
+      await route.abort('failed');
+    },
+    { times: 1 },
+  );
+  await page
+    .getByRole('button', { name: 'Save mine as a new revision' })
+    .click();
+  await arrived;
+  await expect(editor).toHaveAttribute('contenteditable', 'false');
+  await expect(
+    page.getByText(
+      'Your draft was saved as a new revision. The other revision stays in history.',
+    ),
+  ).toHaveCount(0);
+  release();
+  await expect(
+    page.getByText(
+      'Save could not be confirmed. Your draft is kept on this device; retry or check version history.',
+    ),
+  ).toBeVisible();
+  await expect(editor).toHaveAttribute('contenteditable', 'true');
+  const draftKey = `atlas:draft:v1:${p.actorId}:${p.id}:${created.id}`;
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key) !== null, draftKey),
+  ).toBe(true);
+  const committed = await read(
+    page.request,
+    `documents/${created.id}`,
+    documentDto,
+  );
+  expect(committed.revision).toBe(3);
+  expect(JSON.stringify(committed.content)).toContain(
+    'My retained research draft.',
+  );
+  // Retry now, before the bounded background timer. The real SQL replay must
+  // acknowledge exactly this request and must not create revision 4.
+  const retried = page.waitForRequest((request) => {
+    if (
+      !request.url().endsWith('/api/v1/commands') ||
+      request.method() !== 'POST'
+    )
+      return false;
+    const command: unknown = request.postDataJSON();
+    return (
+      z.object({ command: z.string() }).parse(command).command ===
+      'document.save'
+    );
+  });
+  await editor.press('ControlOrMeta+s');
+  expect((await retried).postDataJSON()).toEqual(requestBody);
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Saved' }),
+  ).toBeVisible();
+  expect(
+    (await read(page.request, `documents/${created.id}`, documentDto)).revision,
+  ).toBe(3);
+  const versions = await read(
+    page.request,
+    `documents/${created.id}/versions`,
+    versionPageDto,
+  );
+  expect(versions.items.map((item) => item.revision)).toEqual([3, 2, 1]);
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key) === null, draftKey),
+  ).toBe(true);
+  const previous = await page.request.get(
+    `${origin}/api/v1/documents/${created.id}/versions/2`,
+  );
+  expect(previous.ok()).toBe(true);
+  expect(
+    z
+      .object({ data: z.object({ content: z.unknown() }) })
+      .parse(await previous.json()).data.content,
+  ).toEqual(otherContent);
+});

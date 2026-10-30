@@ -1,5 +1,33 @@
 # Phase 04 implementation and Phase 04.1 hardening report
 
+## R11-01 recovery correction — 30 October 2026
+
+Scope: follow-up on PR #11 at `1fa4b504950ea4ac12ed2939c06e3fe7811a1fee`, exclusively on `fix/phase-04-post-merge-hardening`. The A00 report in PR #12 is unchanged historical evidence. No schema/migration/RLS, dependency, pagination, archived-list restoration or visual-baseline changes were made by this correction.
+
+Root cause: the autosave hook swallowed handled failures into `Promise<void>`, while Keep mine interpreted resolution as persistence. Restore version also continued after that unconfirmed save and used a revision captured before awaiting it. Three caller regressions failed before the correction: false success for NETWORK/CONFLICT and a restore sent after a failed prerequisite save.
+
+The hook now returns explicit confirmed/unchanged/in-flight/cancelled/disabled/conflict/uncertain/failed outcomes. Recovery success requires a current, valid server acknowledgement; a server no-op does not claim a new revision. In-flight saves cannot be rebased or duplicated. NETWORK/unreadable/internal outcomes retain the draft and exact attempt ID/content/base for idempotent replay, even when a fresh read sees the original commit. A replay older than the latest revision observed during recovery stays in conflict and preserves the draft. Restore uses the returned acknowledged revision and stops after failed, uncertain, cancelled, in-flight or newly dirty saves. A lost restore response directs the user to version history. Pending caller continuations are lifetime-guarded; explicit recovery locks editing and conflicting recovery controls. Existing immutable history, authorization and background retry behavior remain intact. Full contract: [autosave/recovery](../documents/AUTOSAVE_AND_RECOVERY.md).
+
+Current evidence (distinct from the historical 24 October results below):
+
+| Check                                 | Result                | Evidence / limit                                                                                                                                                                              |
+| ------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frozen install                        | PASS                  | Unchanged lockfile; optional pnpm update-metadata fetch failed under restricted networking, install exited 0                                                                                  |
+| Unit/component suite                  | PASS                  | 248 tests / 19 files; 29 hook/caller cases, including 25 additional recovery cases. Original assertions preserved; existing `Promise<void>` test annotations updated to `Promise<SaveResult>` |
+| Format / lint / typecheck / schema    | PASS                  | Final local checks pass; new test fixture typing and result narrowing errors were corrected without weakening checks                                                                          |
+| Production build                      | PASS                  | Default Turbopack; local worker permission only, no deployment                                                                                                                                |
+| Preview E2E                           | PASS                  | 101/101 with all six unchanged screenshots; final preview run includes the explicit editor-lock implementation                                                                                |
+| Full local PostgreSQL integration     | NOT RUN               | Docker daemon unavailable; local PostgreSQL 17 lacks pgvector. Existing SQL replay/version-count regression remains unchanged                                                                 |
+| Local authenticated E2E               | NOT RUN               | Disposable GoTrue/Storage/Mailpit Docker harness unavailable. New real-Tiptap lost-response/replay journey is committed for the existing isolated-auth CI job                                 |
+| GitHub Actions                        | Check current PR head | The correction push must pass both jobs; final run results are recorded in the updated PR description and delivery summary. Previous-head results below do not validate this change           |
+| Hosted changes / paid AI / deployment | NOT RUN               | Explicitly excluded; no hosted resource was accessed or modified                                                                                                                              |
+
+Tests cover confirmed recovery, NETWORK/CONFLICT/validation/authorization rejection, local and server no-ops, revision consistency, in-flight suppression, uncertain committed-response replay, superseded replay, malformed acknowledgement, retained drafts, visible caller messages, acknowledged restore tokens, restore uncertainty, and navigation during read/save/restore. The existing PostgreSQL test counts versions after a request replay; the new Auth journey asserts exactly revisions `[3,2,1]` after a committed recovery whose response was lost and retried, preserving the other revision's content. Mocked unit tests alone do not prove real SQL behavior; current CI supplies that evidence.
+
+Remaining limits: request identities are in memory and are not persisted across navigation; reopen reconciles drafts with authorized server content. Two tabs still share one latest draft key; storage may be unavailable. A lost restore response needs history reconciliation rather than an automatic new restore. Hosted migration-history privileges, recovery/worker/provider activation and paid-AI gates remain blocked as documented below. No A00 branch change, new PR, merge or deployment is included.
+
+## Historical Phase 04 / 04.1 delivery evidence
+
 Evidence date: **24 October 2026**. Scope: local implementation, post-merge repair and independent PR review. Hosted release remains **BLOCKED**. No Phase 05 implementation, production deployment, hosted write or paid model traffic was performed.
 
 ## Executive summary and provenance

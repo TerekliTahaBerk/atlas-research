@@ -67,7 +67,7 @@ import { DocEditor, type LiveEditorConfig } from './editor/doc-editor';
 import { LiveRefsContext } from './editor/live-nodes';
 import { clearDraft, purgeDrafts, readDraft, type StoredDraft } from './drafts';
 import { LiveVersionHistoryDialog } from './live-version-history';
-import { saveLabels, useAutosave } from './use-autosave';
+import { saveLabels, useAutosave, type SaveResult } from './use-autosave';
 
 const ago = (value: string) => {
   const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
@@ -500,6 +500,15 @@ function DocumentView({
   const [extraPeople, setExtraPeople] = useState<Map<string, string>>(
     new Map(),
   );
+  const [recovering, setRecovering] = useState(false);
+  const recovery = useRef({ active: false, busy: false });
+  useEffect(() => {
+    const lifetime = { active: true, busy: false };
+    recovery.current = lifetime;
+    return () => {
+      lifetime.active = false;
+    };
+  }, []);
   const autosave = useAutosave({
     actorId,
     projectId: project.id,
@@ -563,7 +572,7 @@ function DocumentView({
   const { change, save } = autosave;
   const live = useMemo<LiveEditorConfig>(
     () => ({
-      editable: canEdit,
+      editable: canEdit && !recovering,
       onChange: change,
       onSave: () => void save(),
       search: (q, kind) => fetchOptions(project.id, q, kind, doc.id),
@@ -592,7 +601,7 @@ function DocumentView({
           draft: `Explain this passage from “${doc.title}”: “${selection}”`,
         }),
     }),
-    [atlas, change, save, canEdit, doc.id, doc.title, project.id],
+    [atlas, change, save, canEdit, recovering, doc.id, doc.title, project.id],
   );
   const ui = useMemo(
     () => ({
@@ -655,16 +664,53 @@ function DocumentView({
       flash(message(e, 'That action failed. Refresh and try again.'));
     }
   }
+  function confirmedSave(
+    result: SaveResult,
+  ): result is Extract<SaveResult, { kind: 'confirmed' | 'unchanged' }> {
+    if (
+      result.kind === 'unchanged' ||
+      (result.kind === 'confirmed' && result.current)
+    )
+      return true;
+    if (result.kind === 'cancelled') return false;
+    flash(
+      result.kind === 'confirmed'
+        ? 'New edits remain unsaved. Save them before continuing.'
+        : result.kind === 'in-flight'
+          ? 'A save is still in progress. Wait for confirmation and try again.'
+          : result.kind === 'disabled'
+            ? 'This document is not editable. Your draft has been retained.'
+            : result.message,
+    );
+    return false;
+  }
   async function restoreRevision(revision: number) {
+    const pending = recovery.current;
+    if (!pending.active || pending.busy) return;
+    pending.busy = true;
+    setRecovering(true);
     try {
-      await autosave.save();
+      const saved = await autosave.save();
+      if (!pending.active || !confirmedSave(saved)) return;
       const result = await artifactCommand({
         command: 'document.restore-version',
         id: doc.id,
-        expectedRevision: autosave.revision,
+        // Use the acknowledged revision, never a render captured before save.
+        expectedRevision: saved.revision,
         revision,
         clientRequestId: crypto.randomUUID(),
       });
+      if (!pending.active) return;
+      if (
+        result.id !== doc.id ||
+        result.revision === undefined ||
+        result.revision <= saved.revision
+      )
+        throw new ApiError(
+          'Restore response did not confirm a new revision.',
+          'INTERNAL_ERROR',
+          0,
+        );
       clearDraft(actorId, project.id, doc.id);
       setHistory(false);
       flash(
@@ -673,23 +719,41 @@ function DocumentView({
       );
       reload();
     } catch (e) {
+      if (!pending.active) return;
       flash(
         e instanceof ApiError && e.code === 'CONFLICT'
           ? 'The document changed meanwhile. Review the latest revision first.'
-          : message(e, 'Restore failed.'),
+          : !(e instanceof ApiError) ||
+              ['NETWORK', 'INTERNAL_ERROR'].includes(e.code)
+            ? 'Restore could not be confirmed. Check version history before retrying.'
+            : message(e, 'Restore failed.'),
       );
+    } finally {
+      pending.busy = false;
+      if (pending.active) setRecovering(false);
     }
   }
   async function keepMine() {
+    const pending = recovery.current;
+    if (!pending.active || pending.busy) return;
+    pending.busy = true;
+    setRecovering(true);
     try {
       const latest = await fetchDocument(doc.id);
-      await autosave.saveOnTop(latest.revision);
+      if (!pending.active) return;
+      const saved = await autosave.saveOnTop(latest.revision);
+      if (!pending.active || !confirmedSave(saved)) return;
       flash(
-        'Your draft was saved as a new revision. The other revision stays in history.',
+        saved.kind === 'unchanged' || saved.unchanged
+          ? 'Your draft already matches the confirmed revision.'
+          : 'Your draft was saved as a new revision. The other revision stays in history.',
         'done',
       );
     } catch (e) {
-      flash(message(e, 'Unable to save your draft.'));
+      if (pending.active) flash(message(e, 'Unable to save your draft.'));
+    } finally {
+      pending.busy = false;
+      if (pending.active) setRecovering(false);
     }
   }
   function discardMine() {
@@ -835,7 +899,7 @@ function DocumentView({
                       size="sm"
                       variant="primary"
                       onClick={restoreDraft}
-                      disabled={!canEdit}
+                      disabled={!canEdit || recovering}
                     >
                       Recover draft
                     </Btn>
@@ -869,11 +933,17 @@ function DocumentView({
                       <Btn
                         size="sm"
                         variant="primary"
+                        disabled={recovering}
                         onClick={() => void keepMine()}
                       >
                         Save mine as a new revision
                       </Btn>
-                      <Btn size="sm" variant="ghost" onClick={discardMine}>
+                      <Btn
+                        size="sm"
+                        variant="ghost"
+                        disabled={recovering}
+                        onClick={discardMine}
+                      >
                         Discard mine and load latest
                       </Btn>
                     </div>
@@ -1019,7 +1089,7 @@ function DocumentView({
           documentId={doc.id}
           title={doc.title}
           currentRevision={autosave.revision}
-          canRestore={canEdit}
+          canRestore={canEdit && !recovering}
           onRestore={restoreRevision}
         />
       </LiveRefsContext.Provider>
