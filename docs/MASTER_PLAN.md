@@ -1,22 +1,24 @@
 # Atlas master plan
 
+The [A00 capability/status matrix](phases/A00_REPOSITORY_HARDENING_REPORT.md#canonical-capabilitystatus-matrix) is the current repository baseline. Earlier phase delivery notes describe their implementation scope, not the present hosted state.
+
 ## Phase 04 delivery state
 
 Documents, immutable versions, autosave/conflict recovery, source-aware citations, tasks/milestones/assignments, typed artifact links, project search, a live graph projection and approval-gated AI proposals are implemented locally with real-PostgreSQL and browser evidence; see the [Phase 04 report](phases/PHASE_04_IMPLEMENTATION_REPORT.md). Hosted activation remains blocked behind the Phase 02/03 gates and the [Phase 04 activation plan](phases/PHASE_04_ACTIVATION_PLAN.md). Realtime co-editing (Phase 07) and communication/notifications (Phase 05) are not implemented.
 
 ## Phase 03 delivery state
 
-Phase 03 local implementation is authorized independently of pending hosted Phase 02 activation. Official providers, isolated extraction/outbox, scoped hybrid retrieval, exact citations, persisted streaming conversations, quotas and the shared UI are implemented with deterministic verification. Real-provider scientific evaluation, hosted security/recovery/migrations and worker deployment remain release gates. See the [Phase 03 report](phases/PHASE_03_IMPLEMENTATION_REPORT.md) and [activation plan](phases/PHASE_03_ACTIVATION_PLAN.md). No Phase 04/05 write service is enabled.
+Phase 03 local implementation is authorized independently of pending hosted Phase 02 activation. Official providers, isolated extraction/outbox, scoped hybrid retrieval, exact citations, persisted streaming conversations, quotas and the shared UI are implemented with deterministic verification. Real-provider scientific evaluation, hosted security/recovery/migrations and worker deployment remain release gates. See the [Phase 03 report](phases/PHASE_03_IMPLEMENTATION_REPORT.md) and [activation plan](phases/PHASE_03_ACTIVATION_PLAN.md). Phase 04 writes are implemented locally; Phase 05 writes remain planned.
 
 ## Phase 02 delivery state
 
-Research discovery, project libraries, private PDF storage, the PDF reader, anchored annotations and citation export are implemented on the Phase 02 branch with disposable-environment evidence; see the [implementation report](phases/PHASE_02_IMPLEMENTATION_REPORT.md). Live provider access, hosted migration/Storage activation and a production malware scanner remain external gates, so Phase 02 is not declared complete.
+Research discovery, project libraries, private PDF storage, the PDF reader, anchored annotations and citation export are integrated into `master` with disposable-environment evidence; see the [implementation report](phases/PHASE_02_IMPLEMENTATION_REPORT.md). Live provider access, hosted migration/Storage activation and a production malware scanner remain external gates, so Phase 02 is not declared complete.
 
 ## Phase 01 delivery state
 
-Core platform implementation is present on `feat/phase-01-core-platform`: Supabase SSR, profile/onboarding drafts, idempotent personal environments, tenant/project management, hashed invitations, membership/owner guards, distributed SQL rate buckets and live UI adapters. See [the implementation report](phases/PHASE_01_IMPLEMENTATION_REPORT.md). Phase 01 remains behind its verification/release gates: hosted database/TLS/Prisma pooler checks pass; actual hosted signup/confirmation/onboarding and persisted-project logout/login pass; hosted recovery, Google/provider setup, deployed security and production invitation delivery remain unverified. Phase 02 is not implemented or approved by this change.
+Core platform implementation is integrated into `master`: Supabase SSR, profile/onboarding drafts, idempotent personal environments, tenant/project management, hashed invitations, membership/owner guards, distributed SQL rate buckets and live UI adapters. See [the implementation report](phases/PHASE_01_IMPLEMENTATION_REPORT.md). Phase 01 remains behind its verification/release gates: hosted database/TLS/Prisma pooler checks pass; actual hosted signup/confirmation/onboarding and persisted-project logout/login pass; hosted recovery, Google/provider setup, deployed security and production invitation delivery remain unverified. Hosted Phase 02–04 activation remains blocked.
 
-Status: Phase 01 core implementation, with release verification gates still open. The product is an AI-native Research Operating System joining discovery, source management, notes, tasks, discussion, and evidence-grounded AI in one research context.
+Status: Phase 01–04 local implementations, with hosted activation and release verification gates still open. The product is an AI-native Research Operating System joining discovery, source management, notes, tasks, discussion, and evidence-grounded AI in one research context.
 
 ## Delivery policy
 

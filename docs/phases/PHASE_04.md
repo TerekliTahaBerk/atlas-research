@@ -1,5 +1,7 @@
 # Phase 04 — Documents and tasks
 
+Current repository capability classifications and hosted blockers: [A00 audit](A00_REPOSITORY_HARDENING_REPORT.md). This phase specification defines scope and acceptance requirements; historical checklists alone do not certify current activation.
+
 Status: implemented locally; hosted activation blocked (see [implementation report](PHASE_04_IMPLEMENTATION_REPORT.md))
 
 ## 1. Objective

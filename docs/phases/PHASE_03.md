@@ -1,5 +1,7 @@
 # Phase 03 — Atlas AI research
 
+Current repository capability classifications and hosted blockers: [A00 audit](A00_REPOSITORY_HARDENING_REPORT.md). This phase specification defines scope and acceptance requirements; historical checklists alone do not certify current activation.
+
 ## Current implementation and release state
 
 Local implementation is delivered for provider adapters, source processing, pgvector hybrid retrieval, exact citation locations, streaming conversations, conservative usage and shared Atlas UI. The user authorized Phase 03 development independently of hosted Phase 02 activation, and explicitly disabled paid calls. This supersedes the original “planned; not implemented” status. Hosted completion remains **BLOCKED**, and scientific claim support is not certified. [Implementation report](PHASE_03_IMPLEMENTATION_REPORT.md) records actual checks; [activation](PHASE_03_ACTIVATION_PLAN.md) preserves the security/recovery/credential gates.

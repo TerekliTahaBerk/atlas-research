@@ -1,5 +1,7 @@
 # Phase 05 — Communication hub
 
+Current repository capability classifications and hosted blockers: [A00 audit](A00_REPOSITORY_HARDENING_REPORT.md). This phase specification defines scope and acceptance requirements; historical checklists alone do not certify current activation.
+
 Status: planned; not implemented
 
 ## 1. Objective

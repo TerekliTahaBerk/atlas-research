@@ -1,5 +1,7 @@
 # Phase 01 — Core platform
 
+Current repository capability classifications and hosted blockers: [A00 audit](A00_REPOSITORY_HARDENING_REPORT.md). This phase specification defines scope and acceptance requirements; historical checklists alone do not certify current activation.
+
 Status: implemented core under verification; hosted development signup, confirmation, onboarding, persisted-project return login and pooler checks pass; hosted recovery/OAuth, deployed security and production invitation delivery gates remain open. See [implementation report](PHASE_01_IMPLEMENTATION_REPORT.md).
 
 ## 1. Objective

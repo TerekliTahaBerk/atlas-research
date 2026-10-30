@@ -28,15 +28,15 @@ The quality workflow runs on pull requests and pushes to `master`. Configure a f
 
 ## Environment/configuration
 
-Root `.env` is loaded by Prisma CLI; Next.js reads `apps/web/.env.local`. Copy only needed values from `.env.example`. Environment schema runs during Next config loading, validates configured URLs and key pairs without printing values, and only permits preview mode until real identity/services ship. Future secrets remain optional and unused in Phase 00. Never use another product's credentials. No AI key is requested or paid call made.
+Root `.env` is loaded by Prisma CLI; Next.js reads `apps/web/.env.local`. Copy only needed values from `.env.example`. Environment schema runs during Next config loading, validates configured URLs and key pairs without printing values, and permits explicit preview/live configuration. Live mode requires the identity/database settings documented in [environments](identity/ENVIRONMENTS.md); Phase 02–04 hosted activation remains gated by the [A00 report](phases/A00_REPOSITORY_HARDENING_REPORT.md). Secrets remain optional and unused in preview. Never use another product's credentials. No AI key is requested or paid call made.
 
 ## Domain implementation convention
 
-Future `features/<domain>/server` contains service/policy/repository modules marked server-only. Validate route input via core contracts; resolve auth/scope before calling a service. Return public DTOs. Add integration tests against a disposable DB plus authorization matrices, then expose UI states. Keep domain services independent of Next request objects where feasible. Do not create empty packages for future integrations.
+`features/<domain>/server` contains service/policy/repository modules marked server-only. Validate route input via core contracts; resolve auth/scope before calling a service. Return public DTOs. Add integration tests against a disposable DB plus authorization matrices, then expose UI states. Keep domain services independent of Next request objects where feasible. Do not create empty packages for future integrations.
 
 ## Routes
 
-See ROUTES.md for the full inventory. Preview IDs are literal `sample`; unknown IDs/modules call notFound. Future APIs require UUIDs. Deep links and contextual active navigation work without a client store.
+See ROUTES.md for the full inventory. Preview IDs are literal `sample`; unknown IDs/modules call notFound. Live APIs require UUIDs. Deep links and contextual active navigation work without a client store.
 
 ## Database workflow
 
