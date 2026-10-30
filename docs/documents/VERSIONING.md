@@ -7,4 +7,8 @@
 - History reads (`GET documents/:id/versions`, `…/versions/:revision`) re-check access now; archived documents expose no versions through RLS.
 - Comparison is a block-level LCS diff (`diffBlocks`) between a revision and the current revision, shown in the version modal.
 
+Archived lifecycle: the Archived listing exposes authorized writer metadata only, with an explicit **Restore** button using the existing `document.restore` command and the listed metadata `expectedVersion`. The ordinary content/history/export endpoints remain unavailable while archived. Success appears only after commit, refreshes Active/Archived and offers **Open restored document**. A stale token refreshes metadata for review; a lost network response reports uncertainty and asks the user to check both lists before retrying. Restoration changes archive metadata, preserving current revision, immutable history, references and citations.
+
+Evidence: [Phase 04 implementation report](../phases/PHASE_04_IMPLEMENTATION_REPORT.md).
+
 Retention: versions are kept indefinitely in Phase 04; purge/retention policy is a later reviewed workflow.

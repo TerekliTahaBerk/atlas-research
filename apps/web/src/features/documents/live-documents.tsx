@@ -67,7 +67,7 @@ import { DocEditor, type LiveEditorConfig } from './editor/doc-editor';
 import { LiveRefsContext } from './editor/live-nodes';
 import { clearDraft, purgeDrafts, readDraft, type StoredDraft } from './drafts';
 import { LiveVersionHistoryDialog } from './live-version-history';
-import { saveLabels, useAutosave } from './use-autosave';
+import { saveLabels, useAutosave, type SaveResult } from './use-autosave';
 
 const ago = (value: string) => {
   const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
@@ -86,10 +86,12 @@ const message = (e: unknown, fallback: string) =>
 /** Live Documents (Phase 04): real project documents in the approved design. */
 export function LiveDocuments({ project }: { project: ProjectDto }) {
   const params = useSearchParams();
+  const platform = usePlatform();
+  const scope = `${platform.profile?.id ?? ''}:${project.id}`;
   const id = params.get('doc');
   if (id && /^[0-9a-f-]{36}$/i.test(id))
-    return <LiveDocument key={id} project={project} id={id} />;
-  return <DocumentIndex project={project} />;
+    return <LiveDocument key={`${scope}:${id}`} project={project} id={id} />;
+  return <DocumentIndex key={scope} project={project} />;
 }
 
 function DocumentIndex({ project }: { project: ProjectDto }) {
@@ -105,7 +107,14 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
     error: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
-  const key = String(archived);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const restorePending = useRef(false);
+  const [notice, setNotice] = useState('');
+  const [restored, setRestored] = useState<DocumentSummaryDto | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [pagingKey, setPagingKey] = useState<string | null>(null);
+  const request = useRef({ active: false, paging: false });
+  const key = `${archived}:${refresh}`;
   useEffect(() => {
     setContext([
       {
@@ -117,16 +126,17 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
     ]);
   }, [project.id, project.name, setContext]);
   useEffect(() => {
-    let alive = true;
+    const currentRequest = { active: true, paging: false };
+    request.current = currentRequest;
     fetchDocuments(project.id, archived)
       .then(
         (p) =>
-          alive &&
+          currentRequest.active &&
           setPage({ key, items: p.items, next: p.nextCursor, error: '' }),
       )
       .catch(
         (e: unknown) =>
-          alive &&
+          currentRequest.active &&
           setPage({
             key,
             items: [],
@@ -135,10 +145,74 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
           }),
       );
     return () => {
-      alive = false;
+      currentRequest.active = false;
     };
   }, [archived, key, project.id]);
   const current = page?.key === key ? page : null;
+  async function restore(document: DocumentSummaryDto) {
+    if (restorePending.current) return;
+    restorePending.current = true;
+    setRestoring(document.id);
+    setNotice('');
+    const pending = request.current;
+    try {
+      await artifactCommand({
+        command: 'document.restore',
+        id: document.id,
+        expectedVersion: document.version,
+      });
+      if (!pending.active) return;
+      setRestored(document);
+      setNotice(`Restored “${document.title}”.`);
+      flash(`Restored “${document.title}”.`, 'done');
+      setArchived(false);
+      setRefresh((n) => n + 1);
+    } catch (e) {
+      if (!pending.active) return;
+      setNotice(
+        e instanceof ApiError && e.code === 'CONFLICT'
+          ? 'The document changed. The list has been refreshed; review it and try again.'
+          : e instanceof ApiError && e.code === 'NETWORK'
+            ? 'Restore could not be confirmed. Check Active and Archived before retrying.'
+            : message(e, 'The document could not be restored.'),
+      );
+      setRefresh((n) => n + 1);
+    } finally {
+      restorePending.current = false;
+      setRestoring(null);
+    }
+  }
+  async function loadMore() {
+    const pending = request.current;
+    if (!current?.next || pending.paging) return;
+    pending.paging = true;
+    setPagingKey(key);
+    try {
+      const next = await fetchDocuments(project.id, archived, current.next);
+      if (pending.active)
+        setPage((previous) =>
+          previous?.key === key
+            ? {
+                ...previous,
+                items: [
+                  ...new Map(
+                    [...previous.items, ...next.items].map((d) => [d.id, d]),
+                  ).values(),
+                ],
+                next: next.nextCursor,
+              }
+            : previous,
+        );
+    } catch (e) {
+      if (pending.active)
+        setNotice(
+          message(e, 'More documents could not be loaded. Retry Load more.'),
+        );
+    } finally {
+      pending.paging = false;
+      if (pending.active) setPagingKey(null);
+    }
+  }
   async function create() {
     setBusy(true);
     try {
@@ -192,6 +266,17 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
             ) : null}
           </div>
           <ArtifactSearch projectId={project.id} />
+          <div role="status" className="mb-3 text-ctl text-tx2">
+            {notice}
+          </div>
+          {restored ? (
+            <Link
+              className="mb-3 inline-block text-ctl text-actx underline"
+              href={`/app/projects/${project.id}/documents?doc=${restored.id}`}
+            >
+              Open restored document
+            </Link>
+          ) : null}
           {!current ? (
             <SkeletonLines widths={[90, 72, 84]} />
           ) : current.error ? (
@@ -226,29 +311,59 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
               className="border-t border-bd2"
             >
               {current.items.map((d) => (
-                <li key={d.id}>
-                  <Link
-                    href={`/app/projects/${project.id}/documents?doc=${d.id}`}
-                    className="flex items-center gap-3 border-b border-bd2 px-2 py-3 hover:bg-card focus-visible:bg-card"
-                  >
-                    <FileText
-                      aria-hidden="true"
-                      className="size-[15px] shrink-0 text-tx3"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-serif text-[17px]">
-                        {d.title}
+                <li
+                  key={d.id}
+                  className="flex items-center gap-2 border-b border-bd2"
+                >
+                  {d.archived ? (
+                    <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-3">
+                      <FileText
+                        aria-hidden="true"
+                        className="size-[15px] shrink-0 text-tx3"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-serif text-[17px]">
+                          {d.title}
+                        </span>
+                        <span className="text-[11.5px] text-tx3">
+                          {documentKindLabels[d.kind]} · revision {d.revision} ·
+                          edited {ago(d.updatedAt)}
+                          {d.updatedBy ? ` by ${d.updatedBy.name}` : ''}
+                        </span>
                       </span>
-                      <span className="text-[11.5px] text-tx3">
-                        {documentKindLabels[d.kind]} · revision {d.revision} ·
-                        edited {ago(d.updatedAt)}
-                        {d.updatedBy ? ` by ${d.updatedBy.name}` : ''}
+                    </div>
+                  ) : (
+                    <Link
+                      href={`/app/projects/${project.id}/documents?doc=${d.id}`}
+                      className="flex min-w-0 flex-1 items-center gap-3 px-2 py-3 hover:bg-card focus-visible:bg-card"
+                    >
+                      <FileText
+                        aria-hidden="true"
+                        className="size-[15px] shrink-0 text-tx3"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-serif text-[17px]">
+                          {d.title}
+                        </span>
+                        <span className="text-[11.5px] text-tx3">
+                          {documentKindLabels[d.kind]} · revision {d.revision} ·
+                          edited {ago(d.updatedAt)}
+                          {d.updatedBy ? ` by ${d.updatedBy.name}` : ''}
+                        </span>
                       </span>
-                    </span>
-                    {d.archived ? (
-                      <span className="text-[11.5px] text-tx3">Archived</span>
-                    ) : null}
-                  </Link>
+                    </Link>
+                  )}
+                  {d.archived && canWrite ? (
+                    <Btn
+                      size="sm"
+                      disabled={restoring !== null}
+                      aria-label={`Restore ${d.title}`}
+                      onClick={() => void restore(d)}
+                    >
+                      <ArchiveRestore aria-hidden="true" />
+                      {restoring === d.id ? 'Restoring…' : 'Restore'}
+                    </Btn>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -256,21 +371,10 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
           {current?.next ? (
             <Btn
               className="mt-3"
-              onClick={() =>
-                void fetchDocuments(project.id, archived, current.next!).then(
-                  (p) =>
-                    setPage(
-                      (prev) =>
-                        prev && {
-                          ...prev,
-                          items: [...prev.items, ...p.items],
-                          next: p.nextCursor,
-                        },
-                    ),
-                )
-              }
+              disabled={pagingKey === key}
+              onClick={() => void loadMore()}
             >
-              Load more
+              {pagingKey === key ? 'Loading…' : 'Load more'}
             </Btn>
           ) : null}
         </div>
@@ -396,6 +500,15 @@ function DocumentView({
   const [extraPeople, setExtraPeople] = useState<Map<string, string>>(
     new Map(),
   );
+  const [recovering, setRecovering] = useState(false);
+  const recovery = useRef({ active: false, busy: false });
+  useEffect(() => {
+    const lifetime = { active: true, busy: false };
+    recovery.current = lifetime;
+    return () => {
+      lifetime.active = false;
+    };
+  }, []);
   const autosave = useAutosave({
     actorId,
     projectId: project.id,
@@ -459,7 +572,7 @@ function DocumentView({
   const { change, save } = autosave;
   const live = useMemo<LiveEditorConfig>(
     () => ({
-      editable: canEdit,
+      editable: canEdit && !recovering,
       onChange: change,
       onSave: () => void save(),
       search: (q, kind) => fetchOptions(project.id, q, kind, doc.id),
@@ -488,7 +601,7 @@ function DocumentView({
           draft: `Explain this passage from “${doc.title}”: “${selection}”`,
         }),
     }),
-    [atlas, change, save, canEdit, doc.id, doc.title, project.id],
+    [atlas, change, save, canEdit, recovering, doc.id, doc.title, project.id],
   );
   const ui = useMemo(
     () => ({
@@ -551,16 +664,53 @@ function DocumentView({
       flash(message(e, 'That action failed. Refresh and try again.'));
     }
   }
+  function confirmedSave(
+    result: SaveResult,
+  ): result is Extract<SaveResult, { kind: 'confirmed' | 'unchanged' }> {
+    if (
+      result.kind === 'unchanged' ||
+      (result.kind === 'confirmed' && result.current)
+    )
+      return true;
+    if (result.kind === 'cancelled') return false;
+    flash(
+      result.kind === 'confirmed'
+        ? 'New edits remain unsaved. Save them before continuing.'
+        : result.kind === 'in-flight'
+          ? 'A save is still in progress. Wait for confirmation and try again.'
+          : result.kind === 'disabled'
+            ? 'This document is not editable. Your draft has been retained.'
+            : result.message,
+    );
+    return false;
+  }
   async function restoreRevision(revision: number) {
+    const pending = recovery.current;
+    if (!pending.active || pending.busy) return;
+    pending.busy = true;
+    setRecovering(true);
     try {
-      await autosave.save();
+      const saved = await autosave.save();
+      if (!pending.active || !confirmedSave(saved)) return;
       const result = await artifactCommand({
         command: 'document.restore-version',
         id: doc.id,
-        expectedRevision: autosave.revision,
+        // Use the acknowledged revision, never a render captured before save.
+        expectedRevision: saved.revision,
         revision,
         clientRequestId: crypto.randomUUID(),
       });
+      if (!pending.active) return;
+      if (
+        result.id !== doc.id ||
+        result.revision === undefined ||
+        result.revision <= saved.revision
+      )
+        throw new ApiError(
+          'Restore response did not confirm a new revision.',
+          'INTERNAL_ERROR',
+          0,
+        );
       clearDraft(actorId, project.id, doc.id);
       setHistory(false);
       flash(
@@ -569,23 +719,41 @@ function DocumentView({
       );
       reload();
     } catch (e) {
+      if (!pending.active) return;
       flash(
         e instanceof ApiError && e.code === 'CONFLICT'
           ? 'The document changed meanwhile. Review the latest revision first.'
-          : message(e, 'Restore failed.'),
+          : !(e instanceof ApiError) ||
+              ['NETWORK', 'INTERNAL_ERROR'].includes(e.code)
+            ? 'Restore could not be confirmed. Check version history before retrying.'
+            : message(e, 'Restore failed.'),
       );
+    } finally {
+      pending.busy = false;
+      if (pending.active) setRecovering(false);
     }
   }
   async function keepMine() {
+    const pending = recovery.current;
+    if (!pending.active || pending.busy) return;
+    pending.busy = true;
+    setRecovering(true);
     try {
       const latest = await fetchDocument(doc.id);
-      await autosave.saveOnTop(latest.revision);
+      if (!pending.active) return;
+      const saved = await autosave.saveOnTop(latest.revision);
+      if (!pending.active || !confirmedSave(saved)) return;
       flash(
-        'Your draft was saved as a new revision. The other revision stays in history.',
+        saved.kind === 'unchanged' || saved.unchanged
+          ? 'Your draft already matches the confirmed revision.'
+          : 'Your draft was saved as a new revision. The other revision stays in history.',
         'done',
       );
     } catch (e) {
-      flash(message(e, 'Unable to save your draft.'));
+      if (pending.active) flash(message(e, 'Unable to save your draft.'));
+    } finally {
+      pending.busy = false;
+      if (pending.active) setRecovering(false);
     }
   }
   function discardMine() {
@@ -731,7 +899,7 @@ function DocumentView({
                       size="sm"
                       variant="primary"
                       onClick={restoreDraft}
-                      disabled={!canEdit}
+                      disabled={!canEdit || recovering}
                     >
                       Recover draft
                     </Btn>
@@ -765,11 +933,17 @@ function DocumentView({
                       <Btn
                         size="sm"
                         variant="primary"
+                        disabled={recovering}
                         onClick={() => void keepMine()}
                       >
                         Save mine as a new revision
                       </Btn>
-                      <Btn size="sm" variant="ghost" onClick={discardMine}>
+                      <Btn
+                        size="sm"
+                        variant="ghost"
+                        disabled={recovering}
+                        onClick={discardMine}
+                      >
                         Discard mine and load latest
                       </Btn>
                     </div>
@@ -915,7 +1089,7 @@ function DocumentView({
           documentId={doc.id}
           title={doc.title}
           currentRevision={autosave.revision}
-          canRestore={canEdit}
+          canRestore={canEdit && !recovering}
           onRestore={restoreRevision}
         />
       </LiveRefsContext.Provider>
