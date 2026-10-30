@@ -1,12 +1,5 @@
 'use client';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type DragEvent,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -66,11 +59,12 @@ import {
   artifactCommand,
   fetchOptions,
   fetchTask,
-  fetchTasks,
 } from '@/features/artifacts/client';
 import { ARTIFACTS_CHANGED } from '@/features/atlas-ai/proposal-review';
 import { LivePriorityIcon, LiveStatusIcon } from './task-icons';
+import { useTaskPages } from './use-task-pages';
 
+const emptyTasks: TaskDto[] = [];
 const boardColumns: TaskStatusValue[] = [
   'TODO',
   'IN_PROGRESS',
@@ -100,6 +94,10 @@ const due = (value: string | null) =>
  * transition policy and version check. Every drag has a keyboard menu.
  */
 export function LiveTasks({ project }: { project: ProjectDto }) {
+  return <TaskWorkspace key={project.id} project={project} />;
+}
+
+function TaskWorkspace({ project }: { project: ProjectDto }) {
   const router = useRouter();
   const params = useSearchParams();
   const flash = useToast();
@@ -107,41 +105,23 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
   const selectedId = params.get('task');
   const [view, setView] = useState<'board' | 'list'>('board');
   const [filters, setFilters] = useState<Filters>({});
-  const [page, setPage] = useState<{
-    key: string;
-    data: TaskPage | null;
-    error: string;
-  } | null>(null);
-  const [tasks, setTasks] = useState<TaskDto[]>([]);
-  const [refresh, setRefresh] = useState(0);
+  const {
+    data,
+    error,
+    moreError,
+    paging,
+    loading,
+    loadMore,
+    reload,
+    setTasks,
+  } = useTaskPages(project.id, filters);
+  const tasks = data?.items ?? emptyTasks;
+  const moving = useRef(new Set<string>());
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatusValue | null>(null);
   const [announce, setAnnounce] = useState('');
   const [creating, setCreating] = useState<TaskStatusValue | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
-  const key = JSON.stringify([filters, refresh]);
-  const reload = useCallback(() => setRefresh((n) => n + 1), []);
-  useEffect(() => {
-    let alive = true;
-    fetchTasks(project.id, filters)
-      .then((data) => {
-        if (!alive) return;
-        setPage({ key, data, error: '' });
-        setTasks(data.items);
-      })
-      .catch(
-        (e: unknown) =>
-          alive &&
-          setPage({
-            key,
-            data: null,
-            error: message(e, 'Tasks could not be loaded.'),
-          }),
-      );
-    return () => {
-      alive = false;
-    };
-  }, [filters, key, project.id]);
   useEffect(() => {
     const listener = (event: Event) => {
       if ((event as CustomEvent<{ tasks?: boolean }>).detail?.tasks) reload();
@@ -160,8 +140,6 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
       },
     ]);
   }, [project.id, project.name, setContext]);
-  const data = page?.data ?? null;
-  const loading = page?.key !== key;
   const canWrite =
     data?.capabilities.includes('task.edit') ??
     project.capabilities.includes('project.write');
@@ -174,16 +152,18 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
 
   /** Optimistic move with rollback; announces the outcome either way. */
   async function move(task: TaskDto, status: TaskStatusValue) {
-    if (task.status === status) return;
+    if (task.status === status || moving.current.has(task.id)) return;
     if (!canTransition(task.status, status)) {
       setAnnounce(
         `#${task.number} cannot move from ${taskStatusLabels[task.status]} to ${taskStatusLabels[status]}. Allowed: ${taskTransitions[task.status].map((s) => taskStatusLabels[s]).join(', ')}.`,
       );
       return;
     }
-    const before = tasks;
+    moving.current.add(task.id);
     setTasks((list) =>
-      list.map((t) => (t.id === task.id ? { ...t, status } : t)),
+      list.map((t) =>
+        t.id === task.id ? { ...t, status, version: task.version + 1 } : t,
+      ),
     );
     try {
       await artifactCommand({
@@ -192,20 +172,24 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
         expectedVersion: task.version,
         status,
       });
-      setTasks((list) =>
-        list.map((t) =>
-          t.id === task.id ? { ...t, status, version: t.version + 1 } : t,
-        ),
-      );
+      reload();
       setAnnounce(`#${task.number} moved to ${taskStatusLabels[status]}.`);
     } catch (e) {
-      setTasks(before);
+      setTasks((list) => list.map((t) => (t.id === task.id ? task : t)));
       setAnnounce(
         e instanceof ApiError && e.code === 'CONFLICT'
           ? `#${task.number} changed elsewhere and was not moved. The board was refreshed.`
           : `#${task.number} was not moved: ${message(e, 'request failed')}`,
       );
-      if (e instanceof ApiError && e.code === 'CONFLICT') reload();
+      if (
+        e instanceof ApiError &&
+        ['CONFLICT', 'NOT_FOUND', 'FORBIDDEN', 'UNAUTHENTICATED'].includes(
+          e.code,
+        )
+      )
+        reload();
+    } finally {
+      moving.current.delete(task.id);
     }
   }
   const onDrop = (e: DragEvent, status: TaskStatusValue) => {
@@ -416,12 +400,12 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
       </div>
       <div className="relative flex min-h-0 flex-1">
         <div className="min-w-0 flex-1 overflow-auto px-5 pt-1 pb-[30px] max-sm:px-4">
-          {page?.error && loading === false ? (
+          {error && !loading ? (
             <ErrorBanner
               title="Tasks are unavailable"
               action={<Btn onClick={reload}>Retry</Btn>}
             >
-              {page.error}
+              {error}
             </ErrorBanner>
           ) : !data ? (
             <SkeletonLines widths={[60, 80, 70]} />
@@ -434,7 +418,7 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
                   return (
                     <section
                       key={status}
-                      aria-label={`${taskStatusLabels[status]} · ${items.length}`}
+                      aria-label={`${taskStatusLabels[status]} · ${items.length}${data.nextCursor ? ' loaded' : ''}`}
                       onDragOver={(e) => {
                         e.preventDefault();
                         if (over !== status) setOver(status);
@@ -453,7 +437,10 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
                         <h2 className="font-medium">
                           {taskStatusLabels[status]}
                         </h2>
-                        <span className="text-tx3">{items.length}</span>
+                        <span className="text-tx3">
+                          {items.length}
+                          {data.nextCursor ? ' loaded' : ''}
+                        </span>
                         <span className="flex-1" />
                         {canWrite &&
                         (status === 'TODO' || status === 'IN_PROGRESS') &&
@@ -521,7 +508,10 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
                   <div className="mt-2 flex h-[34px] items-center gap-[7px] rounded-md bg-card px-2.5 text-ctl">
                     <LiveStatusIcon status={status} />
                     <h2 className="font-medium">{taskStatusLabels[status]}</h2>
-                    <span className="text-tx3">{items.length}</span>
+                    <span className="text-tx3">
+                      {items.length}
+                      {data.nextCursor ? ' loaded' : ''}
+                    </span>
                   </div>
                   {creating === status ? (
                     <div className="py-1.5">{createForm(status)}</div>
@@ -565,10 +555,37 @@ export function LiveTasks({ project }: { project: ProjectDto }) {
               );
             })
           )}
+          {data ? (
+            <div
+              className="mt-4 flex flex-wrap items-center gap-3 text-xs text-tx3"
+              aria-busy={paging}
+            >
+              <p role="status">
+                {tasks.length} tasks loaded
+                {data.nextCursor
+                  ? ' · More tasks remain. Column counts show loaded tasks.'
+                  : ' · All matching tasks loaded.'}
+              </p>
+              {moreError ? (
+                <ErrorBanner title="More tasks could not be loaded">
+                  {moreError}
+                </ErrorBanner>
+              ) : null}
+              {data.nextCursor ? (
+                <Btn disabled={paging} onClick={() => void loadMore()}>
+                  {paging
+                    ? 'Loading tasks…'
+                    : moreError
+                      ? 'Retry loading tasks'
+                      : 'Load more tasks'}
+                </Btn>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {current ? (
           <TaskDetail
-            key={`${current.id}:${current.version}`}
+            key={current.id}
             project={project}
             task={current}
             page={data!}
@@ -706,6 +723,18 @@ function TaskDetail({
   // Sequential edits in this panel advance the concurrency token locally;
   // a change made elsewhere still fails with CONFLICT and reloads.
   const version = useRef(task.version);
+  const previous = useRef(task);
+  useEffect(() => {
+    const before = previous.current;
+    // Reconcile committed fields without closing an open menu or discarding
+    // text the user is still editing during the background refresh.
+    setTitle((value) => (value === before.title ? task.title : value));
+    setDescription((value) =>
+      value === before.description ? task.description : value,
+    );
+    version.current = task.version;
+    previous.current = task;
+  }, [task]);
   // Links do not change the task version; refetch after link edits.
   const [linksKey, setLinksKey] = useState(0);
   useEffect(() => {

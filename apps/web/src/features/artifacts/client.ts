@@ -21,7 +21,7 @@ import {
 } from '@atlas/core';
 import { ApiError } from '@/features/library/client';
 
-/** Error codes include NETWORK for requests that never reached the server. */
+/** NETWORK denotes an unconfirmed response; the request may already have committed. */
 async function call<T>(
   url: string,
   schema: z.ZodType<T>,

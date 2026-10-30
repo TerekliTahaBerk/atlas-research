@@ -247,6 +247,12 @@ export function DocEditor({
       liveRef.current?.onChange(e.getJSON());
     },
   });
+  // Tiptap's React options update preserves the current editable state;
+  // apply live recovery locks explicitly without rebuilding the editor.
+  const editable = live?.editable;
+  useLayoutEffect(() => {
+    if (editable !== undefined && editor) editor.setEditable(editable, false);
+  }, [editor, editable]);
   const place = useCallback(
     (kind: MenuKind, from: number, to: number, query: string) => {
       if (!editor) return;
