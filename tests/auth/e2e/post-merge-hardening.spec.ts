@@ -554,7 +554,9 @@ test('explicit recovery retains an uncertain draft and retries one committed rev
     content: otherContent,
   });
   await editor.fill('My retained research draft.');
-  await expect(page.getByText('Someone saved a newer revision')).toBeVisible();
+  await expect(
+    page.getByText('Someone saved a newer revision', { exact: true }),
+  ).toBeVisible();
   let release!: () => void;
   let started!: () => void;
   const gate = new Promise<void>((resolve) => {
