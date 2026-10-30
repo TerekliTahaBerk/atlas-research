@@ -1,5 +1,7 @@
 # System architecture
 
+Current implementation/activation evidence is indexed in the [A00 audit](phases/A00_REPOSITORY_HARDENING_REPORT.md). Phase sections below describe code boundaries; they do not certify hosted operation.
+
 ## Phase 04 implemented boundary
 
 `features/documents/server`, `features/tasks/server` and `features/artifacts/server` hold actor-scoped reads (documents, versions, export, tasks, milestones, participants, links, search, graph, mention options) and one command executor (`commands.ts`) that validates Tiptap JSON with the shared `@atlas/core` schema and calls fixed SQL commands (`atlas_private.mutate_artifacts` behind the existing `atlas_private.mutate` dispatcher). `features/ai/server/proposals.ts` derives read-only AI proposals. Live UI: `features/documents/live-documents.tsx` (reusing `DocEditor` in live mode), `features/tasks/live-tasks.tsx`, `features/graph/live-graph.tsx`, `features/artifacts/artifact-search.tsx`, `features/atlas-ai/proposal-review.tsx`. Core stays database-free. See [ADR 0017](decisions/0017-documents-tasks-artifact-links.md).
@@ -20,7 +22,7 @@ Web controllers validate and verify sessions, then call `features/platform/serve
 
 ## Decision and package boundaries
 
-One Next.js App Router application, a modular monolith with feature-oriented server services. Routes validate/authorize and call services; services own domain transactions and repository access. `ui` depends on React/Radix; `core` depends on Zod; `ai` is pure TypeScript contracts; `database` owns Prisma/Postgres. No domain imports UI, and no browser module imports database or server secrets. Phase 01 identity/tenant services are implemented as described above; research-domain services below remain planned.
+One Next.js App Router application, a modular monolith with feature-oriented server services. Routes validate/authorize and call services; services own domain transactions and repository access. `ui` depends on React/Radix; `core` depends on Zod; `ai` has pure TypeScript contracts plus a separate server provider entry point; `database` owns Prisma/Postgres. No domain imports UI, and no browser module imports database or server secrets. Phase 01 identity/tenant services are implemented as described above; Phase 02–04 research services are implemented as described above; communication and advanced execution remain planned.
 
 ```mermaid
 flowchart LR
@@ -32,7 +34,7 @@ flowchart LR
  Services --> Realtime[Supabase private Realtime]
  Services --> Jobs[Inngest durable jobs - future]
  Jobs --> DB
- Jobs --> Providers[Research and AI adapters - future]
+ Jobs --> Providers[Research and AI adapters]
 ```
 
 ```mermaid
@@ -106,7 +108,7 @@ flowchart LR
  Rights --> Queue[Private upload and asynchronous extraction]
 ```
 
-## Future AI and provenance
+## AI and provenance (local implementation; hosted activation gated)
 
 ```mermaid
 flowchart TD
@@ -147,7 +149,7 @@ Realtime is delivery, never the source of truth. A membership revocation removes
 
 Transactions: personal org/workspace/owner bootstrap; invitation consumption/membership creation; last-owner changes; project/owner creation; DOI upsert + project association; message + outbox; document version + current pointer; AI usage reservation + run record. Use unique keys to handle races, optimistic versions for editing, and row locks/serializable retry for last-owner changes.
 
-Asynchronous: PDF scanning/extraction, embeddings, search indexing, notification delivery, exports, AI processing. Inngest is the initial runner when needed. Write an outbox record in the owning transaction, dispatch after commit, and reconcile stuck rows. Event IDs are deduplication keys; versioned `(artifact, version, operation)` uniqueness makes worker retries safe. Retry transient faults with bounded exponential backoff/jitter; terminal failures preserve status and offer explicit retry. Never retry a paid generation after unknown completion without ledger reconciliation.
+Asynchronous: PDF scanning/extraction, embeddings, search indexing, notification delivery, exports, AI processing. The scanner/extractor broker protocols currently poll their SQL outboxes; Inngest remains a future runner choice. Write an outbox record in the owning transaction, dispatch after commit, and reconcile stuck rows. Event IDs are deduplication keys; versioned `(artifact, version, operation)` uniqueness makes worker retries safe. Retry transient faults with bounded exponential backoff/jitter; terminal failures preserve status and offer explicit retry. Never retry a paid generation after unknown completion without ledger reconciliation.
 
 ## Isolation and operations
 

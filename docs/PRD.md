@@ -1,5 +1,7 @@
 # Product requirements
 
+Current delivery state: see the [A00 capability/status matrix](phases/A00_REPOSITORY_HARDENING_REPORT.md#canonical-capabilitystatus-matrix). The journeys below are product requirements; Phase 01–04 services exist in `master`, with hosted activation blockers. Communication and advanced modules remain planned. Phase 00 descriptions refer only to the historical foundation and its preview.
+
 ## Positioning and scope
 
 Researchers currently lose source context when discovery, PDFs, notes, task lists, and conversations live in separate systems. Atlas preserves the relationships between these artifacts, helping individuals and teams trace a claim back to evidence and carry a question through research work.
@@ -20,7 +22,7 @@ Primary use cases: build a project library, read/annotate sources, write grounde
 
 ## Primary journey and recovery
 
-| Step                  | Expected behavior (future unless stated)                      | Failure                                     | Recovery                                                   |
+| Step                  | Expected behavior (see current status matrix)                 | Failure                                     | Recovery                                                   |
 | --------------------- | ------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
 | Register              | Verified Supabase identity, one linked profile                | Expired link, provider unavailable          | Resend with rate limit; clear retry state                  |
 | Create/join workspace | Personal bootstrap or scoped invitation                       | Duplicate request, revoked invite           | Idempotent transaction; fresh invitation                   |

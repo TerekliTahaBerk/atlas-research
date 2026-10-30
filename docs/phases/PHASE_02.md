@@ -1,5 +1,7 @@
 # Phase 02 — Research discovery and library
 
+Current repository capability classifications and hosted blockers: [A00 audit](A00_REPOSITORY_HARDENING_REPORT.md). This phase specification defines scope and acceptance requirements; historical checklists alone do not certify current activation.
+
 Status: implemented on the Phase 02 branch with disposable-environment evidence. **Not complete:** live provider access from the development session, hosted migration/Storage activation and a production malware scanner are external gates. See the [implementation report](PHASE_02_IMPLEMENTATION_REPORT.md).
 
 ## 1. Objective

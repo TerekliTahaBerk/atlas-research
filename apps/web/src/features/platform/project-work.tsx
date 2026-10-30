@@ -12,6 +12,10 @@ import { fetchDocuments, fetchTasks } from '@/features/artifacts/client';
 
 /** Project overview: the actor's authorized recent documents and open tasks. */
 export function ProjectWork({ project }: { project: ProjectDto }) {
+  return <ProjectWorkContent key={project.id} project={project} />;
+}
+
+function ProjectWorkContent({ project }: { project: ProjectDto }) {
   const [docs, setDocs] = useState<DocumentSummaryDto[] | null>(null);
   const [tasks, setTasks] = useState<TaskDto[] | null>(null);
   const [error, setError] = useState('');

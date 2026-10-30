@@ -1,19 +1,23 @@
 # Roadmap
 
+## A00 audit and A01 activation
+
+See the [canonical capability/status matrix and A00 evidence](phases/A00_REPOSITORY_HARDENING_REPORT.md). Phase 01–04 implementations are integrated into `master`; hosted Phase 02–04 activation remains blocked by migration-history/browser privileges, recovery verification and worker/provider gates. PR #11 (Phase 04 post-merge hardening) has since been merged into `master`. A01 requires the explicit target, approvals and verification sequence in the A00 report before any hosted changes.
+
 ## Phase 04 implementation update
 
 Phase 04 implementation and the Phase 04.1 hardening pass cover documents, versions, tasks, links, search and AI proposals, including archive-list restoration and progressive Board/List pagination. Actual verification and remaining gates are recorded in the [Phase 04 implementation report](phases/PHASE_04_IMPLEMENTATION_REPORT.md). Hosted activation remains blocked; Phase 05 planning can use stable artifact IDs and `mentioned_profile_ids` after reviewing that evidence. Phase 05 implementation is not part of this pass.
 
 ## Phase 03 implementation update
 
-Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are documented in the current Phase 04 report. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).
+Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are implemented locally and documented in the current Phase 04 report. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).
 
-Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundation and explicit local interaction demonstrations. Phases 01–07 are planned with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
+Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundation and explicit local interaction demonstrations. Phases 01–04 have local implementations; Phases 05–07 remain planned, with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
 
 0.5. UI/UX master foundation: semantic V2 themes, responsive navigation, contextual AI presentation and pickers, coherent module screens, auth/onboarding previews, visual/interaction QA. No backend services. See [delivery plan](phases/PHASE_00_5.md).
 
 1. Core platform: identity, personal organizations, workspace/project CRUD, invitations, permissions.
-2. Research discovery/library: provider adapters, normalization, lawful private files, reading and annotations. Implemented on the Phase 02 branch; live providers, hosted activation and a production scanner remain gates (see the Phase 02 report).
+2. Research discovery/library: provider adapters, normalization, lawful private files, reading and annotations. Integrated into `master`; live providers, hosted activation and a production scanner remain gates (see the Phase 02 report).
 3. AI research: extraction/chunks/embeddings, permission-scoped RAG, citation verification and usage ledger.
 4. Documents/tasks: versioned notes, assignments, typed artifact links and authorized search.
 5. Communication: channels, durable messages, private realtime, mentions/reactions/notifications.
