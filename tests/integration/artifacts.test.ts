@@ -1218,6 +1218,10 @@ describe.sequential('typed links, search, graph and AI proposals', () => {
     // Previewing writes nothing.
     expect((await getDocument(editor, docId)).revision).toBe(before);
     if (preview.type !== 'document.insert') throw new Error('unexpected');
+    // A02: generated text is labelled as AI interpretation inside the insert.
+    expect(JSON.stringify(preview.proposedContent[0])).toContain(
+      'Atlas AI draft — generated interpretation',
+    );
     // Another user cannot apply someone else's run; viewers cannot apply at all.
     for (const who of [owner, viewer])
       expect(
