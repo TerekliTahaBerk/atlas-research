@@ -4,7 +4,7 @@ Phase 00.5 makes the existing modular monolith a coherent research environment. 
 
 ## Vision and visual identity
 
-A calm research desk, organized around the question rather than administration. Warm ivory canvas, quiet neutral navigation, restrained forest actions, and a sage assistant compose the light theme. Charcoal, mineral neutrals, and pale green compose dark mode. System UI typography keeps controls familiar; Georgia introduces editorial hierarchy at welcome, paper titles, and reading moments. These local fonts require no network or font service. No external visual asset is loaded in the browser.
+A calm research desk, organized around the question rather than administration. Neutral white and soft-grey surfaces compose the light theme; neutral charcoal greys compose dark mode. A single indigo accent marks primary actions, AI affordances and selection, never large surfaces. Geist runs the interface, editorial titles and reading text; Lora appears only on rendered PDF pages. Fonts are self-hosted and require no network or font service. Token values live in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). No external visual asset is loaded in the browser.
 
 The generated [concept](design/phase-00-5-concept.png) defines the primary screen: a 230px rail, 60px contextual header, 42px content gutters at desktop, editorial welcome, sage composer, three research shortcuts, two continuation notes, project/task pair, and a connected-artifact footer. The implementation adds required filtering and preview disclosures. Original compass/Lucide iconography replaces the reference product’s identity. See [reference analysis](design/REFERENCE_ANALYSIS.md).
 
