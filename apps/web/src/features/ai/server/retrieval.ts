@@ -70,6 +70,13 @@ export async function retrieve(
         return [
           Prisma.sql`(c.source_version_id=${r.sourceVersionId}::uuid AND c.page=${r.pageNumber} AND strpos(c.text,${r.quote})>0)`,
         ];
+      // An annotation scopes retrieval to its own version and page. The anchor
+      // is re-read under RLS, so a hidden private annotation matches nothing.
+      if (r.kind === 'annotation')
+        return [
+          Prisma.sql`(c.source_version_id=${r.sourceVersionId}::uuid AND c.page=(SELECT (n.anchor->>'pageNumber')::int FROM paper_annotations n
+            WHERE n.id=${r.annotationId}::uuid AND n.source_version_id=${r.sourceVersionId}::uuid AND n.deleted_at IS NULL))`,
+        ];
       return [];
     });
     const allProject = !refs.length || refs.some((r) => r.kind === 'project');

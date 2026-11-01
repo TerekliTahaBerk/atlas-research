@@ -566,12 +566,40 @@ describe('source processing and real pgvector hybrid retrieval', () => {
       sourceVersionId: source,
       annotationId: note!,
     };
+    const scoped = await retrieve(owner, project, 'note', [ref]);
+    expect(scoped.some((e) => e.kind === 'annotation')).toBe(true);
+    // A02: the annotation also scopes indexed text to its own version/page,
+    // and never attaches other pages, versions or papers.
+    const passages = scoped.filter((e) => e.kind === 'full-text');
+    expect(passages.length).toBeGreaterThan(0);
     expect(
-      (await retrieve(owner, project, 'note', [ref])).some(
-        (e) => e.kind === 'annotation',
+      passages.every(
+        (e) =>
+          e.sourceVersionId === source &&
+          e.page === 1 &&
+          e.projectPaperId === paper,
       ),
     ).toBe(true);
     await expect(retrieve(viewer, project, 'note', [ref])).rejects.toThrow();
+    // A deleted annotation fails closed instead of widening the scope.
+    const live = await admin.paperAnnotation.findUniqueOrThrow({
+      where: { id: note! },
+    });
+    await executeResearchCommand(
+      owner,
+      {
+        command: 'annotation.delete',
+        id: note!,
+        expectedVersion: live.version,
+      },
+      randomUUID(),
+      {
+        async resolve() {
+          throw new Error('unused');
+        },
+      },
+    );
+    await expect(retrieve(owner, project, 'note', [ref])).rejects.toThrow();
   });
   it('treats embedding revisions as an explicit separate index', async () => {
     vi.stubEnv('ATLAS_AI_EMBEDDING_REVISION', 'v2');

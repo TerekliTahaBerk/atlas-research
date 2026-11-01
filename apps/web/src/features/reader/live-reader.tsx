@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   BookOpen,
   ChevronLeft,
+  FilePlus2,
   ChevronRight,
   Highlighter,
   Lock,
@@ -64,6 +65,12 @@ import {
   textPosition,
 } from './anchors';
 import { loadPdfEngine, openPdf, type PdfDocument } from './pdf-engine';
+import { requestData } from '@/features/platform/client';
+import {
+  SourceNoteDialog,
+  type SourceNoteEvidence,
+} from '@/features/documents/source-note-dialog';
+import { z } from 'zod';
 
 type PaperState =
   | { kind: 'loading' }
@@ -159,7 +166,11 @@ export function LiveReader({ project }: { project: ProjectDto }) {
     list: AnnotationDto[];
     error: string;
   } | null>(null);
-  const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
+  // A citation can open the reader on its annotation (an unknown or hidden
+  // ID simply matches nothing).
+  const [activeAnnotation, setActiveAnnotation] = useState<string | null>(() =>
+    params.get('annotation'),
+  );
   const [pending, setPending] = useState<Pending | null>(null);
   const [noteFor, setNoteFor] = useState<Pending | 'page' | null>(null);
   const [noteBody, setNoteBody] = useState('');
@@ -180,6 +191,13 @@ export function LiveReader({ project }: { project: ProjectDto }) {
   const textCache = useRef(new Map<number, string>());
   const [scale, setScale] = useState(1);
   const [columnWidth, setColumnWidth] = useState(0);
+  const [noteEvidence, setNoteEvidence] = useState<SourceNoteEvidence | null>(
+    null,
+  );
+  const [indexState, setIndexState] = useState<{
+    versionId: string;
+    state: string | null;
+  } | null>(null);
 
   // ---- paper and version selection (state derived from the request key)
   useEffect(() => {
@@ -223,6 +241,14 @@ export function LiveReader({ project }: { project: ProjectDto }) {
         paper?.sources.find((s) => s.state === 'READY')?.id ??
         null);
   const version = paper?.sources.find((s) => s.id === versionId) ?? null;
+  // A citation names one exact accepted version. If it is no longer readable
+  // the reader says so instead of silently showing a different version.
+  const requestedSource = params.get('source');
+  const citedVersionMissing =
+    !!paper &&
+    !!requestedSource &&
+    !chosenVersion &&
+    !paper.sources.some((s) => s.id === requestedSource && s.state === 'READY');
   const docKey = version ? `${version.id}:${docAttempt}` : '';
   const doc: DocState = !version
     ? { kind: 'idle' }
@@ -366,6 +392,49 @@ export function LiveReader({ project }: { project: ProjectDto }) {
     };
   }, [readyVersion, annotationRefresh]);
   const reloadAnnotations = () => setAnnotationRefresh((n) => n + 1);
+
+  // Metadata is not readable text: show whether Atlas has indexed this exact
+  // version. Absent a READY job, Atlas answers from bibliographic metadata.
+  useEffect(() => {
+    if (!readyVersion) return;
+    let active = true;
+    requestData(
+      `/api/v1/ai/status?projectId=${project.id}`,
+      z.array(
+        z.object({ sourceVersionId: z.uuid().nullable(), state: z.string() }),
+      ),
+    )
+      .then((jobs) => {
+        if (active)
+          setIndexState({
+            versionId: readyVersion,
+            state:
+              jobs.find((j) => j.sourceVersionId === readyVersion)?.state ??
+              null,
+          });
+      })
+      .catch(() => {
+        if (active)
+          setIndexState({ versionId: readyVersion, state: 'UNKNOWN' });
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id, readyVersion]);
+  const indexing =
+    indexState && indexState.versionId === readyVersion
+      ? indexState.state
+      : undefined;
+  const indexLabel =
+    indexing === undefined
+      ? 'Checking Atlas indexing…'
+      : indexing === 'READY'
+        ? 'Indexed for Atlas: answers can cite passages from this version.'
+        : indexing === 'UNKNOWN'
+          ? 'Indexing status unavailable.'
+          : indexing && ['QUEUED', 'RUNNING', 'RETRYABLE'].includes(indexing)
+            ? 'Indexing pending: Atlas uses bibliographic metadata until it finishes.'
+            : 'Not indexed: Atlas answers from bibliographic metadata only, not the PDF text.';
 
   // ---- outline
   useEffect(() => {
@@ -543,11 +612,11 @@ export function LiveReader({ project }: { project: ProjectDto }) {
     kind: 'HIGHLIGHT' | 'NOTE' | 'PAGE_NOTE',
     target: Pending | 'page',
     body?: string,
-  ) {
-    if (!version) return;
+  ): Promise<string | null> {
+    if (!version) return null;
     setSaving(true);
     try {
-      await runCommand({
+      const created = await runCommand({
         command: 'annotation.create',
         sourceVersionId: version.id,
         kind,
@@ -573,15 +642,84 @@ export function LiveReader({ project }: { project: ProjectDto }) {
       setNoteBody('');
       flash(kind === 'HIGHLIGHT' ? 'Highlight saved' : 'Note saved', 'done');
       reloadAnnotations();
+      return created.id;
     } catch (error) {
       flash(
         error instanceof Error
           ? error.message
           : 'The annotation was not saved.',
       );
+      return null;
     } finally {
       setSaving(false);
     }
+  }
+  /** Selected text becomes a saved highlight first: only stored anchors are citable. */
+  async function addSelectionToNote(target: Pending) {
+    if (!version || !paper) return;
+    const visibility = privateNote ? 'PRIVATE' : 'PROJECT';
+    const id = await createAnnotation('HIGHLIGHT', target);
+    if (!id) return;
+    setNoteEvidence({
+      paper: { id: paper.id, title: paper.title },
+      version: { id: version.id, ordinal: version.ordinal },
+      annotation: {
+        id,
+        page: target.anchor.pageNumber,
+        quote: target.anchor.quote,
+        body: null,
+        visibility,
+      },
+      page: target.anchor.pageNumber,
+    });
+  }
+  const annotationEvidence = (a: AnnotationDto): SourceNoteEvidence | null =>
+    paper && version && a.sourceVersionId === version.id
+      ? {
+          paper: { id: paper.id, title: paper.title },
+          version: { id: version.id, ordinal: version.ordinal },
+          annotation: {
+            id: a.id,
+            page: a.anchor.pageNumber,
+            quote: a.anchor.quote,
+            body: a.body,
+            visibility: a.visibility,
+          },
+          page: a.anchor.pageNumber,
+        }
+      : null;
+  const sourceEvidenceForPage = (): SourceNoteEvidence | null =>
+    paper
+      ? {
+          paper: { id: paper.id, title: paper.title },
+          version:
+            version?.state === 'READY'
+              ? { id: version.id, ordinal: version.ordinal }
+              : null,
+          annotation: null,
+          page: pdf ? page : null,
+        }
+      : null;
+  /** Exact, project-bound annotation context; the server reauthorizes it. */
+  function askAboutAnnotation(a: AnnotationDto) {
+    if (!paper) return;
+    atlas.ask({
+      mode: 'open',
+      chips: [
+        {
+          id: `annotation:${a.id}`,
+          kind: 'selection',
+          title: `p.${a.anchor.pageNumber} ${a.kind === 'HIGHLIGHT' ? 'highlight' : 'note'}${a.visibility === 'PRIVATE' ? ' (private)' : ''}`,
+          research: {
+            kind: 'annotation',
+            projectId: project.id,
+            projectPaperId: paper.id,
+            sourceVersionId: a.sourceVersionId,
+            annotationId: a.id,
+          },
+        },
+      ],
+    });
   }
   async function changeAnnotation(
     a: AnnotationDto,
@@ -753,21 +891,33 @@ export function LiveReader({ project }: { project: ProjectDto }) {
                 </div>
               </form>
             ) : canWrite && pdf ? (
-              <Btn
-                variant="outline"
-                size="md"
-                className="mb-3"
-                onClick={() => setNoteFor('page')}
-              >
-                <StickyNote aria-hidden="true" className="!size-3" />
-                Add a note to page {page}
-              </Btn>
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                <Btn
+                  variant="outline"
+                  size="md"
+                  onClick={() => setNoteFor('page')}
+                >
+                  <StickyNote aria-hidden="true" className="!size-3" />
+                  Add a note to page {page}
+                </Btn>
+                <Btn
+                  variant="outline"
+                  size="md"
+                  onClick={() => setNoteEvidence(sourceEvidenceForPage())}
+                >
+                  <FilePlus2 aria-hidden="true" className="!size-3" />
+                  Add source to research note
+                </Btn>
+              </div>
             ) : null}
             {annotations.length ? (
               annotations.map((a) => (
                 <AnnotationCard
                   key={a.id}
                   annotation={a}
+                  canWrite={canWrite}
+                  onAddToNote={() => setNoteEvidence(annotationEvidence(a))}
+                  onAsk={() => askAboutAnnotation(a)}
                   active={activeAnnotation === a.id}
                   onOpen={() => {
                     setActiveAnnotation(a.id);
@@ -854,13 +1004,63 @@ export function LiveReader({ project }: { project: ProjectDto }) {
               <Quote aria-hidden="true" className="!size-3" />
               Copy reference
             </Btn>
-            <p className="mt-3 text-[11.5px] text-tx3">
-              <Sparkles
-                aria-hidden="true"
-                className="mr-1 inline size-3 text-actx"
-              />
-              Atlas AI analysis of this paper arrives in Phase 03. No summary is
-              generated here.
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <Btn
+                variant="ai"
+                size="md"
+                onClick={() =>
+                  atlas.ask({
+                    mode: 'open',
+                    chips: [
+                      {
+                        id: `project-paper:${paper.id}`,
+                        kind: 'paper',
+                        title: paper.title,
+                        research: {
+                          kind: 'paper',
+                          projectId: project.id,
+                          projectPaperId: paper.id,
+                        },
+                      },
+                      ...(version?.state === 'READY'
+                        ? [
+                            {
+                              id: `source-version:${version.id}`,
+                              kind: 'paper' as const,
+                              title: `Version ${version.ordinal}`,
+                              research: {
+                                kind: 'source-version' as const,
+                                projectId: project.id,
+                                projectPaperId: paper.id,
+                                sourceVersionId: version.id,
+                              },
+                            },
+                          ]
+                        : []),
+                    ],
+                  })
+                }
+              >
+                <Sparkles aria-hidden="true" className="!size-3" />
+                Ask Atlas about this source
+              </Btn>
+              {canWrite ? (
+                <Btn
+                  variant="outline"
+                  size="md"
+                  onClick={() => setNoteEvidence(sourceEvidenceForPage())}
+                >
+                  <FilePlus2 aria-hidden="true" className="!size-3" />
+                  Add to research note
+                </Btn>
+              ) : null}
+            </div>
+            <p className="mt-2 text-[11.5px] text-tx3" role="status">
+              {version?.state === 'READY'
+                ? indexLabel
+                : 'No readable version: Atlas answers from bibliographic metadata only.'}{' '}
+              Atlas answers are provisional and cite only sources you can
+              access.
             </p>
           </div>
         ) : null}
@@ -1024,6 +1224,16 @@ export function LiveReader({ project }: { project: ProjectDto }) {
           <PanelRight aria-hidden="true" className="size-[15px]" />
         </IconBtn>
       </header>
+      {citedVersionMissing ? (
+        <p
+          role="status"
+          className="border-b border-bd2 bg-warns px-4 py-1.5 text-ctl text-warn"
+        >
+          The cited source version is no longer readable here. Showing{' '}
+          {version ? `version ${version.ordinal}` : 'no version'} instead; its
+          pages may differ from the citation.
+        </p>
+      ) : null}
       <div className="relative flex min-h-0 flex-1">
         {pagesOpen && pdf ? (
           <nav
@@ -1156,6 +1366,15 @@ export function LiveReader({ project }: { project: ProjectDto }) {
                     </button>
                     <button
                       type="button"
+                      disabled={saving}
+                      onClick={() => void addSelectionToNote(pending)}
+                      className="flex h-[26px] items-center gap-[5px] rounded-[5px] px-2 hover:bg-hov"
+                    >
+                      <FilePlus2 aria-hidden="true" className="size-3" />
+                      Add to research note
+                    </button>
+                    <button
+                      type="button"
                       onClick={() =>
                         void navigator.clipboard
                           ?.writeText(
@@ -1181,6 +1400,11 @@ export function LiveReader({ project }: { project: ProjectDto }) {
                               id: `project-paper:${state.paper.id}`,
                               kind: 'paper',
                               title: state.paper.title,
+                              research: {
+                                kind: 'paper' as const,
+                                projectId: project.id,
+                                projectPaperId: state.paper.id,
+                              },
                             },
                             {
                               id: `selection:${versionId}:${page}`,
@@ -1325,6 +1549,14 @@ export function LiveReader({ project }: { project: ProjectDto }) {
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
+        <SourceNoteDialog
+          open={!!noteEvidence}
+          onOpenChange={(open) => {
+            if (!open) setNoteEvidence(null);
+          }}
+          project={project}
+          evidence={noteEvidence}
+        />
       </div>
     </div>
   );
@@ -1333,11 +1565,17 @@ export function LiveReader({ project }: { project: ProjectDto }) {
 function AnnotationCard({
   annotation: a,
   active,
+  canWrite,
   onOpen,
   onChange,
+  onAddToNote,
+  onAsk,
 }: {
   annotation: AnnotationDto;
   active: boolean;
+  canWrite: boolean;
+  onAddToNote: () => void;
+  onAsk: () => void;
   onOpen: () => void;
   onChange: (
     a: AnnotationDto,
@@ -1423,8 +1661,32 @@ function AnnotationCard({
       ) : a.body ? (
         <p className="text-ctl whitespace-pre-wrap">{a.body}</p>
       ) : null}
+      {!editing ? (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {canWrite ? (
+            <Btn
+              variant="ghost"
+              size="xs"
+              aria-label={`Add p.${a.anchor.pageNumber} ${a.kind === 'HIGHLIGHT' ? 'highlight' : 'note'} to a research note`}
+              onClick={onAddToNote}
+            >
+              <FilePlus2 aria-hidden="true" className="!size-3" />
+              Add to note
+            </Btn>
+          ) : null}
+          <Btn
+            variant="aiGhost"
+            size="xs"
+            aria-label={`Ask Atlas about the p.${a.anchor.pageNumber} ${a.kind === 'HIGHLIGHT' ? 'highlight' : 'note'}`}
+            onClick={onAsk}
+          >
+            <Sparkles aria-hidden="true" className="!size-3" />
+            Ask Atlas
+          </Btn>
+        </div>
+      ) : null}
       {a.editable && !editing ? (
-        <div className="mt-1.5 flex gap-1">
+        <div className="mt-1 flex gap-1">
           <Btn variant="ghost" size="xs" onClick={() => setEditing(true)}>
             Edit
           </Btn>
