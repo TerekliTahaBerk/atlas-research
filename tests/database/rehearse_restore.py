@@ -41,14 +41,17 @@ def retarget(url, database):
     return urlunsplit(parts._replace(path='/' + database))
 
 
+def constraint_snapshot(url):
+    return json.loads(sql(url, "SELECT coalesce(json_agg(row(c.relname,k.conname,k.convalidated,pg_get_constraintdef(k.oid)) ORDER BY c.relname,k.conname),'[]'::json) FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid WHERE c.relnamespace='public'::regnamespace"))
+
+
 def snapshot(url):
     tables = json.loads(sql(url, "SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables WHERE schemaname='public'"))
     # Synthetic content fingerprints detect changed values even if counts match.
     counts = {name: sql(url, "SELECT count(*)::text || ':' || encode(sha256(convert_to(coalesce(string_agg(to_jsonb(t)::text, E'\\n' ORDER BY to_jsonb(t)::text),''),'UTF8')),'hex') FROM public.\"" + name.replace('"', '""') + '" t') for name in tables}
     history = sql(url, 'SELECT json_agg(row(migration_name,checksum,finished_at IS NOT NULL,rolled_back_at) ORDER BY migration_name) FROM public._prisma_migrations')
-    constraints = sql(url, "SELECT json_agg(row(c.relname,k.conname,k.convalidated,pg_get_constraintdef(k.oid)) ORDER BY c.relname,k.conname) FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid WHERE c.relnamespace='public'::regnamespace")
     policies = sql(url, "SELECT json_agg(row(tablename,policyname,roles,cmd,qual,with_check) ORDER BY tablename,policyname) FROM pg_policies WHERE schemaname='public'")
-    return counts, json.loads(history), json.loads(constraints), json.loads(policies)
+    return counts, json.loads(history or 'null'), constraint_snapshot(url), json.loads(policies or 'null')
 
 
 def main():
@@ -81,7 +84,7 @@ def main():
             # Use the SAME archive's schema-only roundtrip as the exact SQL
             # baseline, retaining source identities, validation and all FKs.
             run(['pg_restore', '--exit-on-error', '--schema-only', '--dbname', schema_target, str(dump)])
-        normalized = snapshot(schema_target)[2]
+        normalized = constraint_snapshot(schema_target)
         identities = lambda rows: [(row['f1'], row['f2'], row['f3']) for row in rows]
         if identities(expected[2]) != identities(normalized):
             raise RuntimeError('Constraint identity or validation changed during schema roundtrip')
