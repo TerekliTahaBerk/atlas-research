@@ -963,7 +963,9 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
     );
     // Quarantined/rejected versions cannot be annotated.
     const rejected = await admin.sourceVersion.findFirstOrThrow({
-      where: { state: 'REJECTED' },
+      // Existing restored fixtures may belong to a different actor/project.
+      // Select an authorized source to exercise the rejected-state guard.
+      where: { state: 'REJECTED', projectId: project },
     });
     expect(
       await failure(
