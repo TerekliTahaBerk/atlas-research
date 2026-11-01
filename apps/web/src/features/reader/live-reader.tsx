@@ -671,6 +671,7 @@ export function LiveReader({ project }: { project: ProjectDto }) {
         visibility,
       },
       page: target.anchor.pageNumber,
+      createdHighlight: true,
     });
   }
   const annotationEvidence = (a: AnnotationDto): SourceNoteEvidence | null =>

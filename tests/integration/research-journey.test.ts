@@ -808,3 +808,208 @@ describe.sequential('Journey C — failure recovery', () => {
     ).toBe(1);
   });
 });
+
+describe.sequential(
+  'Journey D — citation replay integrity (A02 hardening)',
+  () => {
+    let noteId: string;
+    const request = randomUUID();
+    const original = (): CiteInput => ({
+      command: 'document.cite-source',
+      projectId: project,
+      projectPaperId: paper.id,
+      sourceVersionId: v1,
+      annotationId: annotations.shared!,
+      target: { kind: 'existing', documentId: noteId, expectedRevision: 1 },
+      commentary: 'Original commentary.',
+      clientRequestId: request,
+    });
+    const versions = () =>
+      admin.documentVersion.findMany({
+        where: { documentId: noteId },
+        orderBy: { revision: 'asc' },
+        select: { revision: true, contentHash: true, authorId: true },
+      });
+    beforeAll(async () => {
+      noteId = (
+        await run(editor, {
+          command: 'document.create',
+          projectId: project,
+          title: 'Replay integrity note',
+          idempotencyKey: randomUUID(),
+        })
+      ).id;
+      expect((await run(editor, original())).revision).toBe(2);
+    });
+
+    it('confirms an identical retry, even after a newer revision exists, without a second insert', async () => {
+      const before = await versions();
+      expect(await run(editor, original())).toMatchObject({
+        id: noteId,
+        revision: 2,
+        replayed: true,
+      });
+      // A lost response retried after someone else's save is still confirmed.
+      const note = await getDocument(owner, noteId);
+      await run(owner, {
+        command: 'document.save',
+        id: noteId,
+        expectedRevision: note.revision,
+        clientRequestId: randomUUID(),
+        content: {
+          type: 'doc',
+          content: [
+            ...((note.content as DocNode).content ?? []),
+            { type: 'paragraph', content: [{ type: 'text', text: 'Later.' }] },
+          ],
+        },
+      });
+      expect(await run(editor, original())).toMatchObject({
+        revision: 2,
+        replayed: true,
+      });
+      const after = await versions();
+      expect(after.slice(0, 2)).toEqual(before);
+      expect(after).toHaveLength(3);
+      const citations = citationsOf(
+        (await getDocument(editor, noteId)).content,
+      );
+      expect(citations).toHaveLength(1);
+    });
+
+    it('rejects a reused request ID whose intent differs', async () => {
+      const altered: CiteInput[] = [
+        { ...original(), commentary: 'Different commentary.' },
+        { ...original(), commentary: '' },
+        { ...original(), annotationId: annotations.pageNote! },
+        { ...original(), annotationId: null },
+        { ...original(), sourceVersionId: null, annotationId: null },
+        {
+          ...original(),
+          target: { kind: 'existing', documentId: noteId, expectedRevision: 2 },
+        },
+      ];
+      for (const command of altered)
+        expect(
+          await failure(run(editor, command)),
+          JSON.stringify(command),
+        ).toBe('CONFLICT');
+      expect(await versions()).toHaveLength(3);
+    });
+
+    it('never replays another actor’s request and discloses nothing across projects', async () => {
+      // Same ID, same intent, different author: not this actor's request.
+      expect(await failure(run(owner, original()))).toBe('CONFLICT');
+      expect(await failure(run(viewer, original()))).toBe('NOT_FOUND');
+      expect(await failure(run(outsider, original()))).toBe('NOT_FOUND');
+      expect(
+        await failure(
+          run(outsider, {
+            ...original(),
+            projectId: otherProject,
+            projectPaperId: otherPaper.id,
+            sourceVersionId: null,
+            annotationId: null,
+          }),
+        ),
+      ).toBe('NOT_FOUND');
+      expect(await versions()).toHaveLength(3);
+    });
+
+    it('requires the same private-annotation consent on replay', async () => {
+      const privateRequest = randomUUID();
+      const note = (
+        await run(owner, {
+          command: 'document.create',
+          projectId: project,
+          title: 'Private replay note',
+          idempotencyKey: randomUUID(),
+        })
+      ).id;
+      const cite = (share: boolean): CiteInput => ({
+        command: 'document.cite-source',
+        projectId: project,
+        projectPaperId: paper.id,
+        sourceVersionId: v1,
+        annotationId: annotations.ownerPrivate!,
+        target: { kind: 'existing', documentId: note, expectedRevision: 1 },
+        sharePrivateAnnotation: share,
+        clientRequestId: privateRequest,
+      });
+      expect((await run(owner, cite(true))).revision).toBe(2);
+      expect(await run(owner, cite(true))).toMatchObject({ replayed: true });
+      expect(await failure(run(owner, cite(false)))).toBe('CONFLICT');
+    });
+  },
+);
+
+describe.sequential('Journey E — task token contract (A02 hardening)', () => {
+  it('commits consecutive tokens, conflicts on a reused one and never loses an update', async () => {
+    const { id } = await run(editor, {
+      command: 'task.create',
+      projectId: project,
+      title: 'Token contract task',
+      idempotencyKey: randomUUID(),
+    });
+    // Rapid priority → due date → assignee, each naming the previous version.
+    await run(editor, {
+      command: 'task.update',
+      id,
+      expectedVersion: 1,
+      priority: 'HIGH',
+    });
+    await run(editor, {
+      command: 'task.update',
+      id,
+      expectedVersion: 2,
+      dueDate: '2026-12-01',
+    });
+    await run(editor, {
+      command: 'task.assign',
+      id,
+      expectedVersion: 3,
+      assigneeId: editor.id,
+    });
+    const after = (await getTask(editor, id)).task;
+    expect(after).toMatchObject({
+      version: 4,
+      priority: 'HIGH',
+      dueDate: '2026-12-01',
+      assignee: { id: editor.id },
+    });
+    // The pre-fix client sent the assignment with the due date's token.
+    expect(
+      await failure(
+        run(editor, {
+          command: 'task.assign',
+          id,
+          expectedVersion: 3,
+          assigneeId: null,
+        }),
+      ),
+    ).toBe('CONFLICT');
+    // A concurrent external edit wins once; the stale writer conflicts.
+    await run(owner, {
+      command: 'task.update',
+      id,
+      expectedVersion: 4,
+      priority: 'LOW',
+    });
+    expect(
+      await failure(
+        run(editor, {
+          command: 'task.update',
+          id,
+          expectedVersion: 4,
+          priority: 'URGENT',
+        }),
+      ),
+    ).toBe('CONFLICT');
+    expect((await getTask(editor, id)).task).toMatchObject({
+      version: 5,
+      priority: 'LOW',
+      dueDate: '2026-12-01',
+      assignee: { id: editor.id },
+    });
+  });
+});

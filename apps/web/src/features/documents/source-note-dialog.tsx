@@ -41,6 +41,8 @@ export interface SourceNoteEvidence {
   } | null;
   /** Current page, shown only to explain what is (not) recorded. */
   page: number | null;
+  /** The highlight was created for this action from a text selection. */
+  createdHighlight?: boolean;
 }
 type Destination =
   | { kind: 'new'; title: string }
@@ -385,6 +387,12 @@ function SourceNoteForm({
             <p className="mt-1.5 text-[11.5px] text-tx3">
               Page {evidence.page} is not recorded: only highlights and page
               notes pin a verified page. Add one first to cite this page.
+            </p>
+          ) : null}
+          {evidence.createdHighlight ? (
+            <p className="mt-2 text-[11.5px] text-tx3" role="note">
+              The highlight was saved in the reader. Cancelling keeps it; you
+              can delete it from the notes panel.
             </p>
           ) : null}
           {privateQuote ? (
