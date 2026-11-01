@@ -1,4 +1,5 @@
 import { afterAll, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { createDatabase } from '../../packages/database/src/index';
 const url = process.env.ATLAS_TEST_ADMIN_URL;
 if (
@@ -8,7 +9,40 @@ if (
 )
   throw new Error('Disposable local Atlas test database required.');
 const admin = createDatabase(url);
+const gate = readFileSync(
+  new URL('../../ops/sql/a01-migration-history-gate.sql', import.meta.url),
+  'utf8',
+);
 afterAll(() => admin.$disconnect());
+it('passes the read-only security gate after the full migration chain', async () => {
+  await admin.$executeRawUnsafe(gate); // reviewed repository SQL, no external input
+});
+it.each(['column', 'inherited', 'public', 'defaults'])(
+  'fails closed on an independent %s privilege exposure',
+  async (kind) => {
+    await expect(
+      admin.$transaction(async (tx) => {
+        if (kind === 'inherited') {
+          await tx.$executeRaw`CREATE ROLE atlas_a01_inherited_probe NOLOGIN`;
+          await tx.$executeRaw`GRANT atlas_a01_inherited_probe TO authenticated`;
+          await tx.$executeRaw`GRANT TRUNCATE ON public._prisma_migrations TO atlas_a01_inherited_probe`;
+        }
+        if (kind === 'public')
+          await tx.$executeRaw`GRANT REFERENCES ON public._prisma_migrations TO PUBLIC`;
+        if (kind === 'defaults')
+          await tx.$executeRaw`ALTER DEFAULT PRIVILEGES GRANT USAGE ON SEQUENCES TO anon`;
+        // Table revocation removes direct column ACLs too, but cannot remove
+        // inherited ACLs or global defaults. New grants must also fail the gate.
+        await tx.$executeRaw`REVOKE ALL ON public._prisma_migrations FROM anon,authenticated`;
+        if (kind === 'column')
+          await tx.$executeRaw`GRANT SELECT(id) ON public._prisma_migrations TO anon`;
+        await tx.$executeRawUnsafe(gate);
+      }),
+    ).rejects.toThrow(/Unsafe effective/);
+    // An aborted transaction must remove all injected grants and probe roles.
+    await admin.$executeRawUnsafe(gate);
+  },
+);
 it('denies every effective browser privilege on migration history, including non-RLS privileges', async () => {
   expect(
     await admin.$queryRaw`SELECT rolname, p FROM pg_roles CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER','MAINTAIN']) p WHERE rolname IN ('anon','authenticated') AND has_table_privilege(rolname,'public._prisma_migrations',p)`,
