@@ -13,7 +13,10 @@ from uuid import uuid4
 def connection(name):
     value = os.environ[name]
     parsed = urlsplit(value)
-    if parsed.hostname not in ('127.0.0.1', 'localhost') or not parsed.path.startswith('/atlas_p01_test'):
+    if (parsed.scheme not in ('postgres', 'postgresql')
+            or parsed.hostname not in ('127.0.0.1', 'localhost')
+            or not parsed.path.startswith('/atlas_p01_test')
+            or parsed.query or parsed.fragment):
         raise ValueError('Explicit disposable loopback Atlas database required')
     return value
 
@@ -52,21 +55,40 @@ def main():
     source = connection('ATLAS_TEST_ADMIN_URL')
     runtime = connection('ATLAS_TEST_DATABASE_URL')
     worker = connection('ATLAS_TEST_AI_WORKER_URL')
-    if any(urlsplit(value).path != urlsplit(source).path for value in (runtime, worker)):
-        raise ValueError('All fixture connections must name the same database')
+    endpoint = lambda value: (urlsplit(value).hostname, urlsplit(value).port or 5432, urlsplit(value).path)
+    if any(endpoint(value) != endpoint(source) for value in (runtime, worker)):
+        raise ValueError('All fixture connections must name the same endpoint and database')
     if int(sql(source, 'SHOW server_version_num')) // 10000 != 17:
         raise ValueError('PostgreSQL 17 required')
     target_name = 'atlas_p01_test_restore_' + uuid4().hex
     target = retarget(source, target_name)
+    schema_name = target_name + '_schema'
+    schema_target = retarget(source, schema_name)
     started = time.monotonic()
     expected = snapshot(source)
-    sql(source, 'CREATE DATABASE ' + target_name)
+    created = []
     try:
+        for name in (target_name, schema_name):
+            sql(source, 'CREATE DATABASE ' + name)
+            created.append(name)
         with tempfile.TemporaryDirectory(prefix='atlas-a01-synthetic-') as directory:
             dump = Path(directory) / 'synthetic.dump'
             run(['pg_dump', '--dbname', source, '--format=custom', '--file', str(dump)])
             dump.chmod(0o600)
             run(['pg_restore', '--exit-on-error', '--dbname', target, str(dump)])
+            # PostgreSQL reparses CHECK expressions during restore: equivalent
+            # array casts and AND/OR nesting can deparse differently afterward.
+            # Use the SAME archive's schema-only roundtrip as the exact SQL
+            # baseline, retaining source identities, validation and all FKs.
+            run(['pg_restore', '--exit-on-error', '--schema-only', '--dbname', schema_target, str(dump)])
+        normalized = snapshot(schema_target)[2]
+        identities = lambda rows: [(row['f1'], row['f2'], row['f3']) for row in rows]
+        if identities(expected[2]) != identities(normalized):
+            raise RuntimeError('Constraint identity or validation changed during schema roundtrip')
+        for before, after in zip(expected[2], normalized):
+            if not before['f4'].startswith('CHECK ') and before != after:
+                raise RuntimeError('Non-CHECK constraint definition changed during schema roundtrip')
+        expected = (expected[0], expected[1], normalized, expected[3])
         actual = snapshot(target)
         if actual != expected:
             for label, before, after in zip(('table counts/content', 'migration history', 'constraints', 'RLS policies'), expected, actual):
@@ -89,7 +111,8 @@ def main():
         print(f'PASS: isolated synthetic DB restore; {len(expected[0])} table counts/content hashes, history checksums, constraints, policies, repeat deploy and integration suite; {time.monotonic()-started:.1f}s')
         print('LIMIT: same-cluster roles; no hosted Auth/Storage metadata or object bytes; not a hosted recovery proof')
     finally:
-        sql(source, 'DROP DATABASE ' + target_name)
+        for name in reversed(created):
+            sql(source, 'DROP DATABASE ' + name)
 
 
 if __name__ == '__main__':
