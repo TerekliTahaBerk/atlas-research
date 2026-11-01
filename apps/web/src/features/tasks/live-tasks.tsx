@@ -63,6 +63,7 @@ import {
 import { ARTIFACTS_CHANGED } from '@/features/atlas-ai/proposal-review';
 import { LivePriorityIcon, LiveStatusIcon } from './task-icons';
 import { useTaskPages } from './use-task-pages';
+import { useTaskMutations, type TaskView } from './use-task-mutations';
 
 const emptyTasks: TaskDto[] = [];
 const boardColumns: TaskStatusValue[] = [
@@ -653,7 +654,6 @@ function TaskWorkspace({ project }: { project: ProjectDto }) {
             canWrite={canWrite}
             onClose={() => open(null)}
             onChanged={reload}
-            onMove={(s) => void move(current, s)}
           />
         ) : null}
       </div>
@@ -764,7 +764,6 @@ function TaskDetail({
   canWrite,
   onClose,
   onChanged,
-  onMove,
 }: {
   project: ProjectDto;
   task: TaskDto;
@@ -772,18 +771,21 @@ function TaskDetail({
   canWrite: boolean;
   onClose: () => void;
   onChanged: () => void;
-  onMove: (status: TaskStatusValue) => void;
 }) {
   const flash = useToast();
+  // Every edit from this panel runs in one ordered lane with its own
+  // concurrency token; see use-task-mutations.ts.
+  const { run, view } = useTaskMutations({
+    task,
+    onChanged,
+    onFailure: flash,
+  });
   const [detail, setDetail] = useState<TaskDetailDto | null>(null);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [linkQuery, setLinkQuery] = useState('');
   const [options, setOptions] = useState<ArtifactOption[]>([]);
-  const editable = canWrite && !task.archived;
-  // Sequential edits in this panel advance the concurrency token locally;
-  // a change made elsewhere still fails with CONFLICT and reloads.
-  const version = useRef(task.version);
+  const editable = canWrite && !view.archived;
   const previous = useRef(task);
   useEffect(() => {
     const before = previous.current;
@@ -793,7 +795,6 @@ function TaskDetail({
     setDescription((value) =>
       value === before.description ? task.description : value,
     );
-    version.current = task.version;
     previous.current = task;
   }, [task]);
   // Links do not change the task version; refetch after link edits.
@@ -826,52 +827,65 @@ function TaskDetail({
       clearTimeout(timer);
     };
   }, [linkQuery, project.id, task.id]);
-  async function update(fields: Record<string, unknown>, label: string) {
-    try {
-      await artifactCommand({
-        command: 'task.update',
-        id: task.id,
-        expectedVersion: version.current,
-        ...fields,
-      });
-      version.current += 1;
-      onChanged();
-    } catch (e) {
-      flash(
-        e instanceof ApiError && e.code === 'CONFLICT'
-          ? `#${task.number} changed elsewhere; your ${label} change was not saved. Reloaded the latest version.`
-          : message(e, `Unable to update the ${label}.`),
-      );
-      onChanged();
-    }
+  function update(
+    fields: Partial<
+      Pick<
+        TaskView,
+        'title' | 'description' | 'priority' | 'milestoneId' | 'dueDate'
+      >
+    >,
+    label: string,
+  ) {
+    return run({
+      label,
+      fields,
+      send: (expectedVersion) =>
+        artifactCommand({
+          command: 'task.update',
+          id: task.id,
+          expectedVersion,
+          ...fields,
+        }),
+    });
   }
-  async function assign(assigneeId: string | null) {
-    try {
-      await artifactCommand({
-        command: 'task.assign',
-        id: task.id,
-        expectedVersion: version.current,
-        assigneeId,
-      });
-      version.current += 1;
-      onChanged();
-    } catch (e) {
-      flash(message(e, 'Only eligible project editors can be assigned.'));
-      onChanged();
-    }
+  function assign(assigneeId: string | null) {
+    const person = page.participants.find((p) => p.id === assigneeId);
+    return run({
+      label: 'assignee',
+      fields: {
+        assignee: assigneeId
+          ? { id: assigneeId, name: person?.name ?? null, state: 'ACTIVE' }
+          : null,
+      },
+      send: (expectedVersion) =>
+        artifactCommand({
+          command: 'task.assign',
+          id: task.id,
+          expectedVersion,
+          assigneeId,
+        }),
+    });
   }
-  async function lifecycle(command: 'task.archive' | 'task.restore') {
-    try {
-      await artifactCommand({
-        command,
-        id: task.id,
-        expectedVersion: version.current,
-      });
-      version.current += 1;
-      onChanged();
-    } catch (e) {
-      flash(message(e, 'That action failed.'));
-    }
+  function transition(status: TaskStatusValue) {
+    return run({
+      label: 'status',
+      fields: { status },
+      send: (expectedVersion) =>
+        artifactCommand({
+          command: 'task.transition',
+          id: task.id,
+          expectedVersion,
+          status,
+        }),
+    });
+  }
+  function lifecycle(command: 'task.archive' | 'task.restore') {
+    return run({
+      label: command === 'task.archive' ? 'archive' : 'restore',
+      fields: { archived: command === 'task.archive' },
+      send: (expectedVersion) =>
+        artifactCommand({ command, id: task.id, expectedVersion }),
+    });
   }
   async function link(o: ArtifactOption) {
     try {
@@ -916,7 +930,7 @@ function TaskDetail({
       flash(message(e, 'The milestone could not be created.'));
     }
   }
-  const milestone = page.milestones.find((m) => m.id === task.milestoneId);
+  const milestone = page.milestones.find((m) => m.id === view.milestoneId);
   const assignable = page.participants.filter((p) => p.assignable);
   return (
     <aside
@@ -926,17 +940,17 @@ function TaskDetail({
       <div className="flex items-center gap-1.5 border-b border-bd2 px-3 py-2.5">
         <span className="flex-1 font-mono text-[11.5px] text-tx3">
           #{task.number}
-          {task.archived ? ' · archived' : ''}
+          {view.archived ? ' · archived' : ''}
         </span>
         {canWrite ? (
           <IconBtn
-            label={task.archived ? 'Restore task' : 'Archive task'}
+            label={view.archived ? 'Restore task' : 'Archive task'}
             size="base"
             onClick={() =>
-              void lifecycle(task.archived ? 'task.restore' : 'task.archive')
+              void lifecycle(view.archived ? 'task.restore' : 'task.archive')
             }
           >
-            {task.archived ? (
+            {view.archived ? (
               <ArchiveRestore aria-hidden="true" className="size-[14px]" />
             ) : (
               <Archive aria-hidden="true" className="size-[14px]" />
@@ -976,14 +990,14 @@ function TaskDetail({
               <MenuTrigger asChild disabled={!editable}>
                 <button
                   type="button"
-                  aria-label={`Status: ${taskStatusLabels[task.status]}`}
+                  aria-label={`Status: ${taskStatusLabels[view.status]}`}
                   className="-ml-1.5 flex h-6 items-center gap-1.5 rounded-sm px-1.5 hover:bg-hov"
                 >
                   <LiveStatusIcon
-                    status={task.status}
+                    status={view.status}
                     className="size-[13px]"
                   />
-                  {taskStatusLabels[task.status]}
+                  {taskStatusLabels[view.status]}
                   {editable ? (
                     <ChevronDown
                       aria-hidden="true"
@@ -993,11 +1007,11 @@ function TaskDetail({
                 </button>
               </MenuTrigger>
               <MenuContent width={200} align="start">
-                {taskTransitions[task.status].map((s) => (
+                {taskTransitions[view.status].map((s) => (
                   <MenuItem
                     key={s}
                     icon={<LiveStatusIcon status={s} />}
-                    onSelect={() => onMove(s)}
+                    onSelect={() => void transition(s)}
                   >
                     {taskStatusLabels[s]}
                   </MenuItem>
@@ -1011,21 +1025,24 @@ function TaskDetail({
               <MenuTrigger asChild disabled={!editable}>
                 <button
                   type="button"
-                  aria-label={`Priority: ${taskPriorityLabels[task.priority]}`}
+                  aria-label={`Priority: ${taskPriorityLabels[view.priority]}`}
                   className="-ml-1.5 flex h-6 items-center gap-1.5 rounded-sm px-1.5 hover:bg-hov"
                 >
                   <LivePriorityIcon
-                    priority={task.priority}
+                    priority={view.priority}
                     className="size-[13px]"
                   />
-                  {taskPriorityLabels[task.priority]}
+                  {taskPriorityLabels[view.priority]}
                 </button>
               </MenuTrigger>
               <MenuContent width={200} align="start">
                 <MenuRadioGroup
-                  value={task.priority}
+                  value={view.priority}
                   onValueChange={(v) =>
-                    void update({ priority: v }, 'priority')
+                    void update(
+                      { priority: v as TaskPriorityValue },
+                      'priority',
+                    )
                   }
                 >
                   {taskPriorities.map((p) => (
@@ -1047,11 +1064,11 @@ function TaskDetail({
               <MenuTrigger asChild disabled={!editable}>
                 <button
                   type="button"
-                  aria-label={`Assignee: ${task.assignee?.name ?? (task.assignee ? 'former participant' : 'unassigned')}`}
+                  aria-label={`Assignee: ${view.assignee?.name ?? (view.assignee ? 'former participant' : 'unassigned')}`}
                   className="-ml-1.5 flex h-6 items-center gap-1.5 rounded-sm px-1.5 hover:bg-hov"
                 >
-                  {task.assignee
-                    ? (task.assignee.name ??
+                  {view.assignee
+                    ? (view.assignee.name ??
                       'Former participant (access removed)')
                     : 'Unassigned'}
                 </button>
@@ -1059,7 +1076,7 @@ function TaskDetail({
               <MenuContent width={240} align="start">
                 <MenuLabel>Eligible project editors</MenuLabel>
                 <MenuRadioGroup
-                  value={task.assignee?.id ?? 'none'}
+                  value={view.assignee?.id ?? 'none'}
                   onValueChange={(v) => void assign(v === 'none' ? null : v)}
                 >
                   <MenuRadioItem value="none">Unassigned</MenuRadioItem>
@@ -1102,7 +1119,7 @@ function TaskDetail({
               </MenuTrigger>
               <MenuContent width={240} align="start">
                 <MenuRadioGroup
-                  value={task.milestoneId ?? 'none'}
+                  value={view.milestoneId ?? 'none'}
                   onValueChange={(v) =>
                     void update(
                       { milestoneId: v === 'none' ? null : v },
