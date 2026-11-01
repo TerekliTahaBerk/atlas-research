@@ -54,10 +54,18 @@ function CitationView({ node }: ReactNodeViewProps) {
       </NodeViewWrapper>
     );
   const page = typeof node.attrs.page === 'number' ? node.attrs.page : null;
-  const href =
-    node.attrs.sourceVersionId && page
-      ? `/app/projects/${refs.projectId}/reader?paper=${ref.id}&source=${String(node.attrs.sourceVersionId)}&page=${page}`
-      : ref.href;
+  // A02: open the exact cited version, page and annotation when recorded;
+  // a version-only citation opens that version without inventing a page.
+  const href = node.attrs.sourceVersionId
+    ? `/app/projects/${refs.projectId}/reader?${new URLSearchParams({
+        paper: String(ref.id),
+        source: String(node.attrs.sourceVersionId),
+        ...(page ? { page: String(page) } : {}),
+        ...(node.attrs.annotationId
+          ? { annotation: String(node.attrs.annotationId) }
+          : {}),
+      }).toString()}`
+    : ref.href;
   const label = `${ref.detail ?? ref.title}${page ? `, p. ${page}` : ''}`;
   return (
     <NodeViewWrapper as="span" className="mx-px">

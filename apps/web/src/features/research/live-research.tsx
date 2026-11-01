@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -44,6 +45,7 @@ import { useToast } from '@/components/atlas/toast';
 import { useAtlas } from '@/features/atlas-ai/atlas-provider';
 import { AtlasAnchor } from '@/features/atlas-ai/atlas-surface';
 import { Crumb, Topbar } from '@/features/shell/topbar';
+import { usePlatform } from '@/features/platform/platform-context';
 import {
   ApiError,
   runCommand,
@@ -94,6 +96,37 @@ type Status =
   | { kind: 'done'; result: ScholarlySearchResponse };
 
 /**
+ * A02: the last search of this tab, kept in memory only (never URL or
+ * browser storage) and bound to one actor and project. Returning from the
+ * library or reader restores it without re-querying rate-limited providers;
+ * a reload, sign-out or project switch starts clean.
+ */
+type SearchSnapshot = {
+  key: string;
+  question: string;
+  asked: string;
+  filters: Filters;
+  items: NormalizedPaper[];
+  saved: Record<string, string>;
+  result: ScholarlySearchResponse;
+};
+let lastSearch: SearchSnapshot | null = null;
+const restoreSearch = (key: string) =>
+  lastSearch?.key === key ? lastSearch : null;
+const rememberSearch = (snapshot: SearchSnapshot) => {
+  lastSearch = snapshot;
+};
+const defaultFilters: Filters = {
+  providers: { openalex: true, 'semantic-scholar': true },
+  year: 'Any time',
+  openAccess: false,
+  field: 'any',
+  author: '',
+  citations: 'Any citations',
+  sort: 'relevance',
+};
+
+/**
  * Live scholarly discovery: real provider metadata through the authorized
  * project search API. Nothing here is generated; missing fields stay missing.
  */
@@ -103,26 +136,31 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
   const { setContext } = atlas;
   const questionId = useId();
   const canWrite = project.capabilities.includes('project.write');
-  const [question, setQuestion] = useState('');
-  const [asked, setAsked] = useState('');
-  const [filters, setFilters] = useState<Filters>({
-    providers: { openalex: true, 'semantic-scholar': true },
-    year: 'Any time',
-    openAccess: false,
-    field: 'any',
-    author: '',
-    citations: 'Any citations',
-    sort: 'relevance',
-  });
-  const [status, setStatus] = useState<Status>({ kind: 'idle' });
-  const [items, setItems] = useState<NormalizedPaper[]>([]);
-  const [saved, setSaved] = useState<Record<string, string>>({});
+  const router = useRouter();
+  const actorId = usePlatform().profile?.id ?? '';
+  const snapshotKey = `${actorId}:${project.id}`;
+  const [restored] = useState(() => restoreSearch(snapshotKey));
+  const [question, setQuestion] = useState(restored?.question ?? '');
+  const [asked, setAsked] = useState(restored?.asked ?? '');
+  const [filters, setFilters] = useState<Filters>(
+    restored?.filters ?? defaultFilters,
+  );
+  const [status, setStatus] = useState<Status>(
+    restored ? { kind: 'done', result: restored.result } : { kind: 'idle' },
+  );
+  const [items, setItems] = useState<NormalizedPaper[]>(restored?.items ?? []);
+  const [saved, setSaved] = useState<Record<string, string>>(
+    restored?.saved ?? {},
+  );
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
   const [detail, setDetail] = useState<NormalizedPaper | null>(null);
   const controller = useRef<AbortController | null>(null);
+  // One idempotency key per paper until its save is confirmed, so a retry
+  // after a lost response replays instead of issuing a new request.
+  const saveKeys = useRef<Partial<Record<string, string>>>({});
 
   const request = useCallback(
     (q: string, filters: Filters, cursor?: string): SearchParams => {
@@ -188,6 +226,18 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
   }
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
+    if (status.kind !== 'done' || !asked) return;
+    rememberSearch({
+      key: snapshotKey,
+      question,
+      asked,
+      filters,
+      items,
+      saved,
+      result: status.result,
+    });
+  }, [snapshotKey, question, asked, filters, items, saved, status]);
+  useEffect(() => {
     setContext(
       detail
         ? [
@@ -238,13 +288,16 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
   async function save(paper: NormalizedPaper) {
     if (saving[paper.candidateId] || saved[paper.candidateId]) return;
     setSaving((s) => ({ ...s, [paper.candidateId]: true }));
+    const key = saveKeys.current[paper.candidateId] ?? crypto.randomUUID();
+    saveKeys.current[paper.candidateId] = key;
     try {
       const result = await runCommand({
         command: 'paper.save',
         projectId: project.id,
         ...saveIdentity(paper),
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: key,
       });
+      delete saveKeys.current[paper.candidateId];
       // Shown as saved only after the server confirmed the transaction.
       setSaved((s) => ({ ...s, [paper.candidateId]: result.id }));
       flash(
@@ -283,10 +336,7 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <Topbar
         actions={
-          <Btn
-            variant="secondary"
-            onClick={() => (window.location.href = libraryHref())}
-          >
+          <Btn variant="secondary" onClick={() => router.push(libraryHref())}>
             Open library
           </Btn>
         }

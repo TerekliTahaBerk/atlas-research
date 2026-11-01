@@ -143,7 +143,48 @@ function TaskWorkspace({ project }: { project: ProjectDto }) {
   const canWrite =
     data?.capabilities.includes('task.edit') ??
     project.capabilities.includes('project.write');
-  const current = tasks.find((t) => t.id === selectedId) ?? null;
+  // A02: a link from a note or paper may name a task outside the loaded
+  // pages or the active filters; read that one task directly.
+  const listed = tasks.find((t) => t.id === selectedId) ?? null;
+  const [direct, setDirect] = useState<{
+    id: string;
+    task: TaskDto | null;
+    unavailable: boolean;
+  } | null>(null);
+  const needsDirect = !!selectedId && !!data && !loading && !listed;
+  useEffect(() => {
+    if (!needsDirect || !selectedId) return;
+    let active = true;
+    fetchTask(selectedId)
+      .then(
+        (d) =>
+          active &&
+          setDirect({ id: selectedId, task: d.task, unavailable: false }),
+      )
+      .catch(
+        (e: unknown) =>
+          active &&
+          setDirect({
+            id: selectedId,
+            task: null,
+            unavailable: e instanceof ApiError && e.code === 'NOT_FOUND',
+          }),
+      );
+    return () => {
+      active = false;
+    };
+  }, [needsDirect, selectedId, data]);
+  const current =
+    listed ??
+    (direct?.id === selectedId && direct.task?.projectId === project.id
+      ? direct.task
+      : null);
+  const directFailure =
+    needsDirect && direct?.id === selectedId && !direct.task
+      ? direct.unavailable
+        ? 'This task is unavailable. It may have been removed, or you may no longer have access.'
+        : 'This task could not be loaded. Check your connection and retry.'
+      : '';
   const open = (id: string | null) =>
     router.replace(
       `/app/projects/${project.id}/tasks${id ? `?task=${id}` : ''}`,
@@ -583,6 +624,26 @@ function TaskWorkspace({ project }: { project: ProjectDto }) {
             </div>
           ) : null}
         </div>
+        {directFailure ? (
+          <aside
+            aria-label="Task details"
+            className="w-[360px] shrink-0 border-l border-bd2 bg-canvas p-5 max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-40 max-md:w-full"
+          >
+            <p role="status" className="mb-3 text-ctl text-tx2">
+              {directFailure}
+            </p>
+            <div className="flex gap-1.5">
+              {!direct?.unavailable ? (
+                <Btn variant="outline" size="md" onClick={reload}>
+                  Retry
+                </Btn>
+              ) : null}
+              <Btn variant="outline" size="md" onClick={() => open(null)}>
+                Close
+              </Btn>
+            </div>
+          </aside>
+        ) : null}
         {current ? (
           <TaskDetail
             key={current.id}
