@@ -81,7 +81,12 @@ jobs:
       - name: Fail closed on effective migration-history access
         run: psql "$DIRECT_URL" -X -v ON_ERROR_STOP=1 -f ops/sql/a01-migration-history-gate.sql
       - name: Rehearse synthetic database restore and application authorization
-        run: python3 tests/database/rehearse_restore.py
+        run: |
+          if [ ! -x /usr/lib/postgresql/17/bin/pg_dump ]; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y postgresql-client-17
+          fi
+          PATH="/usr/lib/postgresql/17/bin:$PATH" python3 tests/database/rehearse_restore.py
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

@@ -26,8 +26,7 @@ def run(args, env=None):
 
 
 def sql(url, statement):
-    env = {**os.environ, 'PGDATABASE': url}
-    return run(['psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', statement], env)
+    return run(['psql', '--dbname', url, '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', statement])
 
 
 def retarget(url, database):
@@ -60,7 +59,7 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix='atlas-a01-synthetic-') as directory:
             dump = Path(directory) / 'synthetic.dump'
-            run(['pg_dump', '--format=custom', '--file', str(dump)], {**os.environ, 'PGDATABASE': source})
+            run(['pg_dump', '--dbname', source, '--format=custom', '--file', str(dump)])
             dump.chmod(0o600)
             run(['pg_restore', '--exit-on-error', '--dbname', target, str(dump)])
         if snapshot(target) != expected:
