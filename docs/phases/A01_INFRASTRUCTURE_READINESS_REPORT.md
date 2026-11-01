@@ -1,5 +1,7 @@
 # A01 infrastructure readiness
 
+**Later evidence, 1 November 2026 at 18:32 UTC:** the [dated hosted verification checklist](../operations/A01_HOSTED_ACTIVATION_2026-11-01.md) records ACTIVE_HEALTHY status and fresh read-only G1 checks. The infrastructure inventory below preserves its earlier observation time; it must not override that newer evidence. G1 remains open pending valid-session authenticated HTTP denial; no hosted export or mutation is authorized.
+
 Evidence date: **1 November 2026 (Europe/Istanbul)**. Scope: local implementation, disposable verification, read-only Atlas project/organization metadata and GitHub CI. No hosted database queries, exports, remediation, migrations, resource provisioning, environment changes, provider credentials or paid requests were performed. No deployment command was invoked. The existing Vercel Git integration automatically started a preview build when the requested PR was pushed; this external activity is not evidence of approved live deployment or production activation.
 
 ## 1. Executive summary
