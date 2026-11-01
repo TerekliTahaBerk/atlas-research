@@ -25,8 +25,18 @@ def run(args, env=None):
     # No raw connection errors/credentials in CI diagnostics.
     result = subprocess.run(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode:
+        if args == ['pnpm', 'test:integration']:
+            # This suite is restricted to synthetic loopback fixtures. Retain
+            # normal assertion diagnostics, with all configured secrets/URLs
+            # and any remaining PostgreSQL URI removed before output.
+            diagnostic = result.stdout + result.stderr
+            for key, value in (env or {}).items():
+                if value and (re.search(r'KEY|SECRET|PASSWORD|TOKEN|URL', key)):
+                    diagnostic = diagnostic.replace(value, '[REDACTED]')
+            diagnostic = re.sub(r'postgres(?:ql)?://[^\s\'\"]+', '[REDACTED_CONNECTION]', diagnostic)
+            print(diagnostic, flush=True)
         # File paths only: never print connection strings or fixture contents.
-        for path in sorted(set(re.findall(r'FAIL\s+(tests/integration/[\w./-]+)', re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)))):
+        for path in sorted(set(re.findall(r'FAIL\s+(tests/integration/[\w./-]+)', re.sub(r'\x1b\[[0-9;]*m', '', result.stdout + result.stderr)))):
             print('Failed restored integration file:', path, flush=True)
         raise RuntimeError(f'{args[0]} failed (exit {result.returncode}); inspect the disposable target privately')
     return result.stdout.strip()
