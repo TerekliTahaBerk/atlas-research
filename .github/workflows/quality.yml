@@ -69,6 +69,7 @@ jobs:
       - run: pnpm test
       - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/scanner -v
       - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/extractor -v
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/database -v
       - name: Reproduce Supabase browser defaults on the disposable database
         run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon,authenticated;'
       - run: pnpm --filter @atlas/database exec prisma migrate deploy
@@ -87,7 +88,7 @@ jobs:
             # Use the official signed PGDG repository, client tools only.
             sudo install -d /usr/share/postgresql-common/pgdg
             sudo curl --fail --silent --show-error --location https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-            gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | rg --quiet B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+            gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | grep --fixed-strings --quiet B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
             . /etc/os-release
             printf 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt %s-pgdg main\n' "$VERSION_CODENAME" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
             sudo apt-get update
