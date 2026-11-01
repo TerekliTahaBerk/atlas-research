@@ -88,6 +88,13 @@ export interface LiveEditorConfig {
   rememberPerson: (person: ParticipantDto) => void;
   /** Hands selected text to Atlas as a visible, user-editable prompt draft. */
   askAbout: (selection: string) => void;
+  /** A02: opens the confirmed “Create research task” dialog. */
+  createTask?: (selection: string) => void;
+  /**
+   * A02: exposes the editor so a confirmed action can add a reference
+   * through normal editing and autosave — never a hidden server write.
+   */
+  bindEditor?: (editor: Editor | null) => void;
 }
 const liveExtensions = () => [
   StarterKit.configure({
@@ -253,6 +260,12 @@ export function DocEditor({
   useLayoutEffect(() => {
     if (editable !== undefined && editor) editor.setEditable(editable, false);
   }, [editor, editable]);
+  const bindEditor = live?.bindEditor;
+  useEffect(() => {
+    if (!bindEditor) return;
+    bindEditor(editor);
+    return () => bindEditor(null);
+  }, [bindEditor, editor]);
   const place = useCallback(
     (kind: MenuKind, from: number, to: number, query: string) => {
       if (!editor) return;
@@ -507,6 +520,21 @@ export function DocEditor({
             atlas.ask({ mode: 'open' });
           },
         },
+        ...(live?.createTask
+          ? [
+              {
+                id: 'create-task',
+                group: 'References',
+                label: 'Create research task',
+                sub: 'confirm first',
+                icon: ListPlus,
+                run: (e: Editor) => {
+                  e.chain().focus().deleteRange(range).run();
+                  live.createTask?.('');
+                },
+              },
+            ]
+          : []),
       ];
       return all.filter(
         (b) => !q || b.label.toLowerCase().includes(q) || b.id.includes(q),
@@ -962,6 +990,19 @@ export function DocEditor({
         <ToolbarBtn label="Comment" onClick={onOpenComments}>
           <MessageSquarePlus aria-hidden="true" />
         </ToolbarBtn>
+        {live?.createTask ? (
+          <ToolbarBtn
+            label="Create research task"
+            onClick={() => {
+              const { from, to } = editor.state.selection;
+              live.createTask?.(
+                editor.state.doc.textBetween(from, to, ' ').slice(0, 2000),
+              );
+            }}
+          >
+            <ListPlus aria-hidden="true" />
+          </ToolbarBtn>
+        ) : null}
         <span aria-hidden="true" className="mx-[3px] h-[18px] w-px bg-bd" />
         <button
           type="button"
