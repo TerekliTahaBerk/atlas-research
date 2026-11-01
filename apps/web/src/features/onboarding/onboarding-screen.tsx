@@ -217,7 +217,7 @@ export function OnboardingScreen({
       <header className="flex items-center gap-3.5 px-5 py-4">
         <span
           aria-hidden="true"
-          className="grid size-[22px] place-items-center rounded-[5px] bg-acb font-serif text-base font-semibold text-white"
+          className="grid size-[22px] place-items-center rounded-[5px] bg-acb font-serif tracking-[-0.02em] text-base font-semibold text-white"
         >
           A
         </span>
@@ -259,7 +259,7 @@ export function OnboardingScreen({
           <div className="tnum mb-2.5 text-xs text-tx3">
             Step {step + 1} of 7
           </div>
-          <h1 className="mb-2.5 font-serif text-[44px] leading-[1.05] font-medium text-balance max-sm:text-[34px]">
+          <h1 className="mb-2.5 font-serif tracking-[-0.02em] text-[44px] leading-[1.05] font-semibold text-balance max-sm:text-[34px]">
             {s.title}
           </h1>
           <p className="mb-7 max-w-[540px] text-sm text-tx2">{s.sub}</p>

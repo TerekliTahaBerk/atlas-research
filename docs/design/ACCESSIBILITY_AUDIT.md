@@ -26,7 +26,7 @@ An initial scan caught a tooltip during its exit animation (transient opacity ca
 
 ## Contrast and design tokens
 
-The existing token audit checks the stylesheet against its documented table and calculates contrast pairs. White filled-button text uses `--acb` (`#2b7d46` dark / `#2d7f48` light), rather than the handoff accent that yielded roughly 3.5:1. Foreground/hover/meta/AI-input, danger/warning, green text and PDF ink pairs retain their AA adjustments. **PASS** for all audited pairs in the final unit suite. The handoff accent remains a non-text accent; focus indicators use its 3:1 audit. Do not revert accessible token adjustments to gain a closer pixel match.
+The existing token audit checks the stylesheet against its documented table and calculates contrast pairs. White filled-button text uses `--acb` (`#5a67cf` dark / `#5e6ad2` light); white on the dark-theme prototype indigo `#6c79e0` is only 3.9:1. Foreground/hover/meta/popover/AI-input, danger/warning, accent text, code-comment and PDF ink pairs retain their AA adjustments (see [ADR 0018](../decisions/0018-neutral-indigo-design-system.md) for the neutral/indigo token set). **PASS** for all audited pairs in the final unit suite. The handoff accent remains a non-text accent; focus indicators use its 3:1 audit. Do not revert accessible token adjustments to gain a closer pixel match.
 
 A token check cannot prove every composited color pair. B08 illustrates why opacity and whole rendered states also need inspection. Graph edges are decorative; node buttons expose label, kind, link count and selected state, with a linked-items inspector as the meaningful accessible representation.
 

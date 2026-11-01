@@ -217,7 +217,7 @@ export function ReaderScreen() {
         >
           <ArrowLeft aria-hidden="true" className="size-4" />
         </IconBtn>
-        <h1 className="max-w-[220px] truncate font-serif text-base">
+        <h1 className="max-w-[220px] truncate font-serif tracking-[-0.02em] text-base">
           {paper.short}
         </h1>
         <span className="flex-1" />
@@ -355,7 +355,7 @@ export function ReaderScreen() {
                         className={cn(
                           'rounded-[0.3cqw] text-inherit transition-colors duration-300',
                           cited
-                            ? 'animate-atlas-ring bg-[rgb(50_154_83/0.32)] outline-[0.3cqw] outline-[rgb(50_154_83/0.7)] outline-solid'
+                            ? 'animate-atlas-ring bg-[rgb(108_121_224/0.32)] outline-[0.3cqw] outline-[rgb(108_121_224/0.7)] outline-solid'
                             : '',
                         )}
                         style={
@@ -373,7 +373,7 @@ export function ReaderScreen() {
                       </mark>
                       , while lDDT drops by 1.2 points on average across long
                       CASP14 targets.{' '}
-                      <mark className="bg-[rgb(50_154_83/0.25)] text-inherit">
+                      <mark className="bg-[rgb(108_121_224/0.25)] text-inherit">
                         All measurements use batch size 1 and bfloat16
                         activations.
                       </mark>

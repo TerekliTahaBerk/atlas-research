@@ -107,7 +107,7 @@ export function ExperimentsScreen() {
               Table 1 · main.tex
             </InlineRef>
           </div>
-          <h1 className="mb-2 font-serif text-[34px] leading-[1.1] font-medium">
+          <h1 className="mb-2 font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold">
             Block size sweep
           </h1>
           <p className="mb-[26px] font-read text-[15px] leading-[1.7] text-tx2">
@@ -350,7 +350,7 @@ export function ExperimentsScreen() {
                   ) : null}
                   {cell.kind === 'md' ? (
                     <div className="px-0.5 py-1.5">
-                      <h2 className="mb-1 font-serif text-[22px] font-medium">
+                      <h2 className="mb-1 font-serif tracking-[-0.02em] text-[22px] font-semibold">
                         {cell.heading}
                       </h2>
                       <p className="font-read text-[14.5px] leading-[1.7] text-tx2">

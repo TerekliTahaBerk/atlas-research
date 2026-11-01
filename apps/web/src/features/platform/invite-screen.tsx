@@ -12,7 +12,9 @@ export function InviteScreen({ signedIn }: { signedIn: boolean }) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-canvas p-6 text-tx">
       <div className="w-full max-w-[420px]">
-        <h1 className="mb-3 font-serif text-4xl">Join your research team</h1>
+        <h1 className="mb-3 font-serif tracking-[-0.02em] text-4xl">
+          Join your research team
+        </h1>
         <p role="status" className="mb-6 text-ui text-tx2">
           {message}
         </p>

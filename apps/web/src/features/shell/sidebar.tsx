@@ -172,7 +172,7 @@ function PreviewSidebar({
             >
               <span
                 aria-hidden="true"
-                className="grid size-5 shrink-0 place-items-center rounded-[5px] bg-acb font-serif text-[15px] leading-none font-semibold text-white"
+                className="grid size-5 shrink-0 place-items-center rounded-[5px] bg-acb font-serif tracking-[-0.02em] text-[15px] leading-none font-semibold text-white"
               >
                 A
               </span>

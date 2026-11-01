@@ -32,7 +32,9 @@ export function EmptyState({
       <span className="grid size-11 place-items-center rounded-xl bg-el text-tx2">
         <Icon aria-hidden="true" className="size-5" />
       </span>
-      <Heading className="font-serif text-[22px]">{title}</Heading>
+      <Heading className="font-serif tracking-[-0.02em] text-[22px]">
+        {title}
+      </Heading>
       <p className="max-w-[360px] text-ctl text-tx3">{description}</p>
       {children ? (
         <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">

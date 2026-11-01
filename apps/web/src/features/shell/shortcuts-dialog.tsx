@@ -47,7 +47,7 @@ export function ShortcutsDialog({
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent className="max-h-[calc(100vh-48px)] w-[min(560px,calc(100vw-32px))] overflow-auto rounded-3xl px-[22px] py-5">
         <div className="mb-3.5 flex items-center">
-          <ModalTitle className="flex-1 font-serif text-[26px] font-medium">
+          <ModalTitle className="flex-1 font-serif tracking-[-0.02em] text-[26px] font-semibold">
             Keyboard shortcuts
           </ModalTitle>
           <ModalClose

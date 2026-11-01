@@ -101,7 +101,7 @@ export function PricingDialog({
         </ModalClose>
         <div className="mb-[22px] flex flex-wrap items-end gap-4">
           <div className="min-w-[260px] flex-1">
-            <ModalTitle className="font-serif text-[38px] leading-[1.05] font-medium">
+            <ModalTitle className="font-serif tracking-[-0.02em] text-[38px] leading-[1.05] font-semibold">
               Go further with Atlas
             </ModalTitle>
             <ModalDescription className="mt-1.5 text-ui text-tx2">
@@ -148,7 +148,7 @@ export function PricingDialog({
                 ) : null}
                 <span className="flex items-start gap-2">
                   <span className="flex-1">
-                    <span className="block font-serif text-[26px] leading-[1.1] font-medium">
+                    <span className="block font-serif tracking-[-0.02em] text-[26px] leading-[1.1] font-semibold">
                       {p.name}
                     </span>
                     <span className="text-ctl text-tx2">{p.description}</span>

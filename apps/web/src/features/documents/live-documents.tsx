@@ -238,7 +238,7 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-[920px] px-8 pt-[calc(44px+var(--aic))] pb-16 max-sm:px-4">
           <div className="mb-5 flex flex-wrap items-center gap-2">
-            <h1 className="mr-2 font-serif text-[30px] leading-none font-medium">
+            <h1 className="mr-2 font-serif tracking-[-0.02em] text-[30px] leading-none font-semibold">
               Documents
             </h1>
             {canWrite ? (
@@ -322,7 +322,7 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
                         className="size-[15px] shrink-0 text-tx3"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-serif text-[17px]">
+                        <span className="block truncate font-serif tracking-[-0.02em] text-[17px]">
                           {d.title}
                         </span>
                         <span className="text-[11.5px] text-tx3">
@@ -342,7 +342,7 @@ function DocumentIndex({ project }: { project: ProjectDto }) {
                         className="size-[15px] shrink-0 text-tx3"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-serif text-[17px]">
+                        <span className="block truncate font-serif tracking-[-0.02em] text-[17px]">
                           {d.title}
                         </span>
                         <span className="text-[11.5px] text-tx3">
@@ -979,11 +979,11 @@ function DocumentView({
                           e.currentTarget.blur();
                         }
                       }}
-                      className="w-full bg-transparent font-serif text-[42px] leading-[1.08] font-medium tracking-[-0.01em] outline-none max-sm:text-[32px]"
+                      className="w-full bg-transparent font-serif text-[42px] leading-[1.08] font-semibold tracking-[-0.02em] outline-none max-sm:text-[32px]"
                     />
                   </h1>
                 ) : (
-                  <h1 className="mb-3.5 font-serif text-[42px] leading-[1.08] font-medium tracking-[-0.01em] text-balance break-words max-sm:text-[32px]">
+                  <h1 className="mb-3.5 font-serif text-[42px] leading-[1.08] font-semibold tracking-[-0.02em] text-balance break-words max-sm:text-[32px]">
                     {doc.title}
                   </h1>
                 )}
@@ -1024,7 +1024,7 @@ function DocumentView({
                     aria-label="References"
                     className="mt-12 border-t border-bd2 pt-4 font-sans"
                   >
-                    <h2 className="mb-2.5 font-serif text-[22px] font-medium">
+                    <h2 className="mb-2.5 font-serif tracking-[-0.02em] text-[22px] font-semibold">
                       References
                     </h2>
                     <ol>

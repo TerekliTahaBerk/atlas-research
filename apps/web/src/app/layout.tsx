@@ -6,10 +6,6 @@ import '@fontsource-variable/geist';
 import '@fontsource-variable/lora';
 import '@fontsource-variable/lora/wght-italic.css';
 import '@fontsource-variable/jetbrains-mono';
-import '@fontsource/cormorant-garamond/400.css';
-import '@fontsource/cormorant-garamond/500.css';
-import '@fontsource/cormorant-garamond/600.css';
-import '@fontsource/cormorant-garamond/400-italic.css';
 import '../styles/globals.css';
 export const metadata: Metadata = {
   title: { default: 'Atlas — Research, connected.', template: '%s · Atlas' },
@@ -18,8 +14,8 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#171817' },
-    { media: '(prefers-color-scheme: light)', color: '#f2f1eb' },
+    { media: '(prefers-color-scheme: dark)', color: '#181818' },
+    { media: '(prefers-color-scheme: light)', color: '#f7f7f5' },
   ],
 };
 export default async function RootLayout({

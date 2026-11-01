@@ -63,17 +63,17 @@ const commandIcons: Record<string, typeof BookOpen> = {
 const MENTION = /(^|\s)@([\w\-ğüşöçıİ]*)$/i;
 const SLASH = /^\/([\w-]*)$/;
 /**
- * The Atlas composer (handoff `AtlasComposer`): 42px, radius 10, soft green
+ * The Atlas composer (handoff `AtlasComposer`): 42px, radius 10, AI surface
  * in workspaces and neutral over the LaTeX editor. `@` opens structured
  * references, `/` opens context-specific commands.
  */
 export function AtlasComposer({
-  tone = 'green',
+  tone = 'accent',
   height = 42,
   placeholder,
   className,
 }: {
-  tone?: 'green' | 'neutral';
+  tone?: 'accent' | 'neutral';
   height?: number;
   placeholder?: string;
   className?: string;
@@ -225,19 +225,19 @@ export function AtlasComposer({
       atlas.send();
     }
   }
-  const green = tone === 'green';
+  const accent = tone === 'accent';
   let optionIndex = -1;
   return (
     <div className={cn('relative', className)}>
       <div
         className={cn(
           'flex items-center gap-1.5 rounded-xl border pr-1.5 pl-2 transition-[border-color,box-shadow] duration-150',
-          green ? 'bg-aiin' : 'bg-el',
+          accent ? 'bg-aiin' : 'bg-el',
           focused
-            ? green
+            ? accent
               ? 'border-ac shadow-[0_0_0_3px_var(--acs)]'
               : 'border-tx3 shadow-[0_0_0_3px_var(--acs)]'
-            : green
+            : accent
               ? 'border-aiib'
               : 'border-bd',
         )}

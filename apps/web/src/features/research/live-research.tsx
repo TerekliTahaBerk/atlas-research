@@ -297,7 +297,7 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
       <div className="relative flex min-h-0 flex-1">
         <div className="relative min-h-0 flex-1 overflow-auto">
           <div className="mx-auto max-w-[880px] px-8 pt-[calc(22px+var(--aic))] pb-[120px] max-sm:px-4">
-            <h1 className="mb-4 font-serif text-[34px] leading-[1.1] font-medium max-sm:text-[28px]">
+            <h1 className="mb-4 font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold max-sm:text-[28px]">
               What are you researching?
             </h1>
             <form
@@ -527,7 +527,7 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
                 {items.length ? (
                   <>
                     <div className="mb-1.5 flex items-center gap-2">
-                      <h2 className="font-serif text-[22px] font-medium">
+                      <h2 className="font-serif tracking-[-0.02em] text-[22px] font-semibold">
                         Papers
                       </h2>
                       <CountBadge>{items.length}</CountBadge>
@@ -587,7 +587,7 @@ export function LiveResearch({ project }: { project: ProjectDto }) {
                                 <span className="font-mono text-[11px] text-actx">
                                   [{index + 1}]
                                 </span>
-                                <h3 className="font-serif text-[19px] leading-[1.25] font-medium">
+                                <h3 className="font-serif tracking-[-0.02em] text-[19px] leading-[1.25] font-semibold">
                                   <button
                                     type="button"
                                     className="text-left hover:underline"
@@ -944,7 +944,7 @@ function Comparison({
                 <th
                   key={p.candidateId}
                   scope="col"
-                  className="border-b border-l border-bd2 px-3.5 py-[9px] text-left font-serif text-[15px] font-normal"
+                  className="border-b border-l border-bd2 px-3.5 py-[9px] text-left font-serif tracking-[-0.02em] text-[15px] font-normal"
                 >
                   {p.title}
                 </th>
@@ -1016,7 +1016,7 @@ function PaperDetail({
         </IconBtn>
       </div>
       <div className="flex-1 overflow-auto px-[18px] pt-4 pb-6">
-        <h2 className="mb-1.5 font-serif text-2xl leading-[1.15] font-medium">
+        <h2 className="mb-1.5 font-serif tracking-[-0.02em] text-2xl leading-[1.15] font-semibold">
           {paper.title}
         </h2>
         <p className="mb-3.5 text-ctl text-tx2">

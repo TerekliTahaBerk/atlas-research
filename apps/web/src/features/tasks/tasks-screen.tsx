@@ -95,7 +95,7 @@ export function TasksScreen() {
         <span className="mb-[-2px] w-full text-xs text-tx3">
           Sparse Evoformer
         </span>
-        <h1 className="mr-2 font-serif text-[30px] leading-none font-medium">
+        <h1 className="mr-2 font-serif tracking-[-0.02em] text-[30px] leading-none font-semibold">
           Tasks
         </h1>
         <Segmented
@@ -295,7 +295,7 @@ export function TasksScreen() {
               </IconBtn>
             </div>
             <div className="flex-1 overflow-auto px-[18px] pt-4 pb-5">
-              <h2 className="mb-3.5 font-serif text-2xl leading-[1.15] font-medium">
+              <h2 className="mb-3.5 font-serif tracking-[-0.02em] text-2xl leading-[1.15] font-semibold">
                 {current.title}
               </h2>
               <dl className="mb-[18px] grid grid-cols-[90px_1fr] items-center gap-x-2.5 gap-y-[9px] text-ctl">

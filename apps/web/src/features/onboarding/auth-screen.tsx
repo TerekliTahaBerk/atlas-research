@@ -132,11 +132,13 @@ export function AuthScreen({
       <header className="flex items-center gap-2 px-5 py-4">
         <span
           aria-hidden="true"
-          className="grid size-[22px] place-items-center rounded-[5px] bg-acb font-serif text-base font-semibold text-white"
+          className="grid size-[22px] place-items-center rounded-[5px] bg-acb font-serif tracking-[-0.02em] text-base font-semibold text-white"
         >
           A
         </span>
-        <span className="font-serif text-xl font-medium">Atlas</span>
+        <span className="font-serif tracking-[-0.02em] text-xl font-semibold">
+          Atlas
+        </span>
         <span className="flex-1" />
         <button
           type="button"
@@ -155,7 +157,7 @@ export function AuthScreen({
       </header>
       <main className="flex flex-1 items-center justify-center p-5">
         <div className="w-full max-w-[360px]">
-          <h1 className="mb-1.5 font-serif text-[34px] leading-[1.1] font-medium">
+          <h1 className="mb-1.5 font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold">
             {c.title}
           </h1>
           <p className="mb-6 text-ui text-tx2">{c.sub}</p>

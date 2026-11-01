@@ -107,7 +107,7 @@ export function AtlasSurface({ placement }: { placement: AtlasPlacement }) {
         }
       >
         <AtlasComposer
-          tone={neutral ? 'neutral' : 'green'}
+          tone={neutral ? 'neutral' : 'accent'}
           placeholder={
             atlas.live
               ? 'Ask about authorized research — @papers or /summarize'

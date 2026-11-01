@@ -128,7 +128,7 @@ export function ResearchScreen() {
       </Topbar>
       <div className="relative min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-[880px] px-8 pt-[22px] pb-[120px] max-sm:px-4">
-          <h1 className="mb-4 font-serif text-[34px] leading-[1.1] font-medium max-sm:text-[28px]">
+          <h1 className="mb-4 font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold max-sm:text-[28px]">
             What are you researching?
           </h1>
           <form
@@ -443,7 +443,7 @@ export function ResearchScreen() {
                             <th
                               key={p.id}
                               scope="col"
-                              className="border-b border-l border-bd2 px-3.5 py-[9px] text-left font-serif text-[15px] font-normal"
+                              className="border-b border-l border-bd2 px-3.5 py-[9px] text-left font-serif tracking-[-0.02em] text-[15px] font-normal"
                             >
                               {p.short}
                             </th>
@@ -475,7 +475,9 @@ export function ResearchScreen() {
                 </section>
               ) : null}
               <div className="mb-1.5 flex items-center gap-2">
-                <h2 className="font-serif text-[22px] font-medium">Papers</h2>
+                <h2 className="font-serif tracking-[-0.02em] text-[22px] font-semibold">
+                  Papers
+                </h2>
                 <CountBadge>{visible.length}</CountBadge>
                 <span className="flex-1" />
                 <span className="text-xs text-tx3">Sort</span>
@@ -514,7 +516,7 @@ export function ResearchScreen() {
                           <span className="font-mono text-[11px] text-actx">
                             [{n}]
                           </span>
-                          <h3 className="font-serif text-[19px] leading-[1.25] font-medium">
+                          <h3 className="font-serif tracking-[-0.02em] text-[19px] leading-[1.25] font-semibold">
                             <Link
                               href={moduleHref('library', `paper=${p.id}`)}
                               className="hover:underline"

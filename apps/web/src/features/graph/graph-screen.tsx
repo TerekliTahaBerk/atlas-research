@@ -75,7 +75,7 @@ export function GraphScreen() {
       </Topbar>
       <AtlasAnchor placement="canvas" />
       <div className="flex flex-wrap items-center gap-1.5 px-5 pt-[calc(48px+var(--aic))] pb-2.5 max-sm:px-4">
-        <h1 className="mr-2.5 font-serif text-[30px] leading-none font-medium">
+        <h1 className="mr-2.5 font-serif tracking-[-0.02em] text-[30px] leading-none font-semibold">
           How it connects
         </h1>
         <div
@@ -189,7 +189,7 @@ export function GraphScreen() {
             />
             <span className="text-[11.5px] text-tx3">{sel.sub}</span>
           </div>
-          <h2 className="mb-3 flex items-center gap-2 font-serif text-2xl leading-[1.15] font-medium">
+          <h2 className="mb-3 flex items-center gap-2 font-serif tracking-[-0.02em] text-2xl leading-[1.15] font-semibold">
             <SelIcon aria-hidden="true" className="size-[18px] text-tx3" />
             {sel.label}
           </h2>

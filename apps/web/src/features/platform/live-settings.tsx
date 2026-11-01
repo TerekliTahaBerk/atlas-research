@@ -64,7 +64,9 @@ export function LiveSettings({
       </Topbar>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="max-w-[1000px] px-8 py-10 max-sm:px-4">
-          <h1 className="mb-6 font-serif text-4xl font-medium">Settings</h1>
+          <h1 className="mb-6 font-serif tracking-[-0.02em] text-4xl font-semibold">
+            Settings
+          </h1>
           <nav
             aria-label="Settings"
             className="mb-7 flex flex-wrap gap-4 text-ui text-tx2"
@@ -142,7 +144,9 @@ export function LiveSettings({
           ) : null}
           {section === 'appearance' ? (
             <div>
-              <h2 className="mb-4 font-serif text-2xl">Appearance</h2>
+              <h2 className="mb-4 font-serif tracking-[-0.02em] text-2xl">
+                Appearance
+              </h2>
               <ThemeMenu />
             </div>
           ) : null}
@@ -157,7 +161,7 @@ export function LiveSettings({
               <TenantDirectory state={state} destination="settings" />
               {org ? (
                 <section className="mt-6">
-                  <h2 className="mb-3 font-serif text-2xl">
+                  <h2 className="mb-3 font-serif tracking-[-0.02em] text-2xl">
                     {org.personal
                       ? 'Personal organization'
                       : 'Research organization'}
@@ -222,7 +226,9 @@ export function LiveSettings({
               ) : null}
               {selected ? (
                 <section className="mt-8">
-                  <h2 className="mb-3 font-serif text-2xl">Workspace</h2>
+                  <h2 className="mb-3 font-serif tracking-[-0.02em] text-2xl">
+                    Workspace
+                  </h2>
                   <p className="mb-3 text-ui text-tx2">{selected.name}</p>
                   {selected.capabilities.includes('workspace.update') ? (
                     <form
@@ -282,7 +288,7 @@ export function LiveSettings({
                 </section>
               ) : null}
               <section className="mt-10 max-w-[520px]">
-                <h2 className="mb-3 font-serif text-2xl">
+                <h2 className="mb-3 font-serif tracking-[-0.02em] text-2xl">
                   Create an organization
                 </h2>
                 <form
@@ -311,7 +317,9 @@ export function LiveSettings({
                 </form>
               </section>
               <section className="mt-8 max-w-[520px]">
-                <h2 className="mb-3 font-serif text-2xl">Create a workspace</h2>
+                <h2 className="mb-3 font-serif tracking-[-0.02em] text-2xl">
+                  Create a workspace
+                </h2>
                 <form
                   className="flex flex-col gap-3"
                   onSubmit={(e) => {

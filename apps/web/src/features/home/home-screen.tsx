@@ -86,7 +86,9 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-3 flex items-center gap-2">
-      <h2 className="font-serif text-2xl font-medium">{title}</h2>
+      <h2 className="font-serif tracking-[-0.02em] text-2xl font-semibold">
+        {title}
+      </h2>
       {count !== undefined ? <CountBadge>{count}</CountBadge> : null}
       {action ? (
         <>
@@ -168,7 +170,7 @@ export function HomeScreen() {
       <AtlasAnchor placement="canvas" />
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="max-w-[1440px] px-8 pt-[calc(52px+var(--aic))] pb-[72px] max-sm:px-4">
-          <h1 className="mb-[18px] font-serif text-4xl leading-[1.1] font-medium tracking-[-0.01em]">
+          <h1 className="mb-[18px] font-serif text-4xl leading-[1.1] font-semibold tracking-[-0.02em]">
             Good afternoon, {currentUser.short}
           </h1>
           <div className="mb-[26px] flex flex-wrap items-center gap-3">
@@ -273,7 +275,7 @@ export function HomeScreen() {
                         <span className="shrink-0 text-[10.5px] tracking-[0.02em] text-tx3">
                           {p.counts}
                         </span>
-                        <span className="line-clamp-3 shrink-0 font-serif text-[17px] leading-[1.2] text-tx2">
+                        <span className="line-clamp-3 shrink-0 font-serif tracking-[-0.02em] text-[17px] leading-[1.2] text-tx2">
                           {p.description}
                         </span>
                         <span
@@ -415,7 +417,7 @@ export function HomeScreen() {
                             className="size-[14px] shrink-0 text-tx3"
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate font-serif text-base leading-[1.25]">
+                            <span className="block truncate font-serif tracking-[-0.02em] text-base leading-[1.25]">
                               {p.title}
                             </span>
                             <span className="text-[11.5px] text-tx3">

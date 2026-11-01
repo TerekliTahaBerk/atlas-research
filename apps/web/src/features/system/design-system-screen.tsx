@@ -13,25 +13,25 @@ import { contrastAdjustments, contrastPairs, tokenTable } from './tokens';
 const typeScale = [
   [
     'Display',
-    'Cormorant 42/500',
-    'font-serif text-[42px] font-medium',
+    'Geist 42/600',
+    'font-serif tracking-[-0.02em] text-[42px] font-semibold',
     'Related work — sparse attention',
   ],
   [
     'Page title',
-    'Cormorant 30–36/500',
-    'font-serif text-[32px] font-medium',
+    'Geist 30–36/600',
+    'font-serif tracking-[-0.02em] text-[32px] font-semibold',
     'Good afternoon, Taha',
   ],
   [
     'Section',
-    'Cormorant 24/500',
-    'font-serif text-2xl font-medium',
+    'Geist 24/600',
+    'font-serif tracking-[-0.02em] text-2xl font-semibold',
     'Documents & notes',
   ],
   [
     'Reading',
-    'Lora 16.5/1.75',
+    'Geist 16.5/1.75',
     'font-read text-[16.5px]',
     'Pair representations are the dominant memory cost in structure prediction.',
   ],
@@ -80,7 +80,7 @@ const motion = [
     'Background dims to --dim with 7px blur; Esc returns',
   ],
   ['Hover', 'instant', 'Surface → --hov, text → --tx'],
-  ['Loading', '1s pulse', 'Single green dot + specific status text'],
+  ['Loading', '1s pulse', 'Single accent dot + specific status text'],
   [
     'Reduced motion',
     '—',
@@ -117,14 +117,15 @@ export function DesignSystemScreen() {
       </Topbar>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-[1080px] px-8 pt-10 pb-[100px] max-sm:px-4">
-          <h1 className="mb-1.5 font-serif text-[40px] leading-[1.05] font-medium">
+          <h1 className="mb-1.5 font-serif tracking-[-0.02em] text-[40px] leading-[1.05] font-semibold">
             Atlas design system
           </h1>
           <p className="mb-9 max-w-[620px] text-ui text-tx2">
-            Dark-first, compact, content-dominant. Green is a signal, not a
-            surface. Serif marks editorial moments; sans runs the interface;
-            mono runs code. Values come from the approved handoff, with the
-            contrast adjustments listed below.
+            Dark-first, compact, content-dominant. Indigo is a signal, not a
+            surface. Geist runs the interface and editorial titles (600, tight
+            tracking); Lora is kept only for rendered PDF pages; mono runs code.
+            Values come from the approved prototype, with the contrast
+            adjustments listed below.
           </p>
           <Section title={`Color — ${theme}`}>
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
@@ -158,7 +159,7 @@ export function DesignSystemScreen() {
                   )}
                 >
                   <div className="rounded-lg border border-bd2 bg-canvas p-3.5">
-                    <div className="mb-2 font-serif text-xl font-medium">
+                    <div className="mb-2 font-serif tracking-[-0.02em] text-xl font-semibold">
                       {k === 'dark' ? 'Dark' : 'Light'}
                     </div>
                     <div className="mb-3 flex h-[34px] items-center gap-1.5 rounded-[9px] border border-aiib bg-aiin pr-1 pl-2 text-ctl text-tx3">
@@ -203,7 +204,7 @@ export function DesignSystemScreen() {
             <section aria-labelledby="ds-space">
               <h2
                 id="ds-space"
-                className="mb-3 font-serif text-2xl font-medium"
+                className="mb-3 font-serif tracking-[-0.02em] text-2xl font-semibold"
               >
                 Spacing · 4px base
               </h2>
@@ -226,7 +227,7 @@ export function DesignSystemScreen() {
             <section aria-labelledby="ds-radii">
               <h2
                 id="ds-radii"
-                className="mb-3 font-serif text-2xl font-medium"
+                className="mb-3 font-serif tracking-[-0.02em] text-2xl font-semibold"
               >
                 Radii &amp; elevation
               </h2>
@@ -522,7 +523,7 @@ export function DesignSystemScreen() {
               </tbody>
             </table>
             <h3 className="mb-2 text-ctl font-semibold">
-              Adjusted from the handoff
+              Adjusted from the prototype
             </h3>
             <ul className="border-t border-bd2">
               {contrastAdjustments.map((a) => (
@@ -570,7 +571,9 @@ function Section({
 }) {
   return (
     <section aria-label={title} className="mb-10">
-      <h2 className="mb-3 font-serif text-2xl font-medium">{title}</h2>
+      <h2 className="mb-3 font-serif tracking-[-0.02em] text-2xl font-semibold">
+        {title}
+      </h2>
       {children}
     </section>
   );

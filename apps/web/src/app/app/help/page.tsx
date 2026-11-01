@@ -11,7 +11,7 @@ export default function Page() {
       <Topbar />
       <div className="min-h-0 flex-1 overflow-auto">
         <article className="mx-auto max-w-[680px] px-8 pt-10 pb-20 max-sm:px-4">
-          <h1 className="mb-2 font-serif text-[34px] leading-[1.1] font-medium">
+          <h1 className="mb-2 font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold">
             Make yourself at home.
           </h1>
           <p className="mb-8 text-ui text-tx2">
@@ -19,7 +19,7 @@ export default function Page() {
           </p>
           <div className="flex flex-col gap-6 font-read text-[15px] leading-[1.75] text-tx2">
             <section>
-              <h2 className="mb-1 font-serif text-[22px] font-medium text-tx">
+              <h2 className="mb-1 font-serif tracking-[-0.02em] text-[22px] font-semibold text-tx">
                 Stay in context
               </h2>
               <p>
@@ -30,7 +30,7 @@ export default function Page() {
               </p>
             </section>
             <section>
-              <h2 className="mb-1 font-serif text-[22px] font-medium text-tx">
+              <h2 className="mb-1 font-serif tracking-[-0.02em] text-[22px] font-semibold text-tx">
                 Explore the design
               </h2>
               <p>
@@ -56,7 +56,7 @@ export default function Page() {
               </p>
             </section>
             <section>
-              <h2 className="mb-1 font-serif text-[22px] font-medium text-tx">
+              <h2 className="mb-1 font-serif tracking-[-0.02em] text-[22px] font-semibold text-tx">
                 What is saved?
               </h2>
               <p>
@@ -67,7 +67,7 @@ export default function Page() {
               </p>
             </section>
             <section>
-              <h2 className="mb-1 font-serif text-[22px] font-medium text-tx">
+              <h2 className="mb-1 font-serif tracking-[-0.02em] text-[22px] font-semibold text-tx">
                 What is not connected?
               </h2>
               <p>

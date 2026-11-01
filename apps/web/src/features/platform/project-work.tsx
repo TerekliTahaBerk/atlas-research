@@ -46,7 +46,9 @@ function ProjectWorkContent({ project }: { project: ProjectDto }) {
         aria-label="Recent documents"
         className="rounded-2xl border border-bd2 bg-card p-4"
       >
-        <h2 className="mb-2 font-serif text-xl">Recent documents</h2>
+        <h2 className="mb-2 font-serif tracking-[-0.02em] text-xl">
+          Recent documents
+        </h2>
         {docs === null ? (
           <p className="text-ctl text-tx3">Loading…</p>
         ) : !docs.length ? (
@@ -71,7 +73,9 @@ function ProjectWorkContent({ project }: { project: ProjectDto }) {
         aria-label="Open tasks"
         className="rounded-2xl border border-bd2 bg-card p-4"
       >
-        <h2 className="mb-2 font-serif text-xl">Open tasks</h2>
+        <h2 className="mb-2 font-serif tracking-[-0.02em] text-xl">
+          Open tasks
+        </h2>
         {tasks === null ? (
           <p className="text-ctl text-tx3">Loading…</p>
         ) : !tasks.length ? (

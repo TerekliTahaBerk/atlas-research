@@ -189,7 +189,7 @@ export function ChannelsScreen() {
             >
               <span
                 aria-hidden="true"
-                className="grid size-[18px] place-items-center rounded-[5px] bg-acb font-serif text-[13px] font-semibold text-white"
+                className="grid size-[18px] place-items-center rounded-[5px] bg-acb font-serif tracking-[-0.02em] text-[13px] font-semibold text-white"
               >
                 A
               </span>
@@ -456,7 +456,7 @@ function Message({
       {m.who === 'atlas' ? (
         <span
           aria-hidden="true"
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-acb font-serif text-[15px] font-semibold text-white"
+          className="grid size-8 shrink-0 place-items-center rounded-lg bg-acb font-serif tracking-[-0.02em] text-[15px] font-semibold text-white"
         >
           A
         </span>
@@ -490,7 +490,7 @@ function Message({
           >
             <BookOpen aria-hidden="true" className="size-[15px] text-tx3" />
             <span className="min-w-0 flex-1">
-              <span className="block font-serif text-[15px] leading-[1.25]">
+              <span className="block font-serif tracking-[-0.02em] text-[15px] leading-[1.25]">
                 {paper.title}
               </span>
               <span className="text-[11.5px] text-tx3">

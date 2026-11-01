@@ -38,26 +38,26 @@ const themeCards = [
   {
     key: 'dark',
     label: 'Dark',
-    sb: '#171817',
-    bg: '#232423',
-    line: '#4a4d4a',
-    line2: '#363936',
+    sb: '#181818',
+    bg: '#212121',
+    line: '#4a4a4a',
+    line2: '#363636',
   },
   {
     key: 'light',
     label: 'Light',
-    sb: '#f2f1eb',
-    bg: '#fffdf9',
-    line: '#cfccc2',
-    line2: '#e6e4dc',
+    sb: '#f7f7f5',
+    bg: '#ffffff',
+    line: '#d0d0cc',
+    line2: '#e6e6e3',
   },
   {
     key: 'system',
     label: 'System',
-    sb: 'linear-gradient(90deg,#171817 50%,#f2f1eb 50%)',
-    bg: 'linear-gradient(90deg,#232423 50%,#fffdf9 50%)',
-    line: '#8a8d86',
-    line2: '#9a9c95',
+    sb: 'linear-gradient(90deg,#181818 50%,#f7f7f5 50%)',
+    bg: 'linear-gradient(90deg,#212121 50%,#ffffff 50%)',
+    line: '#8a8a8a',
+    line2: '#9a9a9a',
   },
 ] as const;
 /** Settings (prototype "settings"): profile, appearance, workspace, plan. */
@@ -77,7 +77,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
             aria-label="Settings sections"
             className="flex w-[170px] flex-col gap-px max-sm:w-full"
           >
-            <h1 className="mb-3.5 font-serif text-[30px] leading-none font-medium">
+            <h1 className="mb-3.5 font-serif tracking-[-0.02em] text-[30px] leading-none font-semibold">
               Settings
             </h1>
             {settingsSections.map((s) => {
@@ -198,7 +198,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                               className="h-[3px] w-[80%] rounded-[2px]"
                               style={{ background: t.line2 }}
                             />
-                            <span className="mt-auto h-2 w-[40%] rounded-[2px] bg-[#329a53]" />
+                            <span className="mt-auto h-2 w-[40%] rounded-[2px] bg-ac" />
                           </span>
                         </span>
                         <span className="flex items-center gap-1.5 px-0.5 pt-2 text-ctl">
@@ -223,7 +223,7 @@ export function SettingsScreen({ section }: { section: SettingsSection }) {
                       </div>
                     </div>
                     <span className="rounded-md border border-bd px-2.5 py-1 font-read text-ui">
-                      Lora
+                      Geist
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2.5 border-b border-bd2 py-3">

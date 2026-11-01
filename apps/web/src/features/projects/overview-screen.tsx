@@ -62,7 +62,7 @@ export function OverviewScreen() {
             Project · Kaya Lab · sample
           </div>
           <div className="mb-2 flex flex-wrap items-end gap-4">
-            <h1 className="min-w-[280px] flex-1 font-serif text-[42px] leading-[1.05] font-medium max-sm:min-w-0 max-sm:basis-full max-sm:text-[34px]">
+            <h1 className="min-w-[280px] flex-1 font-serif tracking-[-0.02em] text-[42px] leading-[1.05] font-semibold max-sm:min-w-0 max-sm:basis-full max-sm:text-[34px]">
               Sparse Evoformer
             </h1>
             <div className="flex items-center gap-2.5">
@@ -168,7 +168,7 @@ export function OverviewScreen() {
           </ul>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] gap-8">
             <section aria-label="Recent activity">
-              <h2 className="mb-2.5 flex items-center gap-2 font-serif text-2xl font-medium">
+              <h2 className="mb-2.5 flex items-center gap-2 font-serif tracking-[-0.02em] text-2xl font-semibold">
                 Recent activity{' '}
                 <SampleTag className="font-sans">Sample</SampleTag>
               </h2>
@@ -194,7 +194,7 @@ export function OverviewScreen() {
             </section>
             <section aria-label="Next up">
               <div className="mb-2.5 flex items-center">
-                <h2 className="flex-1 font-serif text-2xl font-medium">
+                <h2 className="flex-1 font-serif tracking-[-0.02em] text-2xl font-semibold">
                   Next up
                 </h2>
                 <Link

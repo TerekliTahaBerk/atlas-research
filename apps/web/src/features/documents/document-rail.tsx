@@ -173,7 +173,7 @@ export function DocumentRail({
                   href={moduleHref('library', `paper=${p.id}`)}
                   className="mb-2 block rounded-lg border border-bd2 px-2.5 py-[9px] hover:bg-card"
                 >
-                  <div className="mb-[3px] font-serif text-[15px] leading-[1.25]">
+                  <div className="mb-[3px] font-serif tracking-[-0.02em] text-[15px] leading-[1.25]">
                     {p.title}
                   </div>
                   <div className="text-[11.5px] text-tx3">

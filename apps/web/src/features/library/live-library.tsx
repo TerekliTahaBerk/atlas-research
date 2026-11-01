@@ -480,7 +480,7 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
         ) : null}
         <div className="min-w-0 flex-1 overflow-auto pt-[calc(68px+var(--aic))] pr-7 pb-[60px] pl-5 max-sm:px-4">
           <div className="mb-3.5 flex items-baseline gap-2.5">
-            <h1 className="font-serif text-[32px] leading-[1.1] font-medium">
+            <h1 className="font-serif tracking-[-0.02em] text-[32px] leading-[1.1] font-semibold">
               {title}
             </h1>
             <span className="text-xs text-tx3" role="status">
@@ -667,7 +667,7 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
                       )}
                     >
                       <span className="min-w-0">
-                        <span className="mb-[3px] block font-serif text-[17px] leading-[1.25]">
+                        <span className="mb-[3px] block font-serif tracking-[-0.02em] text-[17px] leading-[1.25]">
                           {p.title}
                         </span>
                         <span className="flex flex-wrap items-center gap-2 text-xs text-tx3">
@@ -843,7 +843,7 @@ function PaperPanel({
         </IconBtn>
       </div>
       <div className="flex-1 overflow-auto px-[18px] pt-4 pb-6">
-        <h2 className="mb-1.5 font-serif text-2xl leading-[1.15] font-medium">
+        <h2 className="mb-1.5 font-serif tracking-[-0.02em] text-2xl leading-[1.15] font-semibold">
           {paper.title}
         </h2>
         <p className="mb-3.5 text-ctl text-tx2">

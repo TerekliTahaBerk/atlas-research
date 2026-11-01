@@ -20,7 +20,7 @@ export function AtlasWorkspace() {
       </Topbar>
       <div className="mx-auto flex min-h-0 w-full max-w-[780px] flex-1 flex-col px-6 pt-6 pb-4 max-sm:px-3">
         <div className="mb-4 flex flex-wrap items-baseline gap-3">
-          <h1 className="font-serif text-[34px] leading-[1.1] font-medium">
+          <h1 className="font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold">
             Research mode
           </h1>
           {atlas.live ? (

@@ -120,6 +120,13 @@ describe('design tokens', () => {
       expect(light).toMatch(new RegExp(`${token}:\\s*${row.light};`, 'i'));
     },
   );
+  it('uses Geist for UI, titles and reading, and Lora only on PDF pages', () => {
+    expect(css).toMatch(/--font-serif:\s*'Geist Variable'/);
+    expect(css).toMatch(/--font-read:\s*'Geist Variable'/);
+    expect(css).toMatch(/--font-pdf:\s*'Lora Variable'/);
+    expect(block('.pdf-page {')).toMatch(/font-family:\s*var\(--font-pdf\);/);
+    expect(css).not.toMatch(/Cormorant/);
+  });
   it.each(['dark', 'light'] as const)(
     'meets WCAG AA for the %s theme pairs',
     (theme) => {

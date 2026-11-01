@@ -131,7 +131,7 @@ export function MoreMenu({
       <MenuContent width={240} align="end">
         <MenuItem
           icon={<Type />}
-          sub="Lora (serif)"
+          sub="Geist"
           chevron
           onSelect={() => flash('Font options are UI-only in this preview')}
         >
