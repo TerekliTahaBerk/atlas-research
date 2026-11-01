@@ -55,3 +55,4 @@ export * from './research';
 export * from './citation';
 export * from './documents';
 export * from './artifacts';
+export * from './research-journey';
