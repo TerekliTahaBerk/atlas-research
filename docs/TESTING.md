@@ -1,5 +1,15 @@
 # Testing strategy
 
+## A01 infrastructure verification
+
+`ops/sql/a01-migration-history-gate.sql` is a read-only **asserting** gate (use `psql -X -v ON_ERROR_STOP=1`), complementing the diagnostic Phase 02/03 SQL. Disposable security regressions inject column, PUBLIC, inherited and global-default exposures and require failure without weakening owner/RLS behavior. Never inject grants or attempt TRUNCATE against hosted history.
+
+CI repeats Prisma deploy, runs the gate, and executes `python3 tests/database/rehearse_restore.py` with the existing explicit loopback synthetic test connections. The script creates a new restore database, compares counts/content hashes/history/constraints/policies, re-deploys and re-runs integration tests, then removes only that new database. It does not load `.env`. This is same-cluster synthetic DB recovery; cross-cluster roles, hosted Auth/Storage metadata, encryption/key custody and object bytes remain unverified.
+
+The `offline-engines` CI job builds existing scanner/extractor parser stages, obtains official malware definitions in a separate ephemeral updater, then runs actual ClamAV/qpdf and Poppler offline with no credentials. Engine failures block CI; controlled-double Python tests remain separately labelled. No broker contacts Atlas. [A01 evidence and limitations](phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) distinguish local/CI tests from hosted activation.
+
+The task journey now holds a transition response and waits for its committed-success announcement before dragging. Optimistic column counts alone cannot prove a completed mutation. Visual baselines follow the pinned CI browser (Linux) and local Playwright browser (macOS), reviewed against ADR 0018; tolerance remains unchanged.
+
 ## Phase 04 validation
 
 Unit: `tests/unit/documents.test.ts` (schema acceptance, 22 XSS/forgery rejections, limits, Markdown/HTML escaping, diff, transitions, link matrix, capabilities, tsquery building) and `tests/unit/drafts.test.ts` (keying, expiry, account switch and sign-out purge). Integration (`tests/integration/artifacts.test.ts`, real PostgreSQL, non-owner runtime): atomic create, idempotent replay/conflict, optimistic and concurrent saves, immutability (even for the owner role), restore, malicious/forged content at server and SQL boundaries, annotation/checksum citation forgery, archived-paper history, unauthorized read/history/export/raw SQL, duplication/archive, task numbering under concurrency, assignment eligibility and revocation, transitions/concurrent updates, link matrix/cross-project/cycles/DB-level rejection, search ACL/snippets/cursor binding, graph/options scope, AI proposal approval/stale/revocation, and a performance probe (`ARTIFACT_PERFORMANCE`). Browser (`tests/auth/e2e/documents-tasks.spec.ts`): Journeys A–F on the isolated Auth harness, including two-session conflict, draft recovery, viewer revocation, drag and keyboard task moves, revocation of an assignee, search and the AI approval boundary using the deterministic `fixture-plan` loopback provider branch, plus axe.

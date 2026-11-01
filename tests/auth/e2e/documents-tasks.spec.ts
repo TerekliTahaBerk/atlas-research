@@ -473,6 +473,22 @@ test('tasks and links: create, assign, keyboard and drag moves, revocation, sear
   ).toBeVisible();
 
   // Keyboard move (menu), then a drag move with persisted status.
+  // Hold the first response: the optimistic count is not a commit barrier.
+  // The board intentionally serializes moves for a task while it is pending.
+  let releaseTransition!: () => void;
+  const transitionHeld = new Promise<void>((resolve) => {
+    releaseTransition = resolve;
+  });
+  await page.route('**/api/v1/commands', async (route) => {
+    const body: unknown = route.request().postDataJSON();
+    if (
+      z.object({ command: z.literal('task.transition') }).safeParse(body)
+        .success
+    ) {
+      await transitionHeld;
+    }
+    await route.continue();
+  });
   const move = page.getByRole('button', {
     name: 'Move #1 Benchmark Attention U-Net',
   });
@@ -481,6 +497,10 @@ test('tasks and links: create, assign, keyboard and drag moves, revocation, sear
   await page.getByRole('menuitem', { name: 'In progress' }).press('Enter');
   await expect(
     page.getByRole('region', { name: 'In progress · 1' }),
+  ).toBeVisible();
+  releaseTransition();
+  await expect(
+    page.getByRole('status').filter({ hasText: '#1 moved to In progress.' }),
   ).toBeVisible();
   await page
     .getByRole('region', { name: 'In progress · 1' })

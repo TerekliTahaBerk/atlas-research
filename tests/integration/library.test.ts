@@ -277,7 +277,12 @@ describe.sequential('project library on real non-owner PostgreSQL', () => {
       await admin.projectPaper.count({ where: { projectId: project } }),
     ).toBe(1);
     // Both provider identities attach to the one public record.
+    // A restored database can already contain other public papers/identities.
+    const sharedPaper = await admin.researchPaper.findUniqueOrThrow({
+      where: { normalizedDoi: shared.doi! },
+    });
     const ids = await admin.paperExternalIdentifier.findMany({
+      where: { paperId: sharedPaper.id },
       select: { provider: true },
     });
     expect(ids.map((i) => i.provider).sort()).toEqual([

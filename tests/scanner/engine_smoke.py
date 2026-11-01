@@ -6,6 +6,11 @@ import importlib.util
 from pathlib import Path
 import subprocess
 import tempfile
+import http.client
+import http.server
+import sys
+import threading
+import time
 
 spec = importlib.util.spec_from_file_location('validator', '/app/validator.py')
 validator = importlib.util.module_from_spec(spec)
@@ -45,3 +50,28 @@ with tempfile.TemporaryDirectory(dir='/tmp') as directory:
     eicar.write_bytes(b'X5O!P%@AP[4\\PZX54(P^)7CC)7}$'+b'EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*')
     assert validator.inspect(eicar) == 'INFECTED', 'standard antivirus test not detected'
     print('PASS: actual ClamAV EICAR detection')
+
+# Exercise the real HTTP boundary without transmitting an oversized object.
+server = http.server.HTTPServer(('127.0.0.1', 0), validator.Handler)
+thread = threading.Thread(target=server.serve_forever, daemon=True)
+thread.start()
+try:
+    client = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=5)
+    client.request('POST', '/scan', headers={'Content-Length': str(validator.MAX_BYTES+1)})
+    assert client.getresponse().status == 413, 'oversized scan was accepted'
+    client.close()
+    print('PASS: actual HTTP oversized rejection')
+finally:
+    server.shutdown()
+    server.server_close()
+    thread.join()
+
+# Real subprocess watchdog (not a mocked TimeoutExpired). No PDF or network.
+started = time.monotonic()
+try:
+    validator.run([sys.executable, '-c', 'import time; time.sleep(60)'])
+except subprocess.TimeoutExpired:
+    assert time.monotonic()-started < 55, 'watchdog exceeded its deadline'
+    print('PASS: actual 45-second subprocess timeout')
+else:
+    raise AssertionError('scanner subprocess watchdog did not fire')

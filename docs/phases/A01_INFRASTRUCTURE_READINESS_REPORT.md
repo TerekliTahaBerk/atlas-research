@@ -1,0 +1,154 @@
+# A01 infrastructure readiness
+
+Evidence date: **1 November 2026 (Europe/Istanbul)**. Scope: local implementation, disposable verification, read-only Atlas project/organization metadata and GitHub CI. No hosted database queries, exports, remediation, migrations, resource provisioning, environment changes, provider credentials or paid requests were performed. No deployment command was invoked. The existing Vercel Git integration automatically started a preview build when the requested PR was pushed; this external activity is not evidence of approved live deployment or production activation.
+
+## 1. Executive summary
+
+**Hosted activation and production: BLOCKED.** Repository preparation adds an executable security gate, negative privilege regressions, a synthetic restore rehearsal, real offline engine CI and a deterministic task-transition test. Historical migrations and application contracts are unchanged. The current Atlas project is INACTIVE; its environment classification and catalog state cannot be inferred from its historical development use. Resume and data-plane access require a separately confirmed target/action.
+
+The existing migration-history correction passes the disposable PostgreSQL 17 tests. It removes direct table/column grants and creator-scoped defaults. It does not remove independently inherited grants or global defaults; the new gate detects those and stops activation rather than widening the reviewed remediation. Hosted exposure remains unresolved without fresh catalog and HTTP denial evidence.
+
+## 2. Repository baseline and CI
+
+Fetched `origin/master`; clean starting tree, head **871b569af7c573574d856dae2148481e143fa769**, merge PR #13. Created `feat/a01-infrastructure-readiness` from that head. No open PRs were returned by `gh pr list --state open` at preflight. Read root/web agent contracts, README, master plan, architecture, security, database/API contracts, Phase 04, A00, deployment/testing/environments and all requested activation/scanner/AI documents. No unrelated project was accessed.
+
+| Master run                                                                                                | Evidence                                                                                  | Interpretation                                                                                             |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [41127205819](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41127205819), PR #11 merge   | Success                                                                                   | Historical passing baseline                                                                                |
+| [41128860837](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41128860837), PR #12 merge   | Auth task journey failed at `In review · 1`                                               | Test started the drag after optimistic rendering, before the previous transition had necessarily completed |
+| [41330407471](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41330407471), current master | 253 unit, 93 integration and 11 auth browser tests passed; six preview screenshots failed | Task failure did not recur on this run; screenshot baseline used a different Chromium build in PR #13      |
+
+Task root cause evidence: `LiveTasks.move` updates the visible status optimistically, retains the task in `moving.current` until response completion, and refuses a second move while pending. The old test used the optimistic count as its completion barrier. The corrected journey deliberately holds the first command response, proves the optimistic state is rendered, releases it, waits for the successful move announcement, then performs the real drag and retains persistence/reload assertions. No timeout or assertion tolerance is increased. This explains the synchronization defect; it does not assert that every possible drag failure has been eliminated.
+
+Preview baselines: inspected all six current-master Linux actual images against ADR 0018's neutral/indigo/Geist intent and the previous baselines. Geometry/composition is preserved; text rasterization differs. Adopted the actual images from the pinned CI Chromium, regenerated stale macOS baselines locally, retained the existing 0.2% threshold, geometry, accessibility and interaction checks. Browser plugin is not available; repository Playwright is the browser verification path. Routes `/app`, documents and manuscripts are exercised in both themes at 1440×900; the full suite also checks mobile layouts and interactions.
+
+## 3. Current infrastructure inventory
+
+| Component         | Observed repository/disposable state                                                                       | Current hosted evidence / activation                                                            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Atlas identity    | Supabase metadata read by exact reference                                                                  | `hgngonpirctrwbckhbmy`, Atlas Research, `ap-northeast-2`, PG `17.11.0.003`, status **INACTIVE** |
+| Organization/plan | Exact organization metadata                                                                                | ID `chtmbnvkvyokessljprm`, name `atlasresearch`, **free**; no upgrade authorized                |
+| Environment       | Historical development purpose, dashboard `main / PRODUCTION` warning retained                             | Current development classification/access not reconfirmed; stop before data-plane operations    |
+| PostgreSQL/Prisma | PG17, Prisma 7.10.1, ten ordered SQL migrations, strict generated client                                   | Historical first three installed; current history/row counts/grants **unknown**                 |
+| Auth/onboarding   | Verified server identity, PKCE, tenant bootstrap, isolated GoTrue/Mailpit harness                          | Historical signup/confirmation evidence; current redirects/email/OAuth/recovery unknown         |
+| Runtime/worker    | `atlas_runtime` SELECT + commands; `atlas_ai_worker` narrow functions; elevated/owner connections rejected | Historical `atlas_app_dev`; current logins/memberships/TLS/pooler unverified                    |
+| Storage           | Conditional private PDF buckets, exact 26,214,400-byte limit, no browser object policies                   | Existence/privacy/limits/object inventory unknown; no hosted inspection                         |
+| pgvector          | Migration installs vector in `extensions`, 768-dimensional vectors and scoped retrieval                    | Availability/version/namespace unknown on hosted target                                         |
+| Realtime          | No deployed communication service; Phase 05 design only                                                    | No activation or policy verification claimed                                                    |
+| Scanner/extractor | Existing isolated Compose stages and HMAC brokers; new real-engine CI                                      | No deployment verified; unscanned sources remain unreadable                                     |
+| Background work   | SQL ingestion/extraction outboxes, fenced attempts and bounded leases                                      | Hosting, polling, alerts and backlog unknown; Inngest remains future                            |
+| AI providers      | Allowlisted SDKs, consent, reservations, cancellation and citation checks                                  | Disabled for this work; no real-provider or scientific evaluation                               |
+| Vercel            | `apps/web/vercel.json`, workspace frozen install/root build; no migration in build                         | No resource inspection or deployment change; actual hosted environment/logging unknown          |
+| Secrets           | Existing ignored files preserved; no values printed/copied; `.env.example` reviewed                        | Secret-store access/rotation policy needs deployment review                                     |
+| Backups           | New synthetic DB restore CI; existing recovery plan retained                                               | No verified encrypted hosted snapshot, object export, PITR or restore proof                     |
+
+Implemented locally, disposable evidence, historical hosted configuration and unknown current hosted state are deliberately separate. No current hosted component is certified operational by this inventory.
+
+## 4. Security findings and implementation
+
+| Finding                                                                                   | Severity/state                                 | Action                                                                                                                                          |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Historical browser access to Prisma history/default grants                                | P0 activation gate; unresolved hosted evidence | Exact G1 SQL only after approval; require effective denial, never accept empty 200                                                              |
+| Table ACL inspection alone misses effective inheritance/global defaults/new column grants | P1 activation verifier gap, corrected locally  | `ops/sql/a01-migration-history-gate.sql` raises on unsafe effective table/column/default privileges; tests inject each exposure transactionally |
+| Task E2E observes optimistic state as committed                                           | P2 test synchronization, corrected             | Held-response regression and success-announcement barrier                                                                                       |
+| Preview visual baselines differ from pinned CI/browser                                    | P2 CI baseline, corrected                      | Reviewed platform baselines, unchanged tolerances                                                                                               |
+| Recovery, workers, production operational controls unverified                             | Blocking operational dependencies              | Separate G2–G7 approvals and evidence                                                                                                           |
+
+The gate requires PG17+, history owner identity, RLS enabled without FORCE, no history policies, both browser roles, denial of all eight table and four column privileges, and no effective PUBLIC/browser/inherited future table/sequence defaults for that owner (both global and public). Missing objects/roles fail. It is read-only and does not alter managed creators or memberships. The existing broader Phase 02/03 audits remain necessary for application RLS/functions/Storage.
+
+Seven local security tests passed on a fresh PG **17.10** cluster, `127.0.0.1:55439`, database `atlas_p01_test_a01_security`, owner `atlas_a01_owner`, with intentionally unsafe defaults and synthetic metadata. This scoped local fixture does not contain the application schema, Auth or pgvector. Original direct negative SELECT/INSERT/UPDATE/DELETE/TRUNCATE probes, effective table privileges, owner access and future sequence/table probes remain. Injected inherited TRUNCATE, PUBLIC REFERENCES, new column SELECT and global sequence USAGE all make the gate fail; transactions roll back and the clean gate passes again. No destructive probes touch hosted history.
+
+## 5. Prisma migration verification
+
+The unchanged dependency order is foundation → core_platform → onboarding_drafts → migration_history_security → research_library → scanner_fencing → ai_research → ai_retention → ai_stream_authorization → documents_tasks. CI starts fresh PG17 + pgvector with unsafe Supabase-like browser defaults, deploys all ten, checks composite constraints and runs non-owner integration tests. A01 adds repeat deploy, the asserting history gate and restore/retest. Existing account/project data must be counted before/after any approved hosted activation; disposable success does not prove hosted preservation.
+
+Prisma models describe tables/columns/enums/relations. SQL remains authoritative for CHECKs, partial/expression indexes, generated search columns, immutable triggers, RLS, function ACL/search paths and conditional Auth/Storage objects. Vector retrieval uses exact cosine distance over authorized candidates; no ANN index is claimed. Schema validation alone cannot certify those. Phase 04 depends on Phase 03 `ai_runs` and wraps the Phase 02 dispatcher atomically. Do not replay every migration file manually as an idempotency test: supported repeat deploy uses Prisma history. The security correction itself supports direct re-execution followed later by normal Prisma recording. No migration was rewritten, resolved, reset or pushed with `db push`.
+
+Current official guidance was checked before infrastructure implementation: the [changelog index](https://supabase.com/changelog.md), [Data API grants/defaults](https://supabase.com/docs/guides/api/securing-your-api) and [backups](https://supabase.com/docs/guides/platform/backups). Relevant changes reviewed: [HTTP CBC cipher removal from 10 November 2026](https://supabase.com/changelog/cbc-tls-ciphers-deprecated) requires supported TLS clients; [extension version clauses are ignored](https://supabase.com/changelog/extension-version-pinning-ignored), so inspect installed vector version/namespace; [Realtime schema lockdown](https://supabase.com/changelog/realtime-schema-locked-down-against-modification) prohibits arbitrary managed-schema changes; none are introduced. [PG17.11 restore/operator changes](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes) require destination-specific restore review. The [timezone fix](https://supabase.com/changelog/tzdata-local-time-vancouver-edmonton-casablanca) is included in Atlas's reported `17.11.0.003`; metadata alone does not verify every hosted extension or index. No hosted upgrade is authorized or required by this review.
+
+## 6. Hosted security remediation status
+
+**NOT RUN / BLOCKED**, not waived. Follow the [approval manifest](../operations/A01_APPROVAL_MANIFEST.md#g1). Exact reviewed G1 SQL SHA-256: `658461b473b04c550c12ecb4aad35a39a448f875207aeb00ad38b0873bd03dd0`. It only enables history RLS and revokes browser/PUBLIC table/default ACLs for the executing creator. It grants nothing and does not apply migrations 5–10. Unexpected inherited/global grants require separately reviewed SQL and approval; do not automatically revoke role memberships. Record anonymous and authenticated zero-row Data API **401/403**, effective catalog denial and migration-owner continuity before closing G1.
+
+## 7. Backup and isolated restore readiness
+
+**Hosted recovery gate BLOCKED.** Free plan reconfirmed, but no protected export or provider backup inventory was requested. Current plan alone is not proof of a usable restore point. The [G2 procedure](../operations/A01_APPROVAL_MANIFEST.md#g2) extends the existing Phase 03 recovery plan with required evidence and commands; nothing exports personal data during A01.
+
+`tests/database/rehearse_restore.py` only accepts explicit loopback `atlas_p01_test*` URLs, requires PG17, never loads `.env`, and generates a new random restore database. It snapshots counts and SHA-256 content fingerprints for every public table, Prisma checksum/completion history, constraint definitions/validation and RLS policy definitions; custom-format dumps to a private temporary directory, restores with errors fatal, compares snapshots, repeats Prisma deployment and re-runs the full service/RLS/worker integration suite against the restored database, then drops only that new target. Duration is printed by CI. Raw connection diagnostics are suppressed to keep credentials out of output.
+
+Limits: synthetic fixture only; roles remain on the same disposable cluster. It does not prove cross-cluster role restoration, encryption/key custody, Auth/Storage managed-schema restoration, Storage bytes, hosted poolers or a complete Supabase recovery. These remain mandatory G2 evidence; a passing dump command or synthetic rehearsal does not close them. Recovery uses a new compatible environment and reviewed forward repair; never restore over Atlas or destructively down-migrate research data.
+
+## 8. Auth and Storage status
+
+Auth uses server `getUser`, origin/body protections, distributed quotas, private responses and callback validation. Hosted confirmation/recovery/OAuth/SMTP/cookie attributes remain deployment checks. Production invitation creation fails closed without delivery.
+
+Upload intents authorize live writers and expire after 15 minutes. Storage grants use unpredictable single-object keys, `upsert=false`; finalize measures bytes/hash/PDF signature before quarantine. Only accepted scan attempts can produce READY. Downloads reauthorize, last 60 seconds, and the reader checks SHA-256. Bucket limits must equal **25 MiB**, not decimal 25 MB. Direct browser listing and broad Storage policies must be denied. Inspect all policies, including any managed/third-party policy that could overlap Atlas paths, during approved activation.
+
+## 9. Scanner and extractor readiness
+
+Reviewed Dockerfiles, Compose, brokers, validator/parser and tests. Brokers receive only their dedicated HMAC file; parsers receive no DB, Storage or provider credentials. Parsers are non-root, read-only, no capabilities, no-new-privileges, bounded memory/PIDs/tmpfs and internal/offline networks. Scanner signatures must be present and newer than 48 hours. qpdf rejects repairs/warnings/encryption and excessive pages; ClamAV errors never become CLEAN. Extractor preserves page text; UTF-16 offset/chunk provenance belongs to the existing server pipeline.
+
+Local protocol/control-double tests: **10 scanner + 6 extractor PASS**. New `offline-engines` CI builds the existing secret-free stages, downloads official signatures in a separate ephemeral updater, then runs parsers without Internet or credentials. Scanner smoke covers real clean/malformed/encrypted/EICAR outcomes, actual HTTP oversize rejection and a real 45-second subprocess watchdog; extractor smoke checks real Poppler exact page text and malformed rejection. A watchdog test proves the timeout mechanism, not every pathological PDF. Image/package reproducibility and actual hosted resource/signature monitoring remain G4 gates; no deployment approved.
+
+Cleanup uses durable accepted-object reservations, exact attempts, one-hour grace and retry on polling. Terminal quarantine retention/purge policy remains an operational decision; monitor orphan cleanup and never mark unavailable scans READY. See the existing [scanner runbook](../library/SCANNER_DEPLOYMENT.md).
+
+## 10. AI worker and provider readiness
+
+SQL jobs use durable state, three attempts, five-minute leases, `SKIP LOCKED`, completion ownership and stale-attempt fencing. Claims/completions reauthorize initiating actors and READY source state; revoked/archived work is cancelled and exhausted jobs fail. Worker restarts resume lease reconciliation on polling. Runtime and worker login guards reject owners/elevated roles; worker rejects runtime membership. Browser EXECUTE is revoked on worker functions. Parser brokers never receive those database credentials.
+
+Immutable source SHA-256, extraction version, embedding provider/model/revision identity, page/offset/chunk checksum and exact quote checks preserve provenance. Retrieval and streaming/history recheck source access, including revoked/archived dependencies. Citations prove locations; scientific claim support still requires real evaluation.
+
+Generation and embeddings require explicit external-processing consent and configured provider policy. Token/output/context bounds, conservative integer-cost reservations, cancellation and UNCERTAIN reconciliation are implemented. Paid requests stay disabled; no API-key workflow or real-provider test was started. Do not automatically retry an uncertain paid completion. Deployment order and monitoring are in [G4](../operations/A01_APPROVAL_MANIFEST.md#g4); provider activation is independent [G6](../operations/A01_APPROVAL_MANIFEST.md#g6).
+
+## 11. Integrated verification matrix and results
+
+| Workflow / security case                                         | Disposable proof                                                                                 | Hosted/real integration gate                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Register → confirm → onboard → workspace/project                 | `core-platform.spec.ts`, real GoTrue/PG                                                          | Current SMTP, redirect, cookies and poolers unverified                       |
+| Discover → save → upload → quarantine → reader/annotations       | `research-library.spec.ts`, real Storage, loopback provider; scan verdict is a test fixture      | Actual deployed scanner-to-READY chain BLOCKED                               |
+| Index → retrieve → stream → citation                             | `ai-research.test.ts`, `ai-research.spec.ts`, deterministic SDK-wire fixtures                    | Hosted worker, provider/scientific evaluation BLOCKED                        |
+| Create/save/restore document → task/link/search                  | `artifacts.test.ts`, documents/tasks/post-merge browser journeys                                 | Hosted schemas and synthetic-write approval missing                          |
+| Owner/editor/viewer/outsider/revoked/admin-without-private-grant | Integration + auth journeys verify capability matrix, cross-project/tenant denial and revocation | Repeat under separately approved G5                                          |
+| Conflicting immutable document versions; task assignment         | Atomic service/SQL concurrency tests + two-session browser conflict                              | Hosted writes NOT RUN                                                        |
+| Retry/exhaustion/duplicate/stale claims; context pooling         | Existing library/AI/platform integration tests, re-run after synthetic restore                   | Actual deployed polling/alerts/restart and hosted pooler verification needed |
+| Private file and citation denial after revoke/archive            | Library/AI/artifact tests                                                                        | Signed capability expiry and hosted policy configuration must be checked     |
+
+| Command                                                                      | Current execution evidence                                                                                                                           |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                             | PASS, Node 24.21.0 / pnpm 11.25.0                                                                                                                    |
+| `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm db:validate`       | Initial local PASS; final checks recorded with PR CI below                                                                                           |
+| `pnpm test`                                                                  | PASS, 253 tests                                                                                                                                      |
+| `ATLAS_MODE=preview pnpm build`                                              | PASS; no live data requests                                                                                                                          |
+| `pnpm test:e2e`                                                              | Initial FAIL: 4 stale macOS snapshots, 97 passed; baselines reviewed/refreshed; final result below                                                   |
+| Security-only PostgreSQL 17 suite                                            | PASS, 7 tests, fresh loopback metadata-shaped fixture                                                                                                |
+| Python scanner/extractor boundary suites                                     | PASS, 10 + 6 controlled-double tests                                                                                                                 |
+| Full `pnpm test:integration`, `pnpm test:auth:e2e`, restore and real engines | Local NOT RUN: Docker stopped and local PG17 lacks pgvector. Execute on disposable PR CI; do not use local PG16 or hosted credentials as substitutes |
+| Hosted catalog/HTTP/backup/worker/provider/deployment verification           | NOT RUN, separate approvals and active classified target required                                                                                    |
+
+PR CI iteration evidence: [41331847664](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41331847664) passed all real engine checks and 98 integration tests, then failed on the new restore harness URI argument; corrected and locally verified. [41332151657](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41332151657) again passed engines/integration/security/repeat deploy, then exposed missing PG17 client packages in Ubuntu defaults. The workflow now uses the official signed PGDG repository with its documented signing-key fingerprint and explicit major-17 tools. Final successful restore and PR-head results remain pending; no success is assumed.
+
+## 12. Deployment and observability readiness
+
+Keep the existing modular monolith and separate parser brokers. Build/runtime must agree on `ATLAS_MODE=live`; protected staging origin/region/Auth callbacks must be approved. Web processes receive only runtime and narrowly needed server secrets; migration credentials never belong in web builds or workers. Verify mounted CA and full TLS, CSP nonce/worker policy, HTTPS Secure cookies/HSTS and no-store responses on the actual deployment. Repository logs normalize error categories/request IDs, but hosting ingress and provider diagnostics still need inspection for token/content redaction.
+
+No deployed health/readiness or alert routing is certified. Readiness must check safe DB connectivity/role, required migration head and private bucket settings without exposing credentials or user data; worker readiness also needs fresh signatures, successful polling and extraction availability. Require queue age, lease expiry, terminal/UNCERTAIN jobs, usage reservations and cleanup backlog visibility. Select operator/threshold/on-call recipients in G4/G7; no new telemetry SaaS is provisioned. Existing distributed rate limits need capacity tests before public traffic.
+
+Pause dispatch and suspend writes on security/recovery failures; retain source/version/citation identity and redacted incident evidence. Restore only into a new verified environment, reconcile DB/object consistency, then switch under incident approval. Web rollback is to a known compatible artifact; additive database migrations remain in place. Never use a schema reset as application rollback.
+
+## 13. Open risks and dependencies
+
+Inactive target and ambiguous production-labelled branch; unresolved hosted history exposure/defaults; no verified DB-plus-object recovery; current Auth/TLS/pooler state unknown; deployed scanner/extractor/worker unavailable; mutable base image/OS packages require reviewed deployment digests; signature downloads can fail and must block engine readiness; quarantine retention and operator alert routing need decisions; provider consent/retention/region/tariffs/scientific evaluation pending. All G1–G7 operations remain unapproved. Existing historical reports are preserved as evidence, not rewritten as current certification.
+
+## 14. Phase A02 entry criteria
+
+1. A01 PR head passes all quality/disposable jobs and is reviewed; no unexplained failing test.
+2. Exact Atlas target, current environment classification and permissions reconfirmed; separate resume approval if required.
+3. G1 effective catalog + anonymous/authenticated HTTP denial evidence, with no unexpected inherited/global ACL.
+4. G2 encrypted, access-controlled database/roles/Auth/Storage metadata and object-byte snapshot restored into a new compatible environment; measured RPO/RTO and two-actor authorization evidence accepted.
+5. G3 additive migration preflight/postflight/checksums/count preservation accepted.
+6. G4 monitored, isolated scanner/extractor/worker engines and cleanup/restart behavior proven before G5 synthetic workflow writes.
+7. G6 required independently for any paid/external model processing. G7 production remains a distinct decision.
+
+## 15. Final readiness verdict
+
+Repository preparation is reviewable; final PR-head results must be attached before accepting A01. **Development activation BLOCKED; production NOT READY.** No hosted database migration, backup export, resource resume, paid upgrade, provider request, production promotion or merge is claimed or authorized. No deployment command was invoked; the existing Git integration reported an automatically completed preview, which was not used to certify hosted live behavior.

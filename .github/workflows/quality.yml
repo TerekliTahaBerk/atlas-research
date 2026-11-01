@@ -9,6 +9,28 @@ concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  offline-engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build existing secret-free parser stages
+        run: |
+          docker build --target validator -t atlas-a01-validator ops/scanner
+          docker build --target extractor -t atlas-a01-extractor -f ops/extractor/Dockerfile ops
+      - name: Obtain official signatures in a separate disposable updater
+        run: |
+          docker volume create atlas-a01-signatures
+          docker run --rm --user 0 --entrypoint chown -v atlas-a01-signatures:/signatures atlas-a01-validator 10001:10001 /signatures
+          docker run --rm --cap-drop ALL --security-opt no-new-privileges --memory 2g -v atlas-a01-signatures:/signatures atlas-a01-validator freshclam --config-file=/etc/clamav/freshclam.conf
+      - name: Real offline ClamAV and qpdf, limits and watchdog
+        run: docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --memory 3g --cpus 1 --pids-limit 32 --tmpfs /tmp:size=64m,mode=1777,noexec,nosuid,nodev -v atlas-a01-signatures:/signatures:ro -i atlas-a01-validator python - < tests/scanner/engine_smoke.py
+      - name: Real offline Poppler extraction
+        run: docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --memory 640m --cpus 1 --pids-limit 16 --tmpfs /tmp:size=64m,mode=1777,noexec,nosuid,nodev -i atlas-a01-extractor python - < tests/extractor/engine_smoke.py
+      - if: always()
+        run: docker volume rm atlas-a01-signatures
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -54,6 +76,24 @@ jobs:
       - name: Create isolated non-owner test role
         run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE atlas_p01_test_runtime LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_runtime_ci_only'; GRANT atlas_runtime TO atlas_p01_test_runtime; CREATE ROLE atlas_p01_test_ai_worker LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_ai_worker_ci_only'; GRANT atlas_ai_worker TO atlas_p01_test_ai_worker;"
       - run: pnpm test:integration
+      - name: Repeat deploy preserves completed migration history
+        run: pnpm --filter @atlas/database exec prisma migrate deploy
+      - name: Fail closed on effective migration-history access
+        run: psql "$DIRECT_URL" -X -v ON_ERROR_STOP=1 -f ops/sql/a01-migration-history-gate.sql
+      - name: Rehearse synthetic database restore and application authorization
+        run: |
+          if [ ! -x /usr/lib/postgresql/17/bin/pg_dump ]; then
+            # Ubuntu's default client can lag the PG17 fixture server.
+            # Use the official signed PGDG repository, client tools only.
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl --fail --silent --show-error --location https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+            gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | rg --quiet B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+            . /etc/os-release
+            printf 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt %s-pgdg main\n' "$VERSION_CODENAME" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y postgresql-client-17
+          fi
+          PATH="/usr/lib/postgresql/17/bin:$PATH" python3 tests/database/rehearse_restore.py
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
