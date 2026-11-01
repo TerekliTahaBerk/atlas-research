@@ -36,7 +36,8 @@ def retarget(url, database):
 
 def snapshot(url):
     tables = json.loads(sql(url, "SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables WHERE schemaname='public'"))
-    counts = {name: sql(url, 'SELECT count(*) FROM public."' + name.replace('"', '""') + '"') for name in tables}
+    # Synthetic content fingerprints detect changed values even if counts match.
+    counts = {name: sql(url, "SELECT count(*)::text || ':' || encode(sha256(convert_to(coalesce(string_agg(row_to_json(t)::text, E'\\n' ORDER BY row_to_json(t)::text),''),'UTF8')),'hex') FROM public.\"" + name.replace('"', '""') + '" t') for name in tables}
     history = sql(url, 'SELECT json_agg(row(migration_name,checksum,finished_at IS NOT NULL,rolled_back_at) ORDER BY migration_name) FROM public._prisma_migrations')
     constraints = sql(url, "SELECT json_agg(row(c.relname,k.conname,k.convalidated,pg_get_constraintdef(k.oid)) ORDER BY c.relname,k.conname) FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid WHERE c.relnamespace='public'::regnamespace")
     policies = sql(url, "SELECT json_agg(row(tablename,policyname,roles,cmd,qual,with_check) ORDER BY tablename,policyname) FROM pg_policies WHERE schemaname='public'")
@@ -63,7 +64,7 @@ def main():
             dump.chmod(0o600)
             run(['pg_restore', '--exit-on-error', '--dbname', target, str(dump)])
         if snapshot(target) != expected:
-            raise RuntimeError('Restored counts/history/constraints/policies differ')
+            raise RuntimeError('Restored counts/content hashes/history/constraints/policies differ')
         env = {**os.environ, 'DIRECT_URL': target,
                'ATLAS_TEST_ADMIN_URL': target,
                'ATLAS_TEST_DATABASE_URL': retarget(runtime, target_name),
@@ -71,7 +72,7 @@ def main():
         run(['pnpm', '--filter', '@atlas/database', 'exec', 'prisma', 'migrate', 'deploy'], env)
         # Re-run the actual services/RLS/worker/actor-pool tests after restoring.
         run(['pnpm', 'test:integration'], env)
-        print(f'PASS: isolated synthetic DB restore; {len(expected[0])} table counts, history checksums, constraints, policies, repeat deploy and integration suite; {time.monotonic()-started:.1f}s')
+        print(f'PASS: isolated synthetic DB restore; {len(expected[0])} table counts/content hashes, history checksums, constraints, policies, repeat deploy and integration suite; {time.monotonic()-started:.1f}s')
         print('LIMIT: same-cluster roles; no hosted Auth/Storage metadata or object bytes; not a hosted recovery proof')
     finally:
         sql(source, 'DROP DATABASE ' + target_name)

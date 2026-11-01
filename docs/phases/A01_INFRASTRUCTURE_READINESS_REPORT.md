@@ -74,7 +74,7 @@ Current official guidance was checked before infrastructure implementation: the 
 
 **Hosted recovery gate BLOCKED.** Free plan reconfirmed, but no protected export or provider backup inventory was requested. Current plan alone is not proof of a usable restore point. The [G2 procedure](../operations/A01_APPROVAL_MANIFEST.md#g2) extends the existing Phase 03 recovery plan with required evidence and commands; nothing exports personal data during A01.
 
-`tests/database/rehearse_restore.py` only accepts explicit loopback `atlas_p01_test*` URLs, requires PG17, never loads `.env`, and generates a new random restore database. It snapshots counts for every public table, Prisma checksum/completion history, constraint definitions/validation and RLS policy definitions; custom-format dumps to a private temporary directory, restores with errors fatal, compares snapshots, repeats Prisma deployment and re-runs the full service/RLS/worker integration suite against the restored database, then drops only that new target. Duration is printed by CI. Raw connection diagnostics are suppressed to keep credentials out of output.
+`tests/database/rehearse_restore.py` only accepts explicit loopback `atlas_p01_test*` URLs, requires PG17, never loads `.env`, and generates a new random restore database. It snapshots counts and SHA-256 content fingerprints for every public table, Prisma checksum/completion history, constraint definitions/validation and RLS policy definitions; custom-format dumps to a private temporary directory, restores with errors fatal, compares snapshots, repeats Prisma deployment and re-runs the full service/RLS/worker integration suite against the restored database, then drops only that new target. Duration is printed by CI. Raw connection diagnostics are suppressed to keep credentials out of output.
 
 Limits: synthetic fixture only; roles remain on the same disposable cluster. It does not prove cross-cluster role restoration, encryption/key custody, Auth/Storage managed-schema restoration, Storage bytes, hosted poolers or a complete Supabase recovery. These remain mandatory G2 evidence; a passing dump command or synthetic rehearsal does not close them. Recovery uses a new compatible environment and reviewed forward repair; never restore over Atlas or destructively down-migrate research data.
 
@@ -125,7 +125,7 @@ Generation and embeddings require explicit external-processing consent and confi
 | Full `pnpm test:integration`, `pnpm test:auth:e2e`, restore and real engines | Local NOT RUN: Docker stopped and local PG17 lacks pgvector. Execute on disposable PR CI; do not use local PG16 or hosted credentials as substitutes |
 | Hosted catalog/HTTP/backup/worker/provider/deployment verification           | NOT RUN, separate approvals and active classified target required                                                                                    |
 
-PR-head CI evidence: pending first A01 run. Update this record after results; no success is assumed.
+PR CI iteration evidence: [41331847664](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41331847664) passed all real engine checks and 98 integration tests, then failed on the new restore harness URI argument; corrected and locally verified. [41332151657](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41332151657) again passed engines/integration/security/repeat deploy, then exposed missing PG17 client packages in Ubuntu defaults. The workflow now uses the official signed PGDG repository with its documented signing-key fingerprint and explicit major-17 tools. Final successful restore and PR-head results remain pending; no success is assumed.
 
 ## 12. Deployment and observability readiness
 
@@ -151,4 +151,4 @@ Inactive target and ambiguous production-labelled branch; unresolved hosted hist
 
 ## 15. Final readiness verdict
 
-Repository preparation is reviewable; final PR-head results must be attached before accepting A01. **Development activation BLOCKED; production NOT READY.** No hosted migration, deployment, backup export, resource resume, paid upgrade, provider request, production promotion or merge is claimed or authorized.
+Repository preparation is reviewable; final PR-head results must be attached before accepting A01. **Development activation BLOCKED; production NOT READY.** No hosted database migration, backup export, resource resume, paid upgrade, provider request, production promotion or merge is claimed or authorized. No deployment command was invoked; the existing Git integration reported an automatically completed preview, which was not used to certify hosted live behavior.

@@ -83,6 +83,13 @@ jobs:
       - name: Rehearse synthetic database restore and application authorization
         run: |
           if [ ! -x /usr/lib/postgresql/17/bin/pg_dump ]; then
+            # Ubuntu's default client can lag the PG17 fixture server.
+            # Use the official signed PGDG repository, client tools only.
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl --fail --silent --show-error --location https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+            gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | rg --quiet B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+            . /etc/os-release
+            printf 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt %s-pgdg main\n' "$VERSION_CODENAME" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
             sudo apt-get update
             sudo apt-get install --no-install-recommends -y postgresql-client-17
           fi
