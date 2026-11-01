@@ -259,7 +259,7 @@ function DocumentView({ docId }: { docId: string }) {
               ) : null}
               <h1
                 className={cn(
-                  'font-serif text-[42px] leading-[1.08] font-medium tracking-[-0.01em] text-balance break-words max-sm:text-[32px]',
+                  'font-serif text-[42px] leading-[1.08] font-semibold tracking-[-0.02em] text-balance break-words max-sm:text-[32px]',
                   rich ? 'mb-3.5' : 'mb-[26px]',
                 )}
               >
@@ -323,7 +323,7 @@ function DocumentView({ docId }: { docId: string }) {
                   className="mt-12 border-t border-bd2 pt-4 font-sans"
                 >
                   <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                    <h2 className="font-serif text-[22px] font-medium">
+                    <h2 className="font-serif tracking-[-0.02em] text-[22px] font-semibold">
                       References
                     </h2>
                     <span className="inline-flex items-center gap-1 rounded-xs border border-bd2 px-[7px] py-px text-[11px] text-tx3">

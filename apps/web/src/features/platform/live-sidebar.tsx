@@ -67,7 +67,7 @@ export function LiveSidebar({
           >
             <span
               aria-hidden="true"
-              className="grid size-5 shrink-0 place-items-center rounded-[5px] bg-acb font-serif font-semibold text-white"
+              className="grid size-5 shrink-0 place-items-center rounded-[5px] bg-acb font-serif tracking-[-0.02em] font-semibold text-white"
             >
               A
             </span>

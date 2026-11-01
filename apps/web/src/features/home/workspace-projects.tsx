@@ -32,7 +32,7 @@ export function WorkspaceProjects({
             {sampleWorkspace.kind} · {sampleWorkspace.members} members · sample
             workspace
           </div>
-          <h1 className="mb-6 flex items-center gap-2.5 font-serif text-4xl leading-[1.1] font-medium">
+          <h1 className="mb-6 flex items-center gap-2.5 font-serif tracking-[-0.02em] text-4xl leading-[1.1] font-semibold">
             {workspace ? sampleWorkspace.name : 'Projects'}{' '}
             <CountBadge className="font-sans">{projects.length}</CountBadge>
           </h1>
@@ -52,7 +52,7 @@ export function WorkspaceProjects({
               >
                 <div className="flex h-[110px] flex-col gap-[7px] overflow-hidden rounded-lg bg-el px-4 py-3.5">
                   <span className="text-[10.5px] text-tx3">{p.counts}</span>
-                  <span className="font-serif text-[17px] leading-[1.2] text-tx2">
+                  <span className="font-serif tracking-[-0.02em] text-[17px] leading-[1.2] text-tx2">
                     {p.description}
                   </span>
                 </div>

@@ -812,7 +812,7 @@ export function LiveReader({ project }: { project: ProjectDto }) {
         ) : null}
         {tab === 'details' && paper ? (
           <div className="text-ctl">
-            <p className="mb-1 font-serif text-[17px] leading-[1.25]">
+            <p className="mb-1 font-serif tracking-[-0.02em] text-[17px] leading-[1.25]">
               {paper.title}
             </p>
             <p className="mb-3 text-tx2">
@@ -926,7 +926,7 @@ export function LiveReader({ project }: { project: ProjectDto }) {
         >
           <ArrowLeft aria-hidden="true" className="size-4" />
         </IconBtn>
-        <h1 className="max-w-[260px] truncate font-serif text-base">
+        <h1 className="max-w-[260px] truncate font-serif tracking-[-0.02em] text-base">
           {state.paper.title}
         </h1>
         {readyVersions.length > 1 ? (
@@ -1464,7 +1464,9 @@ function ReaderFrame({
         >
           <ArrowLeft aria-hidden="true" className="size-4" />
         </IconBtn>
-        <h1 className="truncate font-serif text-base">{title}</h1>
+        <h1 className="truncate font-serif tracking-[-0.02em] text-base">
+          {title}
+        </h1>
       </header>
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </div>

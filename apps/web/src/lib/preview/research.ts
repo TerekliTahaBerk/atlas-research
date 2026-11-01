@@ -217,7 +217,7 @@ export const libraryNotes: PaperNote[] = [
 ];
 export const highlightColors = [
   { name: 'Amber', value: 'rgb(214 168 60 / 0.8)' },
-  { name: 'Green', value: 'rgb(50 154 83 / 0.8)' },
+  { name: 'Indigo', value: 'rgb(108 121 224 / 0.8)' },
   { name: 'Blue', value: 'rgb(130 180 222 / 0.8)' },
 ] as const;
 export const readerNotes: (PaperNote & { color: number; page: number })[] = [

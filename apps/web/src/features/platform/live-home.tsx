@@ -47,7 +47,7 @@ export function LiveHome({
       <AtlasAnchor placement="canvas" />
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="max-w-[1440px] px-8 pt-[calc(52px+var(--aic))] pb-[72px] max-sm:px-4">
-          <h1 className="mb-[18px] font-serif text-4xl leading-[1.1] font-medium">
+          <h1 className="mb-[18px] font-serif tracking-[-0.02em] text-4xl leading-[1.1] font-semibold">
             {workspace
               ? (selected?.name ?? 'Your workspaces')
               : `Welcome, ${state.profile?.displayName}`}
@@ -71,7 +71,9 @@ export function LiveHome({
             </section>
           ) : null}
           <div className="mb-3 flex items-center gap-2">
-            <h2 className="font-serif text-2xl font-medium">Projects</h2>
+            <h2 className="font-serif tracking-[-0.02em] text-2xl font-semibold">
+              Projects
+            </h2>
             <span className="rounded bg-el px-1.5 text-xs text-tx3">
               {state.projects.length}
             </span>
@@ -159,7 +161,7 @@ export function LiveHome({
             </a>
           ) : null}
           <div className="mt-8 rounded-xl border border-bd2 p-4 text-ui text-tx2">
-            <h2 className="mb-2 font-serif text-xl text-tx">
+            <h2 className="mb-2 font-serif tracking-[-0.02em] text-xl text-tx">
               Your research starts here
             </h2>
             Documents, discovery, manuscripts and Atlas AI will arrive in later
@@ -170,7 +172,7 @@ export function LiveHome({
       </div>
       <Modal open={open} onOpenChange={setOpen}>
         <ModalContent>
-          <ModalTitle className="font-serif text-2xl">
+          <ModalTitle className="font-serif tracking-[-0.02em] text-2xl">
             Create research project
           </ModalTitle>
           <ModalDescription className="mt-1 mb-5 text-ui text-tx2">

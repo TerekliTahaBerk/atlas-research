@@ -37,7 +37,7 @@ export function PaperHoverCard({
           <span className="flex-1" />
           {saved.includes(p.id) ? 'In your library' : 'Not in library'}
         </div>
-        <div className="mb-1 font-serif text-[17px] leading-[1.2]">
+        <div className="mb-1 font-serif tracking-[-0.02em] text-[17px] leading-[1.2]">
           {p.title}
         </div>
         <div className="mb-2 text-[11.5px] text-tx2">{p.authors}</div>

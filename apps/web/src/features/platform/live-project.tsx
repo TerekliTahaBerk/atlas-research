@@ -77,7 +77,7 @@ export function LiveProject({
                 ? 'Private project'
                 : 'Workspace-visible project'}
           </p>
-          <h1 className="mb-5 font-serif text-4xl font-medium">
+          <h1 className="mb-5 font-serif tracking-[-0.02em] text-4xl font-semibold">
             {project.name}
           </h1>
           <nav
@@ -97,7 +97,7 @@ export function LiveProject({
           </nav>
           {module !== 'overview' ? (
             <div className="rounded-2xl border border-bd2 bg-card p-6">
-              <h2 className="mb-2 font-serif text-2xl">
+              <h2 className="mb-2 font-serif tracking-[-0.02em] text-2xl">
                 {active?.label} is coming in Phase {active?.phase}
               </h2>
               <p className="text-sm text-tx2">

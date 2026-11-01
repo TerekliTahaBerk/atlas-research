@@ -1,6 +1,6 @@
-# Atlas design system · Phase 00.5A
+# Atlas design system
 
-Phase 00.5A implements the Claude Design handoff (`Atlas.dc.html` plus the _Atlas Handoff_ notes) in the existing Next.js, Tailwind v4 and Radix stack. It replaces the Phase 00.5 "V2" visual language. The architecture is unchanged. The screen-by-screen mapping is in [design/PHASE_00_5A_REFERENCE_MAP.md](design/PHASE_00_5A_REFERENCE_MAP.md), and the evidence is in [design/PHASE_00_5A_IMPLEMENTATION_REPORT.md](design/PHASE_00_5A_IMPLEMENTATION_REPORT.md).
+The current visual language comes from the second Claude Design handoff (`Atlas.dc.html` plus the _Atlas Handoff_ notes): neutral greys, an indigo accent and Geist throughout. It replaces the Phase 00.5A green/Cormorant palette; layout, dimensions, components, AI modes and motion are unchanged. Where the handoff notes and the prototype disagree, the prototype's CSS variables win; the conflicts and how each was resolved are in [ADR 0018](decisions/0018-neutral-indigo-design-system.md). The original 00.5A mapping and evidence remain in [design/PHASE_00_5A_REFERENCE_MAP.md](design/PHASE_00_5A_REFERENCE_MAP.md) and [design/PHASE_00_5A_IMPLEMENTATION_REPORT.md](design/PHASE_00_5A_IMPLEMENTATION_REPORT.md).
 
 ## One theme system
 
@@ -17,54 +17,57 @@ Persisted in the browser, and nothing else:
 - `theme`, written by next-themes.
 - `atlas-sidebar-collapsed`.
 
-| Role                  | Token           | Dark                        | Light                       |
-| --------------------- | --------------- | --------------------------- | --------------------------- |
-| Sidebar               | `--sb`          | #171817                     | #f2f1eb                     |
-| Canvas                | `--bg`          | #232423                     | #faf9f6                     |
-| Card                  | `--card`        | #1c1d1c                     | #f2f1eb                     |
-| Elevated              | `--el`          | #2b2d2b                     | #fffdf9                     |
-| Popover               | `--pop`         | #1d1f1d                     | #ffffff                     |
-| Hover                 | `--hov`         | #343734                     | #e9e7e0                     |
-| Border / hairline     | `--bd/bd2`      | #383b38 / #2e302e           | #e2e0d8 / #eae8e1           |
-| Text / 2 / 3          | `--tx/2/3`      | #f1f1ec / #a7aca6 / #9fa59e | #242622 / #5a5f57 / #64695f |
-| Accent (non-text)     | `--ac`          | #329a53                     | #399b5a                     |
-| Filled button         | `--acb`         | #2b7d46                     | #2d7f48                     |
-| Green text            | `--actx`        | #7ccb95                     | #2d7445                     |
-| AI input / border     | `--aiin/aiib`   | #24382a / #2f5b3c           | #e4eedf / #bfd8ba           |
-| Code / PDF background | `--code/pdfbg`  | #1a1b1a                     | #fffdf9 / #eeece6           |
-| Danger / warning      | `--danger/warn` | #ee8178 / #d3a548           | #ae3d36 / #8a600f           |
-| Presence              | `--presence`    | #c9a06a                     | #b08550                     |
+| Role                  | Token           | Dark              | Light             |
+| --------------------- | --------------- | ----------------- | ----------------- |
+| Sidebar               | `--sb`          | #181818           | #f7f7f5           |
+| Canvas                | `--bg`          | #212121           | #ffffff           |
+| Card                  | `--card`        | #1c1c1c           | #f7f7f5           |
+| Elevated              | `--el`          | #2a2a2a           | #ffffff           |
+| Popover               | `--pop`         | #262626           | #ffffff           |
+| Hover                 | `--hov`         | #2f2f2f           | #efefed           |
+| Border / hairline     | `--bd/bd2`      | #363636 / #2c2c2c | #e6e6e3 / #efefec |
+| Text / 2              | `--tx/2`        | #ececec / #a3a3a3 | #1f1f1e / #5f5f5f |
+| Text 3                | `--tx3`         | #969696           | #6c6c6c           |
+| Accent (non-text)     | `--ac`          | #6c79e0           | #5e6ad2           |
+| Filled button         | `--acb`         | #5a67cf           | #5e6ad2           |
+| Accent text           | `--actx`        | #a9b1f4           | #4450b8           |
+| AI input / border     | `--aiin/aiib`   | #2a2a2a / #3a3a3a | #f4f4f2 / #e3e3e0 |
+| Code / PDF background | `--code/pdfbg`  | #1b1b1b           | #ffffff / #f0f0ee |
+| Danger / warning      | `--danger/warn` | #e7746c / #d3a548 | #b8463d / #8e6519 |
+| Presence              | `--presence`    | #c9a06a           | #b08550           |
 
-The syntax colours (`--syn-k/b/e/c/n/m/t`), highlight, selection, dim and shadows follow the handoff exactly.
+The syntax colours (`--syn-k/b/e/c/n/m/t`), highlight, selection, dim and shadows follow the prototype, except `--syn-c` (below).
 
-**The green accent is kept.** The Classical design-system gold was not adopted.
+**Indigo is a signal, not a surface.** Use it for primary actions, AI affordances, Owner and selected states. The handoff notes still say "green" in places; read that as the accent.
 
 ### WCAG AA adjustments
 
-Some handoff values failed AA for small text, so they were darkened or lightened. The full table is in `features/system/tokens.ts`; it is rendered at `/app/design-system` and asserted by a unit test against the stylesheet.
+Some prototype values failed AA for small text, so they were darkened or lightened by the smallest step that passes. The full table is in `features/system/tokens.ts`; it is rendered at `/app/design-system` and asserted by a unit test against the stylesheet.
 
-| Token        | Theme | Handoff value | Now     |
-| ------------ | ----- | ------------- | ------- |
-| `--tx3`      | Dark  | #7a817a       | #9fa59e |
-| `--tx2`      | Light | #696e66       | #5a5f57 |
-| `--tx3`      | Light | #8e938b       | #64695f |
-| `--danger`   | Dark  | #e5685f       | #ee8178 |
-| `--danger`   | Light | #c24a40       | #ae3d36 |
-| `--warn`     | Light | #a9781e       | #8a600f |
-| `--presence` | Light | #9c7442       | #b08550 |
+| Token      | Theme | Prototype value   | Now               |
+| ---------- | ----- | ----------------- | ----------------- |
+| `--tx3`    | Dark  | #858585           | #969696           |
+| `--danger` | Dark  | #e5685f           | #e7746c           |
+| `--tx3`    | Light | #737373           | #6c6c6c           |
+| `--danger` | Light | #c24a40           | #b8463d           |
+| `--warn`   | Light | #a9781e           | #8e6519           |
+| `--syn-c`  | Both  | #6b6b6b / #9a9a9a | #838383 / #767676 |
 
-`--acb` is new. White text on the handoff's filled green was only 3.5:1, so filled controls use `--acb`, and `--ac` stays for non-text accents. Axe runs on 17 routes in both themes with no violations.
+`--acb` is kept separate from `--ac`: white text on the dark-theme indigo `#6c79e0` is 3.9:1, so filled controls use `#5a67cf` (the prototype's hover indigo). In light, the prototype indigo already passes and both tokens share it.
 
 ## Typography
 
 The fonts are self-hosted through Fontsource, so no network request is made at runtime:
 
-| Font                    | Variable       | Use                                     |
-| ----------------------- | -------------- | --------------------------------------- |
-| Geist Variable          | `--font-sans`  | UI                                      |
-| Cormorant Garamond      | `--font-serif` | Display and page titles (30–42px)       |
-| Lora Variable           | `--font-read`  | Reading and document body (15.5–16.5px) |
-| JetBrains Mono Variable | `--font-mono`  | Code, LaTeX, IDs                        |
+| Font                    | Variable       | Use                                                   |
+| ----------------------- | -------------- | ----------------------------------------------------- |
+| Geist Variable          | `--font-sans`  | UI                                                    |
+| Geist Variable          | `--font-serif` | Display and page titles: weight 600, −0.02em tracking |
+| Geist Variable          | `--font-read`  | Reading and document body (14.5–16.5px)               |
+| Lora Variable           | `--font-pdf`   | Rendered PDF pages only (`.pdf-page`)                 |
+| JetBrains Mono Variable | `--font-mono`  | Code, LaTeX, IDs                                      |
+
+`font-serif` and `font-read` are kept as semantic roles so titles and reading text can diverge from the UI face again without touching components.
 
 Named sizes:
 

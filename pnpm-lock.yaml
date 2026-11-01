@@ -107,9 +107,6 @@ importers:
       '@fontsource-variable/lora':
         specifier: 5.3.0
         version: 5.3.0
-      '@fontsource/cormorant-garamond':
-        specifier: 5.3.0
-        version: 5.3.0
       '@lezer/highlight':
         specifier: 1.2.5
         version: 1.2.5
@@ -549,9 +546,6 @@ packages:
 
   '@fontsource-variable/lora@5.3.0':
     resolution: {integrity: sha512-2ph8KiZ8Bn141hWuC3ErtpJ+Ui8p2MJQn8TJNRSRmLmnCIOCtHfiBM9R7WLRPeUG/q6hXyHOxWQ8DvRSX+ixvQ==}
-
-  '@fontsource/cormorant-garamond@5.3.0':
-    resolution: {integrity: sha512-weuGsCirGVWBWqpt6YUp0yLThTe4G8YO45noq8wxeJCRvEpq5lFrxNMFSTxcyOyV5k5otzJ8guDzYegdYlcLMQ==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -5111,8 +5105,6 @@ snapshots:
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
   '@fontsource-variable/lora@5.3.0': {}
-
-  '@fontsource/cormorant-garamond@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

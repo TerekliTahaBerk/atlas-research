@@ -33,7 +33,7 @@ export function MobileScreens() {
       </Topbar>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="px-8 pt-10 pb-20 max-sm:px-4">
-          <h1 className="mb-1.5 font-serif text-[34px] leading-[1.1] font-medium">
+          <h1 className="mb-1.5 font-serif tracking-[-0.02em] text-[34px] leading-[1.1] font-semibold">
             Atlas on a phone
           </h1>
           <p className="mb-7 max-w-[620px] text-ui text-tx2">

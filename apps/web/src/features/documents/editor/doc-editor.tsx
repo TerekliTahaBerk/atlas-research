@@ -1132,7 +1132,7 @@ export function DocEditor({
                       </span>
                       {menu.kind === 'cite' ? (
                         <span className="min-w-0 flex-1">
-                          <span className="block font-serif text-[15px] leading-[1.25]">
+                          <span className="block font-serif tracking-[-0.02em] text-[15px] leading-[1.25]">
                             {item.label}
                           </span>
                           <span className="text-[11.5px] text-tx3">

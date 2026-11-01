@@ -77,7 +77,7 @@ export function MembershipPanel({
   }
   return (
     <section className="mt-8 max-w-[700px]">
-      <h2 className="mb-3 font-serif text-2xl">Members</h2>
+      <h2 className="mb-3 font-serif tracking-[-0.02em] text-2xl">Members</h2>
       <ul className="divide-y divide-bd2 border-y border-bd2">
         {members.map((member) => (
           <li

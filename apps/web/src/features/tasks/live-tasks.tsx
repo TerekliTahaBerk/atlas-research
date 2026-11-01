@@ -266,7 +266,7 @@ function TaskWorkspace({ project }: { project: ProjectDto }) {
         <span className="mb-[-2px] w-full text-xs text-tx3">
           {project.name}
         </span>
-        <h1 className="mr-2 font-serif text-[30px] leading-none font-medium">
+        <h1 className="mr-2 font-serif tracking-[-0.02em] text-[30px] leading-none font-semibold">
           Tasks
         </h1>
         <Segmented
@@ -900,11 +900,11 @@ function TaskDetail({
                 void update({ title: title.trim() }, 'title')
               }
               onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-              className="w-full bg-transparent font-serif text-2xl leading-[1.15] font-medium outline-none"
+              className="w-full bg-transparent font-serif tracking-[-0.02em] text-2xl leading-[1.15] font-semibold outline-none"
             />
           </h2>
         ) : (
-          <h2 className="mb-3.5 font-serif text-2xl leading-[1.15] font-medium">
+          <h2 className="mb-3.5 font-serif tracking-[-0.02em] text-2xl leading-[1.15] font-semibold">
             {task.title}
           </h2>
         )}

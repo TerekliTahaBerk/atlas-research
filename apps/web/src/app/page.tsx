@@ -9,11 +9,13 @@ export default function Home() {
       <header className="flex items-center gap-2 px-5 py-4">
         <span
           aria-hidden="true"
-          className="grid size-[22px] place-items-center rounded-[5px] bg-acb font-serif text-base font-semibold text-white"
+          className="grid size-[22px] place-items-center rounded-[5px] bg-acb font-serif tracking-[-0.02em] text-base font-semibold text-white"
         >
           A
         </span>
-        <span className="font-serif text-xl font-medium">Atlas</span>
+        <span className="font-serif tracking-[-0.02em] text-xl font-semibold">
+          Atlas
+        </span>
         <span className="flex-1" />
         <Link
           href="/app"
@@ -24,7 +26,7 @@ export default function Home() {
         </Link>
       </header>
       <main className="mx-auto max-w-[760px] px-6 pt-[12vh] pb-20">
-        <h1 className="font-serif text-[clamp(44px,8vw,80px)] leading-[1.02] font-medium tracking-[-0.01em]">
+        <h1 className="font-serif text-[clamp(44px,8vw,80px)] leading-[1.02] font-semibold tracking-[-0.02em]">
           Research is a journey.
           <br />
           <em className="text-tx2">Keep it connected.</em>
@@ -71,7 +73,7 @@ export default function Home() {
             return (
               <section key={title as string}>
                 <I aria-hidden="true" className="mb-3 size-5 text-actx" />
-                <h2 className="font-serif text-xl font-medium">
+                <h2 className="font-serif tracking-[-0.02em] text-xl font-semibold">
                   {title as string}
                 </h2>
                 <p className="mt-1 text-ctl text-tx2">{body as string}</p>

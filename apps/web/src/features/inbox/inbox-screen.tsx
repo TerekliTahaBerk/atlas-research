@@ -47,7 +47,7 @@ export function InboxScreen() {
       <div className="flex min-h-0 flex-1">
         <div className="flex w-[min(460px,100%)] shrink-0 flex-col border-r border-bd2 max-[899px]:w-full max-[899px]:border-r-0">
           <div className="px-4 pt-5 pb-2.5">
-            <h1 className="mb-3 font-serif text-[30px] leading-none font-medium">
+            <h1 className="mb-3 font-serif tracking-[-0.02em] text-[30px] leading-none font-semibold">
               Inbox
             </h1>
             <Segmented
@@ -115,7 +115,7 @@ export function InboxScreen() {
                   </div>
                 </div>
               </div>
-              <h2 className="mb-3.5 font-serif text-[28px] leading-[1.15] font-medium">
+              <h2 className="mb-3.5 font-serif tracking-[-0.02em] text-[28px] leading-[1.15] font-semibold">
                 {current.object}
               </h2>
               {current.quote ? (

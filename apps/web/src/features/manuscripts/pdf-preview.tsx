@@ -147,7 +147,7 @@ function Block({
       className={cn(
         '-m-[0.6cqw] block w-[calc(100%+1.2cqw)] cursor-pointer rounded-[0.6cqw] p-[0.6cqw] text-left transition-colors duration-200',
         on.highlight === id
-          ? 'bg-[rgb(50_154_83/0.16)] outline-[0.25cqw] outline-[rgb(50_154_83/0.55)] outline-solid'
+          ? 'bg-[rgb(108_121_224/0.16)] outline-[0.25cqw] outline-[rgb(108_121_224/0.55)] outline-solid'
           : 'hover:bg-[rgb(0_0_0/0.04)]',
         className,
       )}

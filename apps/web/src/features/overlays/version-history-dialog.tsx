@@ -224,7 +224,7 @@ export function VersionHistoryDialog({
                 <div className="flex-1 overflow-auto px-7 py-[22px]">
                   {kind === 'prose' ? (
                     <>
-                      <div className="mb-3 font-serif text-[26px] font-medium">
+                      <div className="mb-3 font-serif tracking-[-0.02em] text-[26px] font-semibold">
                         {title}
                       </div>
                       <p className="font-read text-[14.5px] leading-[1.75]">

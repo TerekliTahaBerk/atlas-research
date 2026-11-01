@@ -9,7 +9,7 @@ import {
 } from '@atlas/ui/components/tooltip';
 /**
  * Atlas buttons (handoff §3: 28px controls, 10–12px padding, radius 6).
- * Primary is the only filled-green control; AI actions use the soft green.
+ * Primary is the only filled-accent control; AI actions use the soft accent.
  */
 export const btnVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[13px]",

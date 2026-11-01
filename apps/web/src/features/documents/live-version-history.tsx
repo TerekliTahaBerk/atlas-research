@@ -310,7 +310,7 @@ export function LiveVersionHistoryDialog({
                   className="flex-1 overflow-auto px-7 py-[22px]"
                   aria-label={`Revision ${shown.version.revision} preview`}
                 >
-                  <div className="mb-3 font-serif text-[26px] font-medium">
+                  <div className="mb-3 font-serif tracking-[-0.02em] text-[26px] font-semibold">
                     {title}
                   </div>
                   {lines.map((line, i) => (
