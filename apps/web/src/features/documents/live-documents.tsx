@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { JSONContent } from '@tiptap/react';
+import type { Editor, JSONContent } from '@tiptap/react';
 import {
   Archive,
   ArchiveRestore,
@@ -13,6 +13,7 @@ import {
   FileText,
   History,
   Link2,
+  ListPlus,
   ListTodo,
   Plus,
   Sparkles,
@@ -59,7 +60,13 @@ import {
   fetchDocuments,
   fetchLinks,
   fetchOptions,
+  fetchTask,
 } from '@/features/artifacts/client';
+import {
+  ResearchTaskDialog,
+  type CreatedTask,
+  type ResearchTaskSource,
+} from '@/features/tasks/research-task-dialog';
 import { ArtifactSearch } from '@/features/artifacts/artifact-search';
 import { ARTIFACTS_CHANGED } from '@/features/atlas-ai/proposal-review';
 import { DocUi } from './editor/doc-context';
@@ -501,6 +508,11 @@ function DocumentView({
     new Map(),
   );
   const [recovering, setRecovering] = useState(false);
+  const [taskSource, setTaskSource] = useState<ResearchTaskSource | null>(null);
+  const editorRef = useRef<Editor | null>(null);
+  const bindEditor = useCallback((editor: Editor | null) => {
+    editorRef.current = editor;
+  }, []);
   const recovery = useRef({ active: false, busy: false });
   useEffect(() => {
     const lifetime = { active: true, busy: false };
@@ -600,18 +612,85 @@ function DocumentView({
           mode: 'open',
           draft: `Explain this passage from “${doc.title}”: “${selection}”`,
         }),
+      ...(canEdit
+        ? {
+            createTask: (selection: string) =>
+              setTaskSource({
+                document: {
+                  id: doc.id,
+                  artifactId: doc.artifactId,
+                  title: doc.title,
+                },
+                papers: doc.references.filter(
+                  (r) => r.kind === 'PAPER' && r.state === 'AVAILABLE',
+                ),
+                selection,
+              }),
+          }
+        : {}),
+      bindEditor,
     }),
-    [atlas, change, save, canEdit, recovering, doc.id, doc.title, project.id],
+    [
+      atlas,
+      change,
+      save,
+      canEdit,
+      recovering,
+      doc.id,
+      doc.artifactId,
+      doc.title,
+      doc.references,
+      project.id,
+      bindEditor,
+    ],
   );
   const ui = useMemo(
     () => ({
       commentsResolved: true,
       openComments: () => setRail(true),
       flash,
-      openTask: () => {},
+      openTask: (id: string) =>
+        router.push(`/app/projects/${project.id}/tasks?task=${id}`),
     }),
-    [flash],
+    [flash, project.id, router],
   );
+  /**
+   * The task and its link to this note already committed. Adding the task
+   * reference is an ordinary, visible edit saved by autosave; if that save
+   * fails the task stays linked and the status shows the unsaved edit.
+   */
+  async function taskCreated(task: CreatedTask, insertReference: boolean) {
+    loadLinks();
+    const editor = editorRef.current;
+    if (!insertReference || !editor || !editor.isEditable) return;
+    try {
+      const detail = await fetchTask(task.id);
+      setExtra((m) =>
+        new Map(m).set(task.id, {
+          artifactId: detail.task.artifactId,
+          kind: 'TASK',
+          id: task.id,
+          state: 'AVAILABLE',
+          title: detail.task.title,
+          detail: `#${detail.task.number}`,
+          href: `/app/projects/${project.id}/tasks?task=${task.id}`,
+        }),
+      );
+    } catch {
+      // The chip resolves on the next authoritative reload.
+    }
+    if (editorRef.current !== editor || editor.isDestroyed) return;
+    editor
+      .chain()
+      .insertContentAt(editor.state.doc.content.size, {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Task: ' },
+          { type: 'taskRef', attrs: { taskId: task.id } },
+        ],
+      })
+      .run();
+  }
 
   async function rename() {
     const next = title.trim();
@@ -779,6 +858,18 @@ function DocumentView({
           <Topbar
             actions={
               <>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    aria-label="Create research task"
+                    title="Create research task"
+                    disabled={recovering}
+                    onClick={() => live.createTask?.('')}
+                    className="grid size-7 place-items-center rounded-md text-tx2 hover:bg-hov hover:text-tx"
+                  >
+                    <ListPlus aria-hidden="true" className="size-[15px]" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   aria-label="Links"
@@ -1083,6 +1174,16 @@ function DocumentView({
             ) : null}
           </div>
         </div>
+        <ResearchTaskDialog
+          open={!!taskSource}
+          onOpenChange={(open) => {
+            if (!open) setTaskSource(null);
+          }}
+          project={project}
+          source={taskSource}
+          canInsertReference={canEdit && !recovering && !doc.archived}
+          onCreated={(task, insert) => void taskCreated(task, insert)}
+        />
         <LiveVersionHistoryDialog
           open={history}
           onOpenChange={setHistory}

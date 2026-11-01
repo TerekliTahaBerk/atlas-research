@@ -30,7 +30,9 @@ import { cn } from '@atlas/ui/lib/utils';
 import {
   normalizeTag,
   readingStatuses,
+  relationshipLabels,
   type LibraryPage,
+  type LinkDto,
   type ProjectDto,
   type ProjectPaperDto,
   type ReadingStatus,
@@ -58,10 +60,13 @@ import {
   exportHref,
   fetchExport,
   fetchLibrary,
+  fetchPaper,
   runCommand,
   uploadPdf,
   type UploadPhase,
+  ApiError,
 } from './client';
+import { fetchLinks } from '@/features/artifacts/client';
 import {
   authorSummary,
   formatBytes,
@@ -163,7 +168,49 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
   const error = loading ? '' : (result?.error ?? '');
 
   const items = page?.items ?? [];
-  const current = items.find((p) => p.id === selectedId) ?? null;
+  // A02: a deep link (citation, task or search result) may name a paper that
+  // is not on the loaded page or outside the active filter; read it directly.
+  const listed = items.find((p) => p.id === selectedId) ?? null;
+  const [direct, setDirect] = useState<{
+    id: string;
+    paper: ProjectPaperDto | null;
+    unavailable: boolean;
+  } | null>(null);
+  const needsDirect = !!selectedId && !loading && !!page && !listed;
+  useEffect(() => {
+    if (!needsDirect || !selectedId) return;
+    let active = true;
+    fetchPaper(selectedId)
+      .then(
+        (paper) =>
+          active && setDirect({ id: selectedId, paper, unavailable: false }),
+      )
+      .catch(
+        (e: unknown) =>
+          active &&
+          setDirect({
+            id: selectedId,
+            paper: null,
+            unavailable: e instanceof ApiError && e.code === 'NOT_FOUND',
+          }),
+      );
+    return () => {
+      active = false;
+    };
+  }, [needsDirect, selectedId, refresh]);
+  const current =
+    listed ??
+    (direct &&
+    direct.id === selectedId &&
+    direct.paper?.projectId === project.id
+      ? direct.paper
+      : null);
+  const directFailure =
+    needsDirect && direct?.id === selectedId && direct.paper === null
+      ? direct.unavailable
+        ? 'This paper is unavailable. It may have been removed, or you may no longer have access.'
+        : 'This paper could not be loaded. Check your connection and retry.'
+      : '';
   useEffect(() => {
     setContext(
       current
@@ -722,6 +769,26 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
             </>
           )}
         </div>
+        {directFailure ? (
+          <aside
+            aria-label="Paper details"
+            className="flex w-[min(400px,44%)] shrink-0 flex-col border-l border-bd2 bg-canvas p-5 max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-40 max-md:w-[min(400px,100%)]"
+          >
+            <p role="status" className="mb-3 text-ctl text-tx2">
+              {directFailure}
+            </p>
+            <div className="flex gap-1.5">
+              {direct && !direct.unavailable ? (
+                <Btn variant="outline" size="md" onClick={reload}>
+                  Retry
+                </Btn>
+              ) : null}
+              <Btn variant="outline" size="md" onClick={() => select(null)}>
+                Close
+              </Btn>
+            </div>
+          </aside>
+        ) : null}
         {current && page ? (
           <PaperPanel
             key={current.id}
@@ -927,6 +994,7 @@ function PaperPanel({
             {uploadLabels[upload]}
           </p>
         ) : null}
+        <LinkedResearch artifactId={paper.artifactId} version={paper.version} />
         <div
           role="tablist"
           aria-label="Paper detail"
@@ -1292,5 +1360,78 @@ function PaperPanel({
         ) : null}
       </div>
     </aside>
+  );
+}
+
+/**
+ * A02 traceability: notes that cite this paper and tasks that reference it.
+ * Links are re-authorized on every read; unavailable targets carry no title.
+ */
+function LinkedResearch({
+  artifactId,
+  version,
+}: {
+  artifactId: string;
+  version: number;
+}) {
+  const [state, setState] = useState<{
+    key: string;
+    links: LinkDto[] | null;
+    error: boolean;
+  } | null>(null);
+  const key = `${artifactId}:${version}`;
+  useEffect(() => {
+    let active = true;
+    fetchLinks(artifactId)
+      .then((r) => active && setState({ key, links: r.links, error: false }))
+      .catch(() => active && setState({ key, links: null, error: true }));
+    return () => {
+      active = false;
+    };
+  }, [artifactId, key]);
+  const current = state?.key === key ? state : null;
+  const links = (current?.links ?? []).filter(
+    (l) => l.other.kind === 'DOCUMENT' || l.other.kind === 'TASK',
+  );
+  return (
+    <section aria-label="Linked research" className="mb-4">
+      <h3 className="mb-1.5 text-[11.5px] text-tx3">Linked research</h3>
+      {!current ? (
+        <SkeletonLines widths={[70]} />
+      ) : current.error ? (
+        <p className="text-ctl text-tx3">Links could not be loaded.</p>
+      ) : !links.length ? (
+        <p className="text-ctl text-tx3">
+          No notes or tasks link to this paper yet. Add it to a research note
+          from the reader.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {links.map((l) => (
+            <li key={l.id} className="flex items-center gap-1.5 text-ctl">
+              <span className="w-[78px] shrink-0 text-[11px] text-tx3">
+                {
+                  relationshipLabels[l.relationship][
+                    l.direction === 'outgoing' ? 0 : 1
+                  ]
+                }
+              </span>
+              {l.other.state === 'UNAVAILABLE' || !l.other.title ? (
+                <span className="text-tx3">Unavailable reference</span>
+              ) : (
+                <Link
+                  href={l.other.href ?? '#'}
+                  className="min-w-0 truncate hover:underline"
+                >
+                  {l.other.kind === 'TASK' ? `${l.other.detail} ` : ''}
+                  {l.other.title}
+                  {l.other.state === 'ARCHIVED' ? ' · archived' : ''}
+                </Link>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

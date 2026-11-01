@@ -573,6 +573,43 @@ export const artifactCommand = z.discriminatedUnion('command', [
     })
     .strict(),
   z.object({ command: z.literal('artifact.link.remove'), id }).strict(),
+  /*
+   * A02: insert an evidence-derived source reference into a research note.
+   * The client names only stable IDs; the server re-reads the paper, the
+   * accepted version, the visible annotation and the document, builds the
+   * citation from those rows and commits through `document.save` (existing
+   * note) or `document.create` (new note, one transaction).
+   */
+  z
+    .object({
+      command: z.literal('document.cite-source'),
+      projectId: id,
+      projectPaperId: id,
+      sourceVersionId: id.nullable().default(null),
+      annotationId: id.nullable().default(null),
+      target: z.discriminatedUnion('kind', [
+        z
+          .object({
+            kind: z.literal('existing'),
+            documentId: id,
+            expectedRevision: z.number().int().min(1),
+          })
+          .strict(),
+        z
+          .object({
+            kind: z.literal('new'),
+            title: title(200),
+            documentKind: documentKind.default('RESEARCH_NOTE'),
+          })
+          .strict(),
+      ]),
+      commentary: z.string().max(4000).default(''),
+      /** Explicit consent to copy the actor's own private annotation text. */
+      sharePrivateAnnotation: z.boolean().default(false),
+      /** Replay key: a retried insert returns the committed revision. */
+      clientRequestId: id,
+    })
+    .strict(),
   z
     .object({
       command: z.literal('ai.document-proposal.apply'),

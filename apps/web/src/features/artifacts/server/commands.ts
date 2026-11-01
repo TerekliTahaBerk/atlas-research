@@ -25,6 +25,7 @@ import {
   documentProposal,
   tasksProposal,
 } from '@/features/ai/server/proposals';
+import { citeSourceMutation } from './cite-source';
 
 async function mutate(
   tx: Prisma.TransactionClient,
@@ -111,6 +112,12 @@ export async function executeArtifactCommand(
           },
           requestId,
         );
+      }
+      case 'document.cite-source': {
+        const plan = await citeSourceMutation(tx, actor, command, hash);
+        if (plan.kind === 'replayed')
+          return artifactCommandResult.parse(plan.result);
+        return mutate(tx, plan.name, plan.input, requestId);
       }
       case 'ai.document-proposal.apply': {
         const proposal = await documentProposal(tx, command.runId, command.id);

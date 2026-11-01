@@ -8,6 +8,8 @@ import {
   documentPageDto,
   graphDto,
   linksDto,
+  milestoneDto,
+  participantDto,
   searchPageDto,
   taskDetailDto,
   taskPageDto,
@@ -102,6 +104,10 @@ export const fetchTasks = (
 ) => call(`/api/v1/projects/${projectId}/tasks${qs(query)}`, taskPageDto);
 export const fetchTask = (id: string) =>
   call(`/api/v1/tasks/${id}`, taskDetailDto);
+export const fetchMilestones = (projectId: string) =>
+  call(`/api/v1/projects/${projectId}/milestones`, z.array(milestoneDto));
+export const fetchParticipants = (projectId: string) =>
+  call(`/api/v1/projects/${projectId}/participants`, z.array(participantDto));
 export const fetchLinks = (artifactId: string) =>
   call(`/api/v1/artifacts/${artifactId}/links`, linksDto);
 export const fetchOptions = (

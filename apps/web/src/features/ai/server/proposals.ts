@@ -172,6 +172,19 @@ export function answerTasks(text: string, citations: VerifiedCitation[]) {
     })
     .filter((t) => t.title.length > 0);
 }
+/**
+ * A02: AI-derived text is labelled as generated interpretation inside the
+ * document itself, separate from source-backed quotations (citations) and
+ * from user-authored commentary. It is part of the previewed, hashed blocks.
+ */
+export const AI_ATTRIBUTION =
+  'Atlas AI draft — generated interpretation. Verify each claim against its cited source before relying on it.';
+export const attributionBlock = (): DocNode => ({
+  type: 'paragraph',
+  content: [
+    { type: 'text', text: AI_ATTRIBUTION, marks: [{ type: 'italic' }] },
+  ],
+});
 export const proposalHash = (value: unknown) =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
@@ -201,12 +214,13 @@ export async function documentProposal(
 ) {
   const doc = await loadDocument(tx, documentId);
   const run = await completedRun(tx, runId, doc.projectId);
-  const blocks = answerBlocks(run.text, run.citations);
-  if (!blocks.length)
+  const answer = answerBlocks(run.text, run.citations);
+  if (!answer.length)
     throw new PlatformError(
       'CONFLICT',
       'This answer has no content to insert.',
     );
+  const blocks = [attributionBlock(), ...answer];
   const refs = await paperReferences(
     tx,
     doc.projectId,
