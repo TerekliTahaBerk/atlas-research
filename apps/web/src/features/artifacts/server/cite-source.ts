@@ -4,6 +4,7 @@ import {
   annotationAnchor,
   annotationCitable,
   appendBlocks,
+  referenceNodes,
   sourceNoteBlocks,
   type ArtifactCommand,
   type DocNode,
@@ -116,6 +117,104 @@ export async function sourceEvidence(
   };
 }
 
+const canonical = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map(canonical)
+    : value && typeof value === 'object'
+      ? Object.fromEntries(
+          Object.entries(value as Record<string, unknown>)
+            .filter(([, v]) => v !== undefined)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+            .map(([k, v]) => [k, canonical(v)]),
+        )
+      : value;
+const sameContent = (a: unknown, b: unknown) =>
+  JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+
+/**
+ * A02 hardening: a version found by `clientRequestId` is acknowledged only
+ * when it is provably this request — the same actor, an editor save made on
+ * exactly `expectedRevision`, and content equal to that base revision plus
+ * the blocks this request produces (same paper, version, annotation and
+ * commentary). The location fields are taken from the stored, server-derived
+ * citation, so a lost response can be retried even if the annotation was
+ * deleted afterwards; consent for a still-private annotation is re-required.
+ * Anything else is a different intent and must not be reported as success.
+ */
+async function replayMatches(
+  tx: Prisma.TransactionClient,
+  actor: VerifiedActor,
+  command: CiteSource,
+  documentId: string,
+  replay: {
+    revision: number;
+    authorId: string;
+    source: string;
+    content: unknown;
+  },
+) {
+  if (command.target.kind !== 'existing') return false;
+  if (
+    replay.authorId !== actor.id ||
+    replay.source !== 'EDITOR' ||
+    replay.revision !== command.target.expectedRevision + 1
+  )
+    return false;
+  const [base] = z.array(z.object({ content: z.unknown() })).parse(
+    await tx.$queryRaw`SELECT content FROM document_versions
+        WHERE document_id=${documentId}::uuid AND revision=${command.target.expectedRevision}`,
+  );
+  if (!base) return false;
+  const baseBlocks = (base.content as DocNode).content ?? [];
+  const lone =
+    baseBlocks.length === 1 &&
+    baseBlocks[0]?.type === 'paragraph' &&
+    !baseBlocks[0].content?.length;
+  const appended = ((replay.content as DocNode).content ?? []).slice(
+    lone ? 0 : baseBlocks.length,
+  );
+  const stored = referenceNodes({ type: 'doc', content: appended }).find(
+    (n) => n.type === 'citation',
+  )?.attrs;
+  if (!stored) return false;
+  const evidence: SourceEvidence = {
+    projectPaperId: command.projectPaperId,
+    sourceVersionId: command.sourceVersionId,
+    sourceChecksum:
+      typeof stored.sourceChecksum === 'string' ? stored.sourceChecksum : null,
+    annotation: command.annotationId
+      ? {
+          id: command.annotationId,
+          page: Number(stored.page),
+          quote: typeof stored.quote === 'string' ? stored.quote : null,
+          startOffset:
+            typeof stored.startOffset === 'number' ? stored.startOffset : null,
+          endOffset:
+            typeof stored.endOffset === 'number' ? stored.endOffset : null,
+        }
+      : null,
+  };
+  if (
+    !sameContent(
+      appendBlocks(
+        base.content as DocNode,
+        sourceNoteBlocks(evidence, command.commentary),
+      ),
+      replay.content,
+    )
+  )
+    return false;
+  if (command.annotationId && !command.sharePrivateAnnotation) {
+    const [note] = z
+      .array(z.object({ visibility: z.string() }))
+      .parse(
+        await tx.$queryRaw`SELECT visibility FROM paper_annotations WHERE id=${command.annotationId}::uuid AND deleted_at IS NULL`,
+      );
+    if (note?.visibility === 'PRIVATE') return false;
+  }
+  return true;
+}
+
 /**
  * Builds the content for `document.cite-source`. The returned mutation is
  * an ordinary `document.save` or `document.create`, so the SQL boundary
@@ -136,14 +235,28 @@ export async function citeSourceMutation(
     const doc = await loadDocument(tx, target.documentId);
     if (doc.projectId !== command.projectId) throw unavailable();
     // A retried insert returns its committed revision; rebuilding it on top of
-    // a newer revision would otherwise append the same evidence twice.
+    // a newer revision would otherwise append the same evidence twice. The
+    // stored revision must be proven to *be* this request (see replayMatches).
     const [replay] = z
-      .array(z.object({ id: z.uuid(), revision: z.number().int() }))
+      .array(
+        z.object({
+          id: z.uuid(),
+          revision: z.number().int(),
+          authorId: z.uuid(),
+          source: z.string(),
+          content: z.unknown(),
+        }),
+      )
       .parse(
-        await tx.$queryRaw`SELECT id, revision FROM document_versions
+        await tx.$queryRaw`SELECT id, revision, author_id AS "authorId", source, content FROM document_versions
           WHERE document_id=${doc.id}::uuid AND client_request_id=${command.clientRequestId}::uuid`,
       );
-    if (replay)
+    if (replay) {
+      if (!(await replayMatches(tx, actor, command, doc.id, replay)))
+        throw new PlatformError(
+          'CONFLICT',
+          'This request ID was already used for a different change. Nothing was inserted.',
+        );
       return {
         kind: 'replayed',
         result: {
@@ -153,6 +266,7 @@ export async function citeSourceMutation(
           replayed: true,
         },
       };
+    }
     // Evidence first: an inaccessible source is NOT_FOUND whatever the revision.
     const evidence = await sourceEvidence(tx, actor, command);
     if (doc.revision !== target.expectedRevision)
