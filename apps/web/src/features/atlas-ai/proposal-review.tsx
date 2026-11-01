@@ -14,6 +14,7 @@ import { useToast } from '@/components/atlas/toast';
 import {
   ApiError,
   artifactCommand,
+  fetchDocument,
   fetchOptions,
   proposeDocumentInsert,
   proposeTasks,
@@ -39,9 +40,13 @@ export function ProposalActions({ runId }: { runId: string }) {
     .map((c) => c.id.match(/^document:([0-9a-f-]{36})$/)?.[1])
     .find(Boolean);
   // A02: outside a document the user explicitly chooses the destination note.
-  const [target, setTarget] = useState<{ id: string; title: string } | null>(
-    null,
-  );
+  const [target, setTarget] = useState<{
+    id: string;
+    title: string;
+    /** Created by this picker; may still be empty if nothing is accepted. */
+    created?: boolean;
+  } | null>(null);
+  const [leftEmpty, setLeftEmpty] = useState(false);
   const [picking, setPicking] = useState(false);
   const documentId = contextDocumentId ?? target?.id;
   const [doc, setDoc] = useState<DocumentEditProposal | null>(null);
@@ -71,8 +76,10 @@ export function ProposalActions({ runId }: { runId: string }) {
         if (!next.tasks.length)
           setStatus('This answer has no list items to propose as tasks.');
       }
+      return true;
     } catch (e) {
       fail(e);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -91,6 +98,8 @@ export function ProposalActions({ runId }: { runId: string }) {
         approved: true,
       });
       setDoc(null);
+      setLeftEmpty(false);
+      if (target) setTarget({ ...target, created: false });
       setStatus(`Accepted into the document as revision ${result.revision}.`);
       flash(
         `Accepted into the document as revision ${result.revision}`,
@@ -173,7 +182,10 @@ export function ProposalActions({ runId }: { runId: string }) {
           onPick={(note) => {
             setTarget(note);
             setPicking(false);
-            void load('doc', note.id);
+            // A preview that cannot be built leaves a just-created note empty.
+            void load('doc', note.id).then((ok) => {
+              if (!ok && note.created) setLeftEmpty(true);
+            });
           }}
           onError={fail}
         />
@@ -215,7 +227,14 @@ export function ProposalActions({ runId }: { runId: string }) {
               <Check aria-hidden="true" />
               Accept
             </Btn>
-            <Btn size="sm" disabled={busy} onClick={() => setDoc(null)}>
+            <Btn
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                setDoc(null);
+                if (target?.created) setLeftEmpty(true);
+              }}
+            >
               <X aria-hidden="true" />
               Discard
             </Btn>
@@ -289,6 +308,17 @@ export function ProposalActions({ runId }: { runId: string }) {
           </div>
         </section>
       ) : null}
+      {leftEmpty && target?.created && projectId ? (
+        <EmptyNoteNotice
+          note={target}
+          projectId={projectId}
+          onDone={(message) => {
+            setLeftEmpty(false);
+            setTarget(null);
+            setStatus(message);
+          }}
+        />
+      ) : null}
       {status ? (
         <p role="status" className="mt-1.5 text-tx2">
           {status}
@@ -321,7 +351,7 @@ function NotePicker({
 }: {
   projectId: string;
   busy: boolean;
-  onPick: (note: { id: string; title: string }) => void;
+  onPick: (note: { id: string; title: string; created?: boolean }) => void;
   onError: (e: unknown) => void;
 }) {
   const [query, setQuery] = useState('');
@@ -356,7 +386,7 @@ function NotePicker({
         kind: 'RESEARCH_NOTE',
         idempotencyKey: attempt.current.key,
       });
-      onPick({ id: created.id, title: name });
+      onPick({ id: created.id, title: name, created: true });
     } catch (e) {
       onError(e);
     } finally {
@@ -426,6 +456,92 @@ function NotePicker({
           {creating ? 'Creating…' : 'Create note and preview'}
         </Btn>
       </form>
+    </div>
+  );
+}
+
+/**
+ * A note created by the picker stays empty when its proposal is discarded.
+ * Nothing is removed silently: the user may archive it (reversible), and only
+ * while it is provably untouched (revision 1, no content).
+ */
+export function EmptyNoteNotice({
+  note,
+  projectId,
+  onDone,
+}: {
+  note: { id: string; title: string };
+  projectId: string;
+  onDone: (message: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function archive() {
+    setBusy(true);
+    setError('');
+    try {
+      const current = await fetchDocument(note.id);
+      const empty =
+        current.revision === 1 &&
+        !blockTexts(current.content as DocNode).some((t) => t.trim());
+      if (!empty) {
+        onDone(`“${note.title}” has content now, so it was kept.`);
+        return;
+      }
+      await artifactCommand({
+        command: 'document.archive',
+        id: note.id,
+        expectedVersion: current.version,
+      });
+      onDone(`Archived the empty note “${note.title}”. It can be restored.`);
+    } catch (e) {
+      setError(
+        e instanceof ApiError && e.code === 'CONFLICT'
+          ? 'The note changed meanwhile and was kept.'
+          : 'The note could not be archived. It is still in Documents.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div
+      role="group"
+      aria-label="Empty note"
+      className="mt-2 rounded-lg border border-bd2 bg-card px-2.5 py-2"
+    >
+      <p className="mb-1.5 text-tx2">
+        “{note.title}” was created for this insert and is still empty.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        <Btn
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() => void archive()}
+        >
+          Archive empty note
+        </Btn>
+        <Btn
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => onDone(`Kept “${note.title}”.`)}
+        >
+          Keep it
+        </Btn>
+        <Link
+          className="self-center text-actx underline"
+          href={`/app/projects/${projectId}/documents?doc=${note.id}`}
+        >
+          Open note
+        </Link>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-1 text-danger">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

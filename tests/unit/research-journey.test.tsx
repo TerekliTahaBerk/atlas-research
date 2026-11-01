@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -21,6 +21,7 @@ import {
   fetchOptions,
 } from '@/features/artifacts/client';
 import { SourceNoteDialog as Dialog } from '@/features/documents/source-note-dialog';
+import { searchMemory } from '@/features/research/live-research';
 import { TooltipProvider } from '@atlas/ui/components/tooltip';
 
 // StrictMode mirrors Next dev: effects mount, clean up and mount again.
@@ -299,5 +300,81 @@ describe('Add to research note dialog', () => {
     expect(first?.target).toMatchObject({ expectedRevision: 3 });
     expect(second?.target).toMatchObject({ expectedRevision: 4 });
     expect(first?.clientRequestId).not.toBe(second?.clientRequestId);
+  });
+});
+
+describe('A02 hardening: recovery and navigation', () => {
+  beforeEach(() => {
+    vi.mocked(artifactCommand).mockReset();
+    vi.mocked(fetchOptions)
+      .mockReset()
+      .mockResolvedValue({ items: [], people: [] });
+  });
+
+  it('says that cancelling keeps a highlight created for this action', async () => {
+    render(
+      <SourceNoteDialog
+        open
+        onOpenChange={() => {}}
+        project={project}
+        evidence={{ ...dialogEvidence(), createdHighlight: true }}
+      />,
+    );
+    expect(
+      await screen.findByText(/Cancelling keeps it; you can delete it/),
+    ).toBeTruthy();
+  });
+
+  it('ignores a confirmation that resolves after the dialog was closed', async () => {
+    const user = userEvent.setup();
+    let finish!: (value: { id: string; revision: number }) => void;
+    vi.mocked(artifactCommand).mockImplementation(
+      () => new Promise((resolve) => (finish = resolve)),
+    );
+    const changed = vi.fn();
+    window.addEventListener('atlas:artifacts-changed', changed);
+    const view = render(
+      <SourceNoteDialog
+        open
+        onOpenChange={() => {}}
+        project={project}
+        evidence={dialogEvidence()}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Add to note' }));
+    view.unmount();
+    await act(async () => finish({ id: noteId, revision: 1 }));
+    expect(changed).not.toHaveBeenCalled();
+    window.removeEventListener('atlas:artifacts-changed', changed);
+  });
+});
+
+describe('per-tab search memory', () => {
+  const snapshot = (key: string, asked: string) =>
+    ({
+      key,
+      question: asked,
+      asked,
+      filters: {} as never,
+      items: [],
+      saved: {},
+      result: {} as never,
+    }) as Parameters<typeof searchMemory.rememberSearch>[0];
+
+  it('keeps each project’s search, bounds the memory and drops other actors', () => {
+    searchMemory.searches.clear();
+    searchMemory.rememberSearch(snapshot('a:p1', 'first'));
+    searchMemory.rememberSearch(snapshot('a:p2', 'second'));
+    // Visiting another project no longer replaces the first one.
+    expect(searchMemory.restoreSearch('a:p1')?.asked).toBe('first');
+    expect(searchMemory.restoreSearch('a:p2')?.asked).toBe('second');
+    for (let i = 3; i <= 7; i++)
+      searchMemory.rememberSearch(snapshot(`a:p${i}`, `q${i}`));
+    expect(searchMemory.searches.size).toBe(5);
+    expect(searchMemory.restoreSearch('a:p1')).toBeNull();
+    // A different signed-in actor never sees the previous actor's searches.
+    searchMemory.rememberSearch(snapshot('b:p1', 'other'));
+    expect([...searchMemory.searches.keys()]).toEqual(['b:p1']);
+    expect(searchMemory.restoreSearch('a:p7')).toBeNull();
   });
 });

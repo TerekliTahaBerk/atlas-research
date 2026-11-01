@@ -110,12 +110,22 @@ type SearchSnapshot = {
   saved: Record<string, string>;
   result: ScholarlySearchResponse;
 };
-let lastSearch: SearchSnapshot | null = null;
-const restoreSearch = (key: string) =>
-  lastSearch?.key === key ? lastSearch : null;
+// One entry per project for the current actor, newest last, bounded; a
+// different actor's entries are dropped on the next write.
+const searches = new Map<string, SearchSnapshot>();
+const SEARCH_MEMORY = 5;
+const restoreSearch = (key: string) => searches.get(key) ?? null;
 const rememberSearch = (snapshot: SearchSnapshot) => {
-  lastSearch = snapshot;
+  const actor = snapshot.key.split(':')[0];
+  for (const key of [...searches.keys()])
+    if (key.split(':')[0] !== actor || key === snapshot.key)
+      searches.delete(key);
+  searches.set(snapshot.key, snapshot);
+  while (searches.size > SEARCH_MEMORY)
+    searches.delete(searches.keys().next().value!);
 };
+/** Test seam: memory is per tab and never persisted. */
+export const searchMemory = { restoreSearch, rememberSearch, searches };
 const defaultFilters: Filters = {
   providers: { openalex: true, 'semantic-scholar': true },
   year: 'Any time',
