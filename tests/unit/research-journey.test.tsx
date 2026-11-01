@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,10 +23,13 @@ import {
 import { SourceNoteDialog as Dialog } from '@/features/documents/source-note-dialog';
 import { TooltipProvider } from '@atlas/ui/components/tooltip';
 
+// StrictMode mirrors Next dev: effects mount, clean up and mount again.
 const SourceNoteDialog = (props: Parameters<typeof Dialog>[0]) => (
-  <TooltipProvider>
-    <Dialog {...props} />
-  </TooltipProvider>
+  <StrictMode>
+    <TooltipProvider>
+      <Dialog {...props} />
+    </TooltipProvider>
+  </StrictMode>
 );
 
 vi.mock('@/features/artifacts/client', async () => {

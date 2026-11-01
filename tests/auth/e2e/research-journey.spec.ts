@@ -229,12 +229,18 @@ test('paper → reader evidence → research note → task → back to the cited
   await dialog.getByRole('button', { name: 'Add to note' }).click();
   await expect(
     dialog.getByText(/Retrying is safe: the reference is never added twice/),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30000 });
   await dialog.getByRole('button', { name: 'Retry' }).click();
-  await expect(dialog.getByText(/nothing was duplicated/)).toBeVisible();
+  // On success the dialog is retitled with its confirmed destination.
+  const added = page.getByRole('dialog', {
+    name: 'Added to “Long-target reading note”',
+  });
+  await expect(added.getByText(/nothing was duplicated/)).toBeVisible({
+    timeout: 30000,
+  });
   await page.unroute('**/api/v1/commands');
   expect(await documents()).toBe(1);
-  await dialog.getByRole('button', { name: 'Open note' }).click();
+  await added.getByRole('button', { name: 'Open note' }).click();
 
   // --- The note persists the exact citation and separate commentary
   await expect(page).toHaveURL(/\/documents\?doc=[0-9a-f-]{36}$/);
@@ -256,8 +262,11 @@ test('paper → reader evidence → research note → task → back to the cited
     .getByRole('checkbox', { name: new RegExp(fixtureTitle.slice(10, 40)) })
     .check();
   await taskDialog.getByRole('button', { name: 'Create task' }).click();
-  await expect(taskDialog.getByText(/Created task #1/)).toBeVisible();
-  await taskDialog.getByRole('button', { name: 'Back to note' }).click();
+  const created = page.getByRole('dialog', { name: 'Created task #1' });
+  await expect(
+    created.getByText(/is linked to this note and 1 cited paper/),
+  ).toBeVisible({ timeout: 30000 });
+  await created.getByRole('button', { name: 'Back to note' }).click();
   // The optional task reference is an ordinary edit saved by autosave.
   const taskChip = editorOf(page).getByRole('button', {
     name: /#1 Reproduce the long-target result/,
@@ -273,13 +282,20 @@ test('paper → reader evidence → research note → task → back to the cited
   await taskChip.click();
   await expect(page).toHaveURL(/\/tasks\?task=[0-9a-f-]{36}$/);
   const detail = page.getByRole('complementary', { name: 'Task #1' });
-  await expect(
-    detail.getByRole('link', { name: /Long-target reading note/ }),
-  ).toBeVisible();
+  // Both directions: TASK RELATES_TO DOCUMENT and DOCUMENT TRACKS TASK.
+  const toNote = detail.getByRole('listitem').filter({
+    has: page.getByRole('link', { name: /Long-target reading note/ }),
+  });
+  await expect(toNote).toHaveCount(2);
+  await expect(toNote.filter({ hasText: 'Relates to' })).toHaveCount(1);
+  await expect(toNote.filter({ hasText: 'Tracked in' })).toHaveCount(1);
   await expect(
     detail.getByRole('link', { name: new RegExp(fixtureTitle.slice(10, 40)) }),
   ).toBeVisible();
-  await detail.getByRole('link', { name: /Long-target reading note/ }).click();
+  await toNote
+    .filter({ hasText: 'Relates to' })
+    .getByRole('link', { name: /Long-target reading note/ })
+    .click();
   await expect(page).toHaveURL(noteUrl);
   await citation.click();
   await expect(page).toHaveURL(

@@ -149,12 +149,13 @@ function SourceNoteForm({
   ]);
   const attempt = useRef<{ intent: string; id: string } | null>(null);
   const alive = useRef(true);
-  useEffect(
-    () => () => {
+  // Re-armed on every mount: StrictMode and remounts run cleanup first.
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;

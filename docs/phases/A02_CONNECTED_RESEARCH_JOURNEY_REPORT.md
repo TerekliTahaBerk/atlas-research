@@ -64,20 +64,24 @@ Existing neutral/indigo components only (`Modal`, `Btn`, `IconBtn`); no navigati
 
 ## 10. Automated test results (local, disposable)
 
-| Check                                   | Result   | Evidence                                                                                                                       |
-| --------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm install --frozen-lockfile`        | PASS     | Node 24.21.0, pnpm 11.25.0                                                                                                     |
-| `format:check`, `lint`, `typecheck`     | PASS     |                                                                                                                                |
-| `db:validate`                           | PASS     | Schema unchanged                                                                                                               |
-| `pnpm test`                             | PASS     | 260 tests / 21 files (7 new: builder, contract, dialog confirm/replay/consent/conflict)                                        |
-| `pnpm test:integration` (PG17+pgvector) | PASS     | 111/111 on `pgvector/pgvector:0.8.7-pg17` (CI image): 13 new A02 journey tests + extended AI annotation scope + AI attribution |
-| Repeat deploy + A01 history gate        | PASS     | Same disposable PG17                                                                                                           |
-| `pnpm build`                            | PASS     |                                                                                                                                |
-| `pnpm test:e2e` (preview)               | SEE §10a | 95/101; 6 signature screenshots differ locally                                                                                 |
-| `pnpm test:auth:e2e`                    | SEE §10b | Local GoTrue/Storage/Mailpit harness from `tests/auth/compose.yml`                                                             |
-| GitHub Actions                          | SEE PR   | Recorded in the PR                                                                                                             |
+| Check                                   | Result         | Evidence                                                                                                                                                                             |
+| --------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm install --frozen-lockfile`        | PASS           | Node 24.21.0, pnpm 11.25.0                                                                                                                                                           |
+| `format:check`, `lint`, `typecheck`     | PASS           |                                                                                                                                                                                      |
+| `db:validate`                           | PASS           | Schema unchanged                                                                                                                                                                     |
+| `pnpm test`                             | PASS           | 260 tests / 21 files (7 new: builder, contract, dialog confirm/replay/consent/conflict)                                                                                              |
+| `pnpm test:integration` (PG17+pgvector) | PASS           | 111/111 on `pgvector/pgvector:0.8.7-pg17` (CI image): 13 new A02 journey tests + extended AI annotation scope + AI attribution                                                       |
+| Repeat deploy + A01 history gate        | PASS           | Same disposable PG17                                                                                                                                                                 |
+| `pnpm build`                            | PASS           |                                                                                                                                                                                      |
+| `pnpm test:e2e` (preview)               | 95/101 locally | 6 signature screenshots differ on this machine's Chromium; unmodified `master` fails the same 6 with identical pixel counts (environment-only). CI's pinned browser is authoritative |
+| `pnpm test:auth:e2e`                    | PASS           | 12/12 on the local disposable GoTrue/Storage/Mailpit/PG17 harness (`tests/auth/compose.yml`), incl. new `research-journey.spec.ts`                                                   |
+| GitHub Actions                          | SEE PR         | Recorded in the PR                                                                                                                                                                   |
 
 Journey A (server + browser): search → save → upload/scan → reader → highlight → new note with quotation → reload → task linked to note + paper → task chip → task → note → citation → reader page 2 + annotation → paper linked research → graph edges. Journey B: viewer, outsider, other member's/own private annotation, cross-project paper/note/task, revoked replay, outsider search. Journey C: duplicate/lost responses, conflicts, newer version, long quote, deleted annotation, unready version, archived paper/note, deleted AI annotation context.
+
+## 10b. Defect found by the browser journey
+
+The first authenticated run showed the confirmation dialogs stuck on “Adding…” in Next dev: their `alive` ref was cleared by StrictMode's mount/cleanup/mount cycle and never re-armed, so confirmed results were ignored. Both dialogs now re-arm on mount; the unit tests render under `StrictMode` and fail without the fix.
 
 ## 11. Known limitations
 

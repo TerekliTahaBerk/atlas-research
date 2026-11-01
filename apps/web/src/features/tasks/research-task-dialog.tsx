@@ -116,12 +116,13 @@ function TaskForm({
   >({ kind: 'idle' });
   const attempt = useRef<{ intent: string; key: string } | null>(null);
   const alive = useRef(true);
-  useEffect(
-    () => () => {
+  // Re-armed on every mount: StrictMode and remounts run cleanup first.
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
   useEffect(() => {
     let active = true;
     Promise.all([fetchMilestones(project.id), fetchParticipants(project.id)])
