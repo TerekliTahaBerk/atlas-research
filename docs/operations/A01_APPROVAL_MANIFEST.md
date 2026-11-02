@@ -1,5 +1,7 @@
 # A01 hosted approval manifest and execution sequence
 
+**2 November 2026 continuation:** see [A01 G1–G3 activation result](A01_G1_G3_ACTIVATION_RESULT.md). G1 remains `OPEN — VALID AUTHENTICATED SESSION REQUIRED`; this session had no authorized access to the target (connector permission denied), so no hosted check, export, write or migration ran. G2 and G3 remain `NOT RUN — APPROVAL REQUIRED`. All ten repository migration hashes are unchanged at `c26096b`; A02 added no migration. The authenticated probe is now scripted in `ops/g1/authenticated-probe.mjs`.
+
 Updated **1 November 2026, 18:32 UTC**. G1 read-only verification was authorized and partially completed; G1 remains OPEN pending valid-session authenticated HTTP denial. Every hosted write/export/restore/provisioning/deployment gate remains **UNAPPROVED / NOT EXECUTED**. Approval of one gate does not authorize another, project resume, billing changes, secret issuance, unrelated projects or production writes. This is a concrete review manifest, not an execution authorization. Canonical evidence: [A01 report](../phases/A01_INFRASTRUCTURE_READINESS_REPORT.md).
 
 ## Common target and stop conditions
@@ -34,7 +36,7 @@ The [executable recovery procedure](A01_G2_RECOVERY_PROCEDURE.md) is the detaile
 
 Data affected: an encrypted copy of approved source data and new isolated target writes only. Capture streams to authenticated encryption; no plaintext archives in Git/logs/CI artifacts. Managed roles/bootstrap definitions are references, not a blanket replay script. Destination-specific compatibility/ownership patch is required before restore. Verify counts/content hashes, history, all constraints/RLS/grants, two actors and every object byte; measure capture/restore/validation RPO/RTO. Any missing evidence blocks acceptance. Risk/recovery: sensitive backup/key disclosure, inconsistent snapshot/objects, managed-schema drift and clone session replay; source stays untouched, failures are investigated in the protected new target, and its destruction needs explicit cleanup approval. No source reset or destructive rollback.
 
-**Next decision:** fill and approve the complete G2 packet and data scope; no export, target creation/purchase or restore occurs until then. G1 closure remains an activation prerequisite. G2 approval does not authorize G3–G7.
+The 14-field approval packet (all UNSET) and current Supabase Free-plan backup constraints are listed in the [2 November result](A01_G1_G3_ACTIVATION_RESULT.md#3-g2--approval-status-g2-not-run--approval-required). **Next decision:** fill and approve the complete G2 packet and data scope; no export, target creation/purchase or restore occurs until then. G1 closure remains an activation prerequisite. G2 approval does not authorize G3–G7.
 
 ## G3
 
