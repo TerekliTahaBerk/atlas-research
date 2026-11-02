@@ -1,5 +1,7 @@
 # G2 recovery procedure — prepared 1 November 2026
 
+**Execution update, 2 November 2026:** [Current evidence](A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1 and real encrypted G2 restore PASS; user-approved G3 installed all 12 migrations with preserved application data and passing security checks. G4/G5 remain pending; paid AI/production remain disabled.
+
 **PREPARATION ONLY. All capture/restore commands below are NOT RUN and require explicit G2 approval.** Stop before the first export until the approval record is complete. Source is only Atlas `hgngonpirctrwbckhbmy`, PG17.11, Free, Seoul. Never restore over source, use another product's environment, or provision/purchase a destination implicitly. [Current observations and hashes](A01_HOSTED_ACTIVATION_2026-11-01.md) and [approval gates](A01_APPROVAL_MANIFEST.md) govern this procedure.
 
 ## Approval record — currently incomplete

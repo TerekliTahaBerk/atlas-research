@@ -1,5 +1,7 @@
 # A01 hosted approval manifest and execution sequence
 
+**Execution update, 2 November 2026:** [Current evidence](A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1 and real encrypted G2 restore PASS; user-approved G3 installed all 12 migrations with preserved application data and passing security checks. G4/G5 remain pending; paid AI/production remain disabled.
+
 **Later closure evidence, 2 November 2026:** [Final consolidation](../phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md) supersedes earlier access/state observations below. Read-only target access is available; catalog and anonymous history denial pass. G1 authenticated denial and G2–G5 approvals remain open. The final repository has 12 migrations, with 9 pending on hosted Atlas. No hosted write/export was executed.
 
 **2 November 2026 continuation:** see [A01 G1–G3 activation result](A01_G1_G3_ACTIVATION_RESULT.md). G1 remains `OPEN — VALID AUTHENTICATED SESSION REQUIRED`; this session had no authorized access to the target (connector permission denied), so no hosted check, export, write or migration ran. G2 and G3 remain `NOT RUN — APPROVAL REQUIRED`. All ten repository migration hashes are unchanged at `c26096b`; A02 added no migration. The authenticated probe is now scripted in `ops/g1/authenticated-probe.mjs`.

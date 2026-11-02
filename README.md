@@ -1,5 +1,7 @@
 # Atlas Research OS
 
+**Execution update, 2 November 2026:** [Current evidence](docs/operations/A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1 and real encrypted G2 restore PASS; user-approved G3 installed all 12 migrations with preserved application data and passing security checks. G4/G5 remain pending; paid AI/production remain disabled.
+
 Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](docs/phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
 
 Current infrastructure evidence, disposable verification and hosted activation gates: [A01 readiness](docs/phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) and [approval manifest](docs/operations/A01_APPROVAL_MANIFEST.md). Hosted activation and production remain blocked.

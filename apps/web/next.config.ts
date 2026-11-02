@@ -5,6 +5,11 @@ validateEnvironment(process.env);
 const config: NextConfig = {
   transpilePackages: ['@atlas/ui', '@atlas/core'],
   turbopack: { root: fileURLToPath(new URL('../..', import.meta.url)) },
+  // pg reads the approved public CA from a relative runtime path. Keep it in
+  // every Node route's serverless bundle; the connection remains verify-full.
+  outputFileTracingIncludes: {
+    '/*': ['./certificates/supabase-root-2021.crt'],
+  },
   poweredByHeader: false,
   logging: { incomingRequests: false, fetches: { fullUrl: false } },
   async headers() {
