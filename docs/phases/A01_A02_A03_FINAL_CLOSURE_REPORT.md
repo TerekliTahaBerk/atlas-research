@@ -1,6 +1,6 @@
 # A01–A03 final closure report
 
-Evidence date: **2 November 2026, Europe/Istanbul**. Scope: Atlas repository, synthetic disposable infrastructure and expressly authorized read-only checks of `hgngonpirctrwbckhbmy`. **No A04 implementation, agent merge, hosted mutation/export, real private Zotero access, paid provider request or deployment was performed.**
+Evidence date: **2 November 2026, Europe/Istanbul**. Scope: Atlas repository, synthetic disposable infrastructure and expressly authorized read-only checks of `hgngonpirctrwbckhbmy`. **No A04 implementation, agent merge, hosted mutation/export, real private Zotero access, paid provider request or deployment command was performed. Existing Git integration created protected previews automatically.**
 
 ## Executive summary and independent verdicts
 
@@ -8,7 +8,7 @@ Repository engineering is consolidated on `chore/a01-a03-final-closure`, based o
 
 | Phase | Code evidence                                                                                                                                                                    | Hosted verdict                                                                              |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| A01   | Migration tooling, effective-grant regressions, fresh/repeat PG17 deployment, synthetic restore, real offline engine jobs verified                                               | **A01 BLOCKED**: G1 lacks valid-session HTTP denial; G2–G5 lack separate approval/execution |
+| A01   | **A01 CODE COMPLETE** — migration tooling, effective-grant regressions, fresh/repeat PG17 deployment, synthetic restore, real offline engine jobs verified                       | **A01 BLOCKED**: G1 lacks valid-session HTTP denial; G2–G5 lack separate approval/execution |
 | A02   | **A02 CODE COMPLETE** — connected journey, task/document integrity, role isolation and authenticated browser acceptance pass locally and in CI                                   | **Not HOSTED VERIFIED**                                                                     |
 | A03   | **A03 CODE COMPLETE** — formats, signed Zotero provenance, persistent backoff, credential isolation, SQL integration and authenticated fixture acceptance pass locally and in CI | **Not HOSTED VERIFIED; ZOTERO LIVE BLOCKED**                                                |
 
