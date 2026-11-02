@@ -136,6 +136,9 @@ jobs:
       ATLAS_AI_EMBEDDING_MODEL: synthetic-embedding
       ATLAS_AI_EMBEDDING_REVISION: v1
       ATLAS_AI_EMBEDDING_MICROS_PER_MILLION: '1000'
+      # A03: loopback Zotero fixture and a disposable credential-encryption key.
+      ATLAS_ZOTERO_BASE_URL: http://127.0.0.1:3197
+      ATLAS_INTEGRATION_KEY: YXRsYXMtZGlzcG9zYWJsZS10ZXN0LWtleS0zMi1ieXQ
     steps:
       - uses: actions/checkout@v4
         with:

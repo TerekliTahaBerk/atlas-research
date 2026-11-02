@@ -70,6 +70,7 @@ export function startZoteroFixture() {
       res.end(body === undefined ? '' : JSON.stringify(body));
     };
     if (req.method !== 'GET') return send(405, { error: 'read-only fixture' });
+    if (url.pathname === '/health') return send(200, { ok: true });
     if (url.searchParams.has('key'))
       return send(400, { error: 'keys belong in headers' });
     if (key === keys.slow) return; // timeout path

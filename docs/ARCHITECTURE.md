@@ -2,6 +2,10 @@
 
 Current implementation/activation evidence is indexed in the [A00 audit](phases/A00_REPOSITORY_HARDENING_REPORT.md). Phase sections below describe code boundaries; they do not certify hosted operation.
 
+## A03 implemented boundary
+
+`@atlas/core` `interchange.ts` owns the format-independent `ReferenceRecord`, bounded BibTeX/RIS/CSL JSON parsers, Zotero item mapping and CSL export (`citation.ts` keeps BibTeX/RIS export). `features/library/server/interchange.ts` classifies parsed records against one project (import mapping → `atlas:` marker → DOI; title similarity is a review signal only) and runs the confirmed `reference.import` command. `features/integrations/server` holds the credential envelope and the read-only Zotero Web API v3 client. Migration `20261102120000_reference_interop` adds `project_papers.reference_metadata` (private references only), `reference_import_links` and owner-only `external_connections`, and extends the `mutate` boundary with `mutate_references`; no existing table or rule changes.
+
 ## Phase 04 implemented boundary
 
 `features/documents/server`, `features/tasks/server` and `features/artifacts/server` hold actor-scoped reads (documents, versions, export, tasks, milestones, participants, links, search, graph, mention options) and one command executor (`commands.ts`) that validates Tiptap JSON with the shared `@atlas/core` schema and calls fixed SQL commands (`atlas_private.mutate_artifacts` behind the existing `atlas_private.mutate` dispatcher). `features/ai/server/proposals.ts` derives read-only AI proposals. Live UI: `features/documents/live-documents.tsx` (reusing `DocEditor` in live mode), `features/tasks/live-tasks.tsx`, `features/graph/live-graph.tsx`, `features/artifacts/artifact-search.tsx`, `features/atlas-ai/proposal-review.tsx`. Core stays database-free. See [ADR 0017](decisions/0017-documents-tasks-artifact-links.md).

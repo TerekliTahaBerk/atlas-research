@@ -229,15 +229,13 @@ export async function inspectKey(apiKey: string, signal?: AbortSignal) {
     libraries.push({ id: `users/${userID}`, name: 'My Library', kind: 'user' });
   const groups = access.groups ?? {};
   if (Object.keys(groups).length) {
-    const listed = z
-      .array(groupRow)
-      .safeParse(
-        (
-          await zoteroGet(`/users/${userID}/groups`, { limit: '100' }, apiKey, {
-            signal,
-          })
-        ).data,
-      );
+    const listed = z.array(groupRow).safeParse(
+      (
+        await zoteroGet(`/users/${userID}/groups`, { limit: '100' }, apiKey, {
+          signal,
+        })
+      ).data,
+    );
     for (const group of listed.success ? listed.data : []) {
       const grant = groups[String(group.id)] ?? groups.all;
       if (grant?.library)
