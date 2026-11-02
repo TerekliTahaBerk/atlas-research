@@ -1,5 +1,7 @@
 # Atlas Research OS
 
+Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](docs/phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
+
 Current infrastructure evidence, disposable verification and hosted activation gates: [A01 readiness](docs/phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) and [approval manifest](docs/operations/A01_APPROVAL_MANIFEST.md). Hosted activation and production remain blocked.
 
 Current capability classifications, audit findings and Phase A01 gates are recorded in the [A00 report](docs/phases/A00_REPOSITORY_HARDENING_REPORT.md). Phases 01–04 have live implementations in `master`; hosted activation of Phases 02–04 remains blocked. The default preview is a separate synthetic UI environment.

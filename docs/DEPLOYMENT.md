@@ -1,5 +1,7 @@
 # Deployment preparation
 
+Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
+
 ## Current activation gate
 
 Current evidence and controlled execution: [A01 readiness report](phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) and [G1–G7 approval manifest](operations/A01_APPROVAL_MANIFEST.md). Atlas metadata currently reports INACTIVE; historical development classification does not authorize resume or production-labelled writes. No deployment is authorized by these preparation documents.

@@ -1,5 +1,7 @@
 # Security and privacy foundation
 
+Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
+
 The [A00 security findings and A01 prerequisites](phases/A00_REPOSITORY_HARDENING_REPORT.md) are the current audit summary. The previously observed hosted `_prisma_migrations` exposure and creator default grants remain **unresolved hosted blockers**; repository remediation and CI tests do not prove hosted application. No hosted security recheck or remediation was performed in A00.
 
 ## A03 interoperability boundary
