@@ -32,6 +32,13 @@ export default defineConfig({
       timeout: 30000,
     },
     {
+      // A03: deterministic, synthetic Zotero Web API v3 fixture (loopback).
+      command: 'ZOTERO_FIXTURE_PORT=3197 node tests/fixtures/zotero.mjs',
+      url: 'http://127.0.0.1:3197/health',
+      reuseExistingServer: false,
+      timeout: 30000,
+    },
+    {
       // Loopback scholarly API fixture used by the real provider adapters.
       command: 'node tests/auth/provider-fixture.mjs',
       url: 'http://127.0.0.1:3199/health',

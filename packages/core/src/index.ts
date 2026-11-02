@@ -56,3 +56,4 @@ export * from './citation';
 export * from './documents';
 export * from './artifacts';
 export * from './research-journey';
+export * from './interchange';
