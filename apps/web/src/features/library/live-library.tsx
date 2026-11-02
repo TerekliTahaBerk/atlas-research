@@ -31,7 +31,10 @@ import {
   normalizeTag,
   readingStatuses,
   relationshipLabels,
+  personDisplay,
+  referenceTypeLabels,
   type LibraryPage,
+  type ReferenceRecord,
   type LinkDto,
   type ProjectDto,
   type ProjectPaperDto,
@@ -67,6 +70,7 @@ import {
   ApiError,
 } from './client';
 import { fetchLinks } from '@/features/artifacts/client';
+import { ImportReferencesDialog } from './import-references-dialog';
 import {
   authorSummary,
   formatBytes,
@@ -110,6 +114,7 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
   );
   const [busy, setBusy] = useState(false);
   const [newCollection, setNewCollection] = useState('');
+  const [importing, setImporting] = useState(false);
   const privateInput = useRef<HTMLInputElement>(null);
   const [privateUpload, setPrivateUpload] = useState<UploadPhase | null>(null);
   const [refresh, setRefresh] = useState(0);
@@ -606,6 +611,17 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
                 <option value="citations">Citations</option>
               </select>
             </label>
+            {canWrite ? (
+              <Btn
+                variant="ghost"
+                size="base"
+                className="text-xs"
+                onClick={() => setImporting(true)}
+              >
+                <FileUp aria-hidden="true" />
+                Import
+              </Btn>
+            ) : null}
             <Menu>
               <MenuTrigger asChild>
                 <Btn variant="ghost" size="base" className="text-xs">
@@ -614,7 +630,7 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
                 </Btn>
               </MenuTrigger>
               <MenuContent width={190} align="end">
-                {(['bibtex', 'ris'] as const).map((format) => (
+                {(['bibtex', 'ris', 'csl-json'] as const).map((format) => (
                   <MenuItem
                     key={format}
                     onSelect={() =>
@@ -632,11 +648,21 @@ export function LiveLibrary({ project }: { project: ProjectDto }) {
                       )
                     }
                   >
-                    {format === 'bibtex' ? 'BibTeX (.bib)' : 'RIS (.ris)'}
+                    {format === 'bibtex'
+                      ? 'BibTeX (.bib)'
+                      : format === 'ris'
+                        ? 'RIS (.ris)'
+                        : 'CSL JSON (.json)'}
                   </MenuItem>
                 ))}
               </MenuContent>
             </Menu>
+            <ImportReferencesDialog
+              open={importing}
+              onOpenChange={setImporting}
+              project={project}
+              onImported={reload}
+            />
           </div>
           {error ? (
             <ErrorBanner
@@ -916,7 +942,9 @@ function PaperPanel({
         <p className="mb-3.5 text-ctl text-tx2">
           {paper.paper
             ? authorSummary(paper.paper)
-            : 'Uploaded by a project member; not linked to public metadata.'}
+            : paper.reference
+              ? referenceSummary(paper.reference)
+              : 'Uploaded by a project member; not linked to public metadata.'}
         </p>
         <div className="mb-4 flex flex-wrap gap-1.5">
           {ready ? (
@@ -1342,6 +1370,14 @@ function PaperPanel({
                 <Download aria-hidden="true" className="size-3" />
                 .ris
               </a>
+              <a
+                className="inline-flex h-7 items-center gap-1.5 rounded-md border border-bd px-2.5 text-xs hover:bg-hov"
+                href={exportHref({ paperId: paper.id }, 'csl-json')}
+                download
+              >
+                <Download aria-hidden="true" className="size-3" />
+                CSL JSON
+              </a>
               {paper.paper?.doi ? (
                 <Btn
                   variant="outline"
@@ -1434,4 +1470,25 @@ function LinkedResearch({
       )}
     </section>
   );
+}
+
+/** Imported bibliographic metadata — not verified against a provider. */
+function referenceSummary(r: ReferenceRecord) {
+  return [
+    r.authors.slice(0, 4).map(personDisplay).join(', ') +
+      (r.authors.length > 4 ? ' et al.' : ''),
+    r.issued?.year,
+    r.containerTitle,
+    [
+      r.volume && `vol. ${r.volume}`,
+      r.issue && `no. ${r.issue}`,
+      r.pages && `pp. ${r.pages}`,
+    ]
+      .filter(Boolean)
+      .join(', '),
+    r.doi ? `DOI ${r.doi}` : null,
+    `${referenceTypeLabels[r.type]} · imported reference, not provider-verified`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }

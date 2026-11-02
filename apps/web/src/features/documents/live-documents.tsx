@@ -68,6 +68,7 @@ import {
   type ResearchTaskSource,
 } from '@/features/tasks/research-task-dialog';
 import { ArtifactSearch } from '@/features/artifacts/artifact-search';
+import { exportHref } from '@/features/library/client';
 import { ARTIFACTS_CHANGED } from '@/features/atlas-ai/proposal-review';
 import { DocUi } from './editor/doc-context';
 import { DocEditor, type LiveEditorConfig } from './editor/doc-editor';
@@ -924,6 +925,29 @@ function DocumentView({
                           : format === 'text'
                             ? 'plain text'
                             : 'HTML'}
+                      </MenuItem>
+                    ))}
+                    {(['bibtex', 'ris', 'csl-json'] as const).map((format) => (
+                      <MenuItem
+                        key={`bib-${format}`}
+                        icon={<BookOpen />}
+                        onSelect={() => {
+                          // Bibliographic metadata of the cited papers only:
+                          // never annotation text, quotes or PDF locators.
+                          window.location.assign(
+                            exportHref(
+                              { projectId: project.id, documentId: doc.id },
+                              format,
+                            ),
+                          );
+                        }}
+                      >
+                        Bibliography ·{' '}
+                        {format === 'bibtex'
+                          ? 'BibTeX'
+                          : format === 'ris'
+                            ? 'RIS'
+                            : 'CSL JSON'}
                       </MenuItem>
                     ))}
                     <MenuItem icon={<FileDown />} disabled sub="unavailable">

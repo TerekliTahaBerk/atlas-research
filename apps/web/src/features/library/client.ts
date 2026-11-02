@@ -102,12 +102,14 @@ export function runCommand(command: ResearchCommandInput) {
   return requestData('/api/v1/commands', commandResult, command);
 }
 export function exportHref(
-  target: { paperId: string } | { projectId: string; collectionId?: string },
-  format: 'bibtex' | 'ris',
+  target:
+    | { paperId: string }
+    | { projectId: string; collectionId?: string; documentId?: string },
+  format: 'bibtex' | 'ris' | 'csl-json',
 ) {
   return 'paperId' in target
     ? `/api/v1/papers/${target.paperId}/export${query({ format })}`
-    : `/api/v1/projects/${target.projectId}/export${query({ format, collectionId: target.collectionId })}`;
+    : `/api/v1/projects/${target.projectId}/export${query({ format, collectionId: target.collectionId, documentId: target.documentId })}`;
 }
 export async function fetchExport(href: string) {
   const response = await fetch(href, { cache: 'no-store' });
