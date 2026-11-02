@@ -71,7 +71,9 @@ export async function respond(work: (requestId: string) => Promise<unknown>) {
         status: failure.status,
         headers: {
           ...headers,
-          ...(failure.code === 'RATE_LIMITED' ? { 'Retry-After': '900' } : {}),
+          ...(failure.code === 'RATE_LIMITED'
+            ? { 'Retry-After': String(failure.retryAfterSeconds ?? 900) }
+            : {}),
         },
       },
     );

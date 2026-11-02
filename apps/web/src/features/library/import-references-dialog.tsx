@@ -251,6 +251,7 @@ function ZoteroStep({
   const [items, setItems] = useState<ZoteroListItem[]>([]);
   const [next, setNext] = useState<number | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
+  const [reload, setReload] = useState(0);
   useEffect(() => {
     let active = true;
     fetchZoteroStatus()
@@ -270,24 +271,24 @@ function ZoteroStep({
   useEffect(() => {
     if (!libraryId) return;
     let active = true;
-    Promise.all([
-      fetchZoteroCollections(libraryId),
-      fetchZoteroItems(libraryId, collection || null, 0),
-    ])
-      .then(([c, i]) => {
-        if (!active) return;
-        setCollections(c.items);
-        setItems(i.items);
-        setNext(i.nextStart);
-      })
-      .catch(
-        (e: unknown) =>
-          active && setError(message(e, 'Zotero could not be read.')),
-      );
+    // The shared provider lease deliberately serializes requests across replicas.
+    // Do not race this screen's collections and item reads against that lease.
+    async function load() {
+      const c = await fetchZoteroCollections(libraryId);
+      if (!active) return;
+      const i = await fetchZoteroItems(libraryId, collection || null, 0);
+      if (!active) return;
+      setCollections(c.items);
+      setItems(i.items);
+      setNext(i.nextStart);
+    }
+    void load().catch((e: unknown) => {
+      if (active) setError(message(e, 'Zotero could not be read.'));
+    });
     return () => {
       active = false;
     };
-  }, [libraryId, collection]);
+  }, [libraryId, collection, reload]);
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -421,6 +422,19 @@ function ZoteroStep({
           </select>
         </label>
         <span className="flex-1" />
+        {error ? (
+          <Btn
+            variant="ghost"
+            size="md"
+            disabled={busy}
+            onClick={() => {
+              setError('');
+              setReload((value) => value + 1);
+            }}
+          >
+            Retry library
+          </Btn>
+        ) : null}
         <Btn
           variant="ghost"
           size="md"

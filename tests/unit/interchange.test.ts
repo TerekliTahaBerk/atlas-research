@@ -347,3 +347,48 @@ describe('credential envelope', () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe('Zotero import category defense', () => {
+  it.each(['journalArticle', 'book', 'thesis', 'preprint', 'artwork'])(
+    'keeps bibliographic %s metadata',
+    (itemType) => {
+      expect(
+        fromZoteroItem(
+          {
+            key: 'TYPE0001',
+            version: 1,
+            data: { itemType, title: 'Synthetic title' },
+          },
+          'users/1',
+        ).record,
+      ).not.toBeNull();
+    },
+  );
+  it.each(['note', 'attachment', 'annotation'])(
+    'rejects %s even when upstream filtering fails',
+    (itemType) => {
+      expect(
+        fromZoteroItem(
+          {
+            key: 'TYPE0001',
+            version: 1,
+            data: { itemType, title: 'Synthetic title' },
+          },
+          'users/1',
+        ).record,
+      ).toBeNull();
+    },
+  );
+  it('rejects a returned trashed bibliographic item', () => {
+    expect(
+      fromZoteroItem(
+        {
+          key: 'TYPE0001',
+          version: 1,
+          data: { itemType: 'book', title: 'Deleted', deleted: 1 },
+        },
+        'users/1',
+      ).record,
+    ).toBeNull();
+  });
+});

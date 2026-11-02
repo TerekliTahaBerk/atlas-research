@@ -20,6 +20,7 @@ import {
   zoteroItems,
   zoteroStatus,
 } from '../../apps/web/src/features/integrations/server/zotero';
+import { zoteroThrottle } from '../../apps/web/src/features/integrations/server/throttle';
 import { keys, startZoteroFixture, state } from '../fixtures/zotero.mjs';
 
 /*
@@ -287,6 +288,92 @@ describe.sequential('Journey B — Zotero read-only connection', () => {
         })
       ).privateTitle,
     ).toBe('Fixture sparse attention survey');
+    const changed = updated.items[0]!;
+    const confirmed = {
+      record: changed.record!,
+      link: changed.link,
+      atlasId: null,
+      update: true,
+    };
+    // Preview proof binds actor, project, connection, record, identity and version.
+    expect(
+      await failure(
+        executeReferenceImport(
+          owner,
+          {
+            command: 'reference.import',
+            projectId: project,
+            idempotencyKey: randomUUID(),
+            items: [
+              {
+                ...confirmed,
+                record: { ...confirmed.record, title: 'Forged replacement' },
+              },
+            ],
+          },
+          randomUUID(),
+        ),
+      ),
+    ).toBe('CONFLICT');
+    expect(
+      await failure(
+        executeReferenceImport(
+          owner,
+          {
+            command: 'reference.import',
+            projectId: project,
+            idempotencyKey: randomUUID(),
+            items: [
+              { ...confirmed, link: { ...confirmed.link!, version: 999 } },
+            ],
+          },
+          randomUUID(),
+        ),
+      ),
+    ).toBe('CONFLICT');
+    const updateInput = {
+      command: 'reference.import',
+      projectId: project,
+      idempotencyKey: randomUUID(),
+      items: [confirmed],
+    };
+    const refreshed = await executeReferenceImport(
+      owner,
+      updateInput,
+      randomUUID(),
+    );
+    expect(refreshed.results[0]).toMatchObject({
+      id: first.results[0]!.id,
+      outcome: 'UPDATED',
+    });
+    expect(
+      (await executeReferenceImport(owner, updateInput, randomUUID())).replayed,
+    ).toBe(true);
+    expect(
+      (
+        await admin.projectPaper.findUniqueOrThrow({
+          where: { id: first.results[0]!.id },
+        })
+      ).privateTitle,
+    ).toBe('Fixture sparse attention survey (revised)');
+    // An older authentic preview cannot rewind a newer stored mapping.
+    const old = await executeReferenceImport(
+      owner,
+      {
+        command: 'reference.import',
+        projectId: project,
+        idempotencyKey: randomUUID(),
+        items: [
+          {
+            record: preview.items[0]!.record!,
+            link: preview.items[0]!.link,
+            update: true,
+          },
+        ],
+      },
+      randomUUID(),
+    );
+    expect(old.results[0]!.outcome).toBe('EXISTING');
     // A deleted Zotero item is reported; its Atlas paper stays.
     state.deleted.add('BBBB2222');
     const removed = await previewZoteroImport(owner, project, {
@@ -311,6 +398,21 @@ describe.sequential('Journey B — Zotero read-only connection', () => {
     ).toBe('NOT_FOUND');
   });
 
+  it('shares provider leases and cooldown across independent database calls', async () => {
+    const token = randomUUID();
+    expect(await zoteroThrottle(token, null)).toBe(0);
+    expect(await zoteroThrottle(randomUUID(), null)).toBeGreaterThan(0);
+    await zoteroThrottle(token, 30);
+    expect(await zoteroThrottle(randomUUID(), null)).toBeGreaterThanOrEqual(29);
+    // Destination-only clock setup simulates expiry without a 30-second sleep.
+    await admin.$executeRaw`UPDATE atlas_private.zotero_throttle SET blocked_until=now()-interval '1 second'`;
+    const next = randomUUID();
+    expect(await zoteroThrottle(next, null)).toBe(0);
+    await zoteroThrottle(token, 0); // stale release must not remove the newer lease
+    expect(await zoteroThrottle(randomUUID(), null)).toBeGreaterThan(0);
+    await zoteroThrottle(next, 0);
+  });
+
   it('maps provider failures safely and honours Retry-After', async () => {
     const naps: number[] = [];
     const sleep = async (ms: number) => {
@@ -319,7 +421,13 @@ describe.sequential('Journey B — Zotero read-only connection', () => {
     expect(
       await failure(zoteroGet('/keys/current', {}, keys.limited, { sleep })),
     ).toBe('RATE_LIMITED');
-    expect(naps).toEqual([]); // 30 s exceeds the in-request budget; reported instead.
+    expect(naps).toEqual([]); // Persisted instead of blocking this request.
+    expect(
+      await failure(zoteroGet('/keys/current', {}, keys.read, { sleep })),
+    ).toBe('RATE_LIMITED');
+    // Only this disposable DB is reset so the independent failure paths can run.
+    await admin.$executeRaw`UPDATE atlas_private.zotero_throttle SET blocked_until='-infinity',lease_until='-infinity',lease=NULL`;
+
     expect(
       await failure(
         zoteroGet('/keys/current', {}, keys.slow, { sleep, timeoutMs: 50 }),

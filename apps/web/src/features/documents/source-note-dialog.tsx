@@ -467,8 +467,8 @@ function SourceNoteForm({
             className="mt-1 max-h-[160px] overflow-auto"
           >
             {options === null ? (
-              <li className="px-2 py-1.5 text-tx3" role="status">
-                Loading notes…
+              <li className="px-2 py-1.5 text-tx3">
+                <span role="status">Loading notes…</span>
               </li>
             ) : !options.length ? (
               <li className="px-2 py-1.5 text-tx3">No matching notes.</li>

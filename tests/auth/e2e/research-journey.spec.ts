@@ -187,6 +187,19 @@ test('paper → reader evidence → research note → task → back to the cited
   await page.getByRole('button', { name: 'Next page' }).click();
   await expect(page.getByText('Page 2 of 2')).toBeVisible();
   await selectText(page, 'Results on long targets');
+  // Keep the real loading state visible during axe; fast responses previously
+  // hid invalid list/status semantics and made master CI timing-dependent.
+  let releaseNotes!: () => void;
+  const notesGate = new Promise<void>((resolve) => {
+    releaseNotes = resolve;
+  });
+  await page.route(
+    `**/api/v1/projects/${projectId}/artifacts?**`,
+    async (route) => {
+      await notesGate;
+      await route.continue();
+    },
+  );
   await page
     .getByRole('toolbar', { name: 'Selection actions' })
     .getByRole('button', { name: 'Add to research note' })
@@ -213,6 +226,8 @@ test('paper → reader evidence → research note → task → back to the cited
     (await new AxeBuilder({ page }).include('[role=dialog]').analyze())
       .violations,
   ).toEqual([]);
+  await expect(dialog.getByRole('status')).toHaveText('Loading notes…');
+  releaseNotes();
   await dialog.getByLabel('New note title').fill('Long-target reading note');
   await dialog
     .getByLabel(/Your commentary/)

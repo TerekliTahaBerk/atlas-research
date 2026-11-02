@@ -261,7 +261,7 @@ beforeAll(async () => {
   vi.stubEnv('ATLAS_DEV_INVITATION_LINKS', 'true');
   vi.stubEnv('NODE_ENV', 'development');
   vi.stubEnv('ATLAS_AI_ACTIVATION', 'isolated-local');
-  vi.stubEnv('ATLAS_AI_FIXTURE_ORIGIN', 'http://127.0.0.1:3197');
+  vi.stubEnv('ATLAS_AI_FIXTURE_ORIGIN', 'http://127.0.0.1:3196');
   vi.stubEnv('ATLAS_AI_MODEL_POLICY', JSON.stringify(aiPolicy('openai')));
   vi.stubEnv('ATLAS_AI_MONTHLY_LIMIT_MICROS', '10000000');
   vi.stubEnv('ATLAS_AI_EMBEDDING_PROVIDER', 'openai');
@@ -274,10 +274,10 @@ beforeAll(async () => {
   );
   fixture = spawn(process.execPath, ['tests/auth/ai-fixture.mjs'], {
     stdio: 'ignore',
-    env: { ...process.env, ATLAS_AI_FIXTURE_PORT: '3197' },
+    env: { ...process.env, ATLAS_AI_FIXTURE_PORT: '3196' },
   });
   await vi.waitFor(async () => {
-    expect((await fetch('http://127.0.0.1:3197/health')).ok).toBe(true);
+    expect((await fetch('http://127.0.0.1:3196/health')).ok).toBe(true);
   });
   for (const who of [owner, other, viewer])
     await command(who, {
@@ -976,7 +976,7 @@ describe('conversation persistence, streamed citations and budget safety', () =>
     );
     expect(() => requireAIActivation()).toThrow();
     vi.stubEnv('DATABASE_URL', runtime);
-    vi.stubEnv('ATLAS_AI_FIXTURE_ORIGIN', 'http://127.0.0.1:3197');
+    vi.stubEnv('ATLAS_AI_FIXTURE_ORIGIN', 'http://127.0.0.1:3196');
   });
   it('renames, archives and explicitly erases conversation text while retaining usage', async () => {
     const prepared = await prepareRun(owner, input());
