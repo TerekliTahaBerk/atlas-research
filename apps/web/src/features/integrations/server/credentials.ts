@@ -1,5 +1,11 @@
 import 'server-only';
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto';
 import { PlatformError } from '@/features/platform/server/errors';
 
 /*
@@ -13,7 +19,8 @@ import { PlatformError } from '@/features/platform/server/errors';
 const b64 = (value: Buffer) => value.toString('base64url');
 function key() {
   const raw = process.env.ATLAS_INTEGRATION_KEY;
-  if (!raw) return null;
+  if (!raw || !/^(?:[A-Za-z0-9+/]{43}=?|[A-Za-z0-9_-]{43}=?)$/.test(raw))
+    return null;
   const bytes = Buffer.from(
     raw,
     raw.includes('-') || raw.includes('_') ? 'base64url' : 'base64',
@@ -21,6 +28,26 @@ function key() {
   return bytes.length === 32 ? bytes : null;
 }
 export const integrationsConfigured = () => key() !== null;
+/** Purpose-separated authentication of preview metadata, never a bearer grant. */
+export function signImportContext(context: string) {
+  const k = key();
+  if (!k)
+    throw new PlatformError(
+      'EXTERNAL_PROVIDER_ERROR',
+      'External library connections are not configured on this server.',
+    );
+  return createHmac('sha256', k)
+    .update('atlas-zotero-preview:v1:')
+    .update(context)
+    .digest('hex');
+}
+export function verifyImportContext(context: string, signature: string) {
+  if (!key() || !/^[a-f0-9]{64}$/.test(signature)) return false;
+  return timingSafeEqual(
+    Buffer.from(signImportContext(context), 'hex'),
+    Buffer.from(signature, 'hex'),
+  );
+}
 const aad = (profileId: string, provider: string) =>
   Buffer.from(`atlas-credential:v1:${provider}:${profileId}`);
 

@@ -1,5 +1,7 @@
 # A03 — Research interoperability report
 
+**Final consolidation:** [A01–A03 closure report](A01_A02_A03_FINAL_CLOSURE_REPORT.md) supersedes this historical implementation evidence for current verification, provider controls and migration count. [Key rotation](../operations/A03_INTEGRATION_KEY_ROTATION.md) defines the controlled reconnect procedure.
+
 Evidence date: **2 November 2026**. Base: `master` at `c26096b` (A02 and A02 post-merge hardening merged). Scope: code and local disposable verification. **A03 CODE COMPLETE ≠ HOSTED READY**: the new migration is local only, and hosted use depends on the A01 gates. No hosted migration, paid service, AI activation, worker deployment or live private Zotero content was used.
 
 ## 1. Supported formats

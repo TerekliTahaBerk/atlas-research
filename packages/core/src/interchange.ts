@@ -1247,7 +1247,11 @@ export function fromZoteroItem(
     typeof d[name] === 'string' && (d[name] as string).trim()
       ? (d[name] as string)
       : null;
-  if (['attachment', 'note', 'annotation'].includes(data.itemType))
+  if (
+    d.deleted === 1 ||
+    d.deleted === true ||
+    ['attachment', 'note', 'annotation'].includes(data.itemType)
+  )
     return {
       record: null,
       provenance: provenance(key, version),
@@ -1378,6 +1382,8 @@ export const importLink = z
     library: z.string().min(1).max(80),
     key: z.string().min(1).max(200),
     version: z.number().int().min(0).nullable(),
+    /** Server-issued proof for user-owned external-provider provenance. */
+    proof: z.string().max(200).optional(),
   })
   .strict();
 export type ImportLink = z.infer<typeof importLink>;

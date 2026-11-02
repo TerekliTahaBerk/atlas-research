@@ -1,6 +1,8 @@
 # Atlas master plan
 
-The [A00 capability/status matrix](phases/A00_REPOSITORY_HARDENING_REPORT.md#canonical-capabilitystatus-matrix) is the current repository baseline. Earlier phase delivery notes describe their implementation scope, not the present hosted state.
+Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
+
+The [A00 capability/status matrix](phases/A00_REPOSITORY_HARDENING_REPORT.md#canonical-capabilitystatus-matrix) records the historical audit baseline; the final closure linked above records current consolidation and hosted gates. Earlier phase delivery notes describe their implementation scope, not the present hosted state.
 
 ## Phase 04 delivery state
 

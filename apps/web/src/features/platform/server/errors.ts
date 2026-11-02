@@ -3,6 +3,7 @@ export class PlatformError extends Error {
   constructor(
     public readonly code: ErrorCode,
     message: string,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
   }

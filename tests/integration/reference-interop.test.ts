@@ -477,46 +477,25 @@ describe.sequential('Journey C — security, isolation and recovery', () => {
     expect(await projectPaperCount(project)).toBe(before + 1);
   });
 
-  it('applies an upstream update only when explicitly requested, to imported references only', async () => {
-    const link = {
-      source: 'ZOTERO' as const,
-      library: 'users/1',
-      key: 'ABCD2345',
-      version: 3,
-    };
-    const first = await run(editor, project, [
-      { record: record('Zotero v3'), link },
-    ]);
-    const id = first.results[0]!.id;
-    const unchanged = await run(editor, project, [
-      { record: record('Zotero v4'), link: { ...link, version: 4 } },
-    ]);
-    expect(unchanged.results[0]).toMatchObject({ id, outcome: 'EXISTING' });
-    expect((await getProjectPaper(editor, id)).title).toBe('Zotero v3');
-    const updated = await run(editor, project, [
-      {
-        record: record('Zotero v4'),
-        link: { ...link, version: 4 },
-        update: true,
-      },
-    ]);
-    expect(updated.results[0]).toMatchObject({ id, outcome: 'UPDATED' });
-    expect((await getProjectPaper(editor, id)).title).toBe('Zotero v4');
-    // An older or equal version never rewinds it.
-    const stale = await run(editor, project, [
-      {
-        record: record('Zotero v2'),
-        link: { ...link, version: 2 },
-        update: true,
-      },
-    ]);
-    expect(stale.results[0]!.outcome).toBe('EXISTING');
-    expect((await getProjectPaper(editor, id)).title).toBe('Zotero v4');
-    // The same Zotero item in another project is an independent paper.
-    const elsewhere = await run(outsider, otherProject, [
-      { record: record('Zotero v4'), link: { ...link, version: 4 } },
-    ]);
-    expect(elsewhere.results[0]!.id).not.toBe(id);
+  it('rejects invented external provenance before any import or update', async () => {
+    const before = await projectPaperCount(project);
+    expect(
+      await failure(
+        run(editor, project, [
+          {
+            record: record('Forged Zotero'),
+            link: {
+              source: 'ZOTERO',
+              library: 'users/1',
+              key: 'ABCD2345',
+              version: 999,
+            },
+            update: true,
+          },
+        ]),
+      ),
+    ).toBe('NOT_FOUND');
+    expect(await projectPaperCount(project)).toBe(before);
   });
 
   it('keeps browser roles away from connection and mapping tables', async () => {

@@ -265,6 +265,17 @@ export async function executeReferenceImport(
   requestId: string,
 ) {
   const command = referenceImportCommand.parse(raw);
+  const external = command.items.filter(
+    (item) => item.link?.source === 'ZOTERO',
+  );
+  if (external.length) {
+    await withActor(actor, (tx) =>
+      requireProject(tx, command.projectId, 'project.write'),
+    );
+    const { verifyZoteroImports } =
+      await import('@/features/integrations/server/zotero');
+    await verifyZoteroImports(actor, command.projectId, external);
+  }
   const hash = requestHash(command);
   const items = command.items.map((item) => ({
     record: { ...item.record, doi: normalizeDoi(item.record.doi) },

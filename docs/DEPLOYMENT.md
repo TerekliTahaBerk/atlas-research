@@ -1,8 +1,10 @@
 # Deployment preparation
 
+Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
+
 ## Current activation gate
 
-Current evidence and controlled execution: [A01 readiness report](phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) and [G1–G7 approval manifest](operations/A01_APPROVAL_MANIFEST.md). Atlas metadata currently reports INACTIVE; historical development classification does not authorize resume or production-labelled writes. No deployment is authorized by these preparation documents.
+Current evidence and controlled execution: [A01 readiness report](phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) and [G1–G7 approval manifest](operations/A01_APPROVAL_MANIFEST.md). Read-only closure checks on 2 November 2026 report ACTIVE_HEALTHY, Free/PG17.11, three installed migrations and zero Storage buckets/objects. The default main / PRODUCTION classification still requires an explicit development/staging decision before any mutation. G1 authenticated denial and G2 recovery remain open; the final nine-file pending migration batch requires separate G3 approval. No deployment is authorized by these preparation documents.
 
 Phases 01–04 have repository implementations. Hosted Phase 02–04 activation is blocked; follow the [A00/A01 prerequisites](phases/A00_REPOSITORY_HARDENING_REPORT.md) and the ordered [Phase 02](phases/PHASE_02_ACTIVATION_PLAN.md), [Phase 03](phases/PHASE_03_ACTIVATION_PLAN.md) and [Phase 04](phases/PHASE_04_ACTIVATION_PLAN.md) plans. The three-migration instructions below describe historical Phase 01 activation only, not a current release procedure. Builds must never apply migrations automatically.
 

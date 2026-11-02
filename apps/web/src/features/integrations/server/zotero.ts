@@ -1,10 +1,16 @@
 import 'server-only';
 import { z } from 'zod';
+import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
+import { zoteroThrottle } from './throttle';
 import {
   fromZoteroItem,
   personDisplay,
   referenceTypeLabels,
   type ParsedRecord,
+  importItem,
+  type ImportLink,
+  type ReferenceRecord,
 } from '@atlas/core';
 import {
   withActor,
@@ -13,11 +19,17 @@ import {
 import { PlatformError } from '@/features/platform/server/errors';
 import { retryAfterSeconds } from '@/features/discovery/server/provider-http';
 import { requireProject } from '@/features/library/server/library';
-import { classify, summarize } from '@/features/library/server/interchange';
+import {
+  classify,
+  summarize,
+  recordHash,
+} from '@/features/library/server/interchange';
 import {
   integrationsConfigured,
   openCredential,
   sealCredential,
+  signImportContext,
+  verifyImportContext,
 } from './credentials';
 
 /*
@@ -41,9 +53,17 @@ const baseUrl = () => {
   const value = process.env.ATLAS_ZOTERO_BASE_URL ?? 'https://api.zotero.org';
   const url = new URL(value);
   const loopback =
+    process.env.NODE_ENV !== 'production' &&
     url.protocol === 'http:' &&
     ['127.0.0.1', 'localhost'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !loopback)
+  if (
+    (!loopback && url.origin !== 'https://api.zotero.org') ||
+    url.username ||
+    url.password ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash
+  )
     throw new PlatformError(
       'EXTERNAL_PROVIDER_ERROR',
       'Zotero is not configured.',
@@ -60,16 +80,17 @@ type ZoteroResponse = {
 };
 const unavailable = (message = 'Zotero is unavailable. Try again later.') =>
   new PlatformError('EXTERNAL_PROVIDER_ERROR', message);
-const wait = (ms: number, signal?: AbortSignal) =>
-  new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    });
-  });
+const wait = async (ms: number, signal?: AbortSignal) => {
+  await delay(ms, undefined, { signal });
+};
+const limited = (seconds: number) =>
+  new PlatformError(
+    'RATE_LIMITED',
+    `Zotero asked Atlas to wait ${seconds} seconds. Try again then.`,
+    seconds,
+  );
 
-/** Bounded GET with explicit API version, Backoff/Retry-After and timeouts. */
+/** Shared lease + persistent cooldown. No sleeping through provider backoff. */
 export async function zoteroGet(
   path: string,
   query: Record<string, string | undefined>,
@@ -80,97 +101,122 @@ export async function zoteroGet(
     timeoutMs?: number | undefined;
   } = {},
 ): Promise<ZoteroResponse> {
-  const url = new URL(path, baseUrl());
+  const base = baseUrl();
+  const url = new URL(path, base);
+  // Even an internal caller cannot turn a relative path into credential exfiltration.
+  if (url.origin !== base || url.username || url.password)
+    throw unavailable('Zotero is not configured.');
   for (const [k, v] of Object.entries(query))
     if (v !== undefined) url.searchParams.set(k, v);
   const sleep = options.sleep ?? wait;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const timeout = AbortSignal.timeout(options.timeoutMs ?? 10_000);
+    options.signal?.throwIfAborted();
+    const token = randomUUID();
+    const remaining = await zoteroThrottle(token, null);
+    if (remaining) throw limited(remaining);
+    let cooldown = 0;
+    let retry = false;
+    const timeout = AbortSignal.timeout(
+      Math.min(options.timeoutMs ?? 10_000, 10_000),
+    );
     const signal = options.signal
       ? AbortSignal.any([options.signal, timeout])
       : timeout;
-    let response: Response;
     try {
-      response = await fetch(url, {
-        headers: {
-          'Zotero-API-Key': apiKey,
-          'Zotero-API-Version': API_VERSION,
-          Accept: 'application/json',
-        },
-        redirect: 'error',
-        cache: 'no-store',
-        signal,
-      });
-    } catch (error) {
-      if (options.signal?.aborted) throw error;
-      if (attempt < 2) {
-        await sleep(400 * 2 ** attempt, options.signal);
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          headers: {
+            'Zotero-API-Key': apiKey,
+            'Zotero-API-Version': API_VERSION,
+            Accept: 'application/json',
+          },
+          redirect: 'error',
+          cache: 'no-store',
+          signal,
+        });
+      } catch {
+        if (options.signal?.aborted)
+          throw unavailable('Zotero request cancelled.');
+        if (attempt === 2)
+          throw unavailable('Zotero did not respond in time. Try again.');
+        retry = true;
         continue;
       }
-      throw unavailable('Zotero did not respond in time. Try again.');
-    }
-    const header = (name: string) => response.headers.get(name);
-    if (response.status === 429 || response.status === 503) {
-      await response.body?.cancel();
-      const seconds =
-        retryAfterSeconds(header('retry-after')) ??
-        retryAfterSeconds(header('backoff'));
-      // Honour short waits within this request; report longer ones.
-      if (attempt < 2 && seconds !== null && seconds <= 5) {
-        await sleep(seconds * 1000, options.signal);
-        continue;
+      const header = (name: string) => response.headers.get(name);
+      cooldown = Math.min(
+        2_147_483_647,
+        Math.max(
+          retryAfterSeconds(header('backoff')) ?? 0,
+          retryAfterSeconds(header('retry-after')) ?? 0,
+        ),
+      );
+      if (response.status === 429 || response.status === 503) {
+        await response.body?.cancel();
+        cooldown = Math.max(cooldown, 2 ** (attempt + 1));
+        throw limited(cooldown);
       }
-      throw new PlatformError(
-        'RATE_LIMITED',
-        seconds
-          ? `Zotero asked Atlas to wait ${seconds} seconds. Try again then.`
-          : 'Zotero is busy. Try again shortly.',
-      );
+      if (!response.ok) {
+        await response.body?.cancel();
+        if (response.status === 401 || response.status === 403)
+          throw new PlatformError(
+            'FORBIDDEN',
+            'Zotero rejected the key or its library access. Reconnect with a valid read-only key.',
+          );
+        if (response.status === 404)
+          throw new PlatformError(
+            'NOT_FOUND',
+            'That Zotero library, collection or item is not available.',
+          );
+        if (response.status >= 500 && attempt < 2 && cooldown === 0) {
+          retry = true;
+          continue;
+        }
+        throw unavailable();
+      }
+      const reader = response.body?.getReader();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        if (Number(header('content-length') ?? 0) > 5_000_000) {
+          await reader?.cancel();
+          throw unavailable();
+        }
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.length;
+          if (size > 5_000_000) {
+            await reader.cancel();
+            throw unavailable();
+          }
+          chunks.push(value);
+        }
+        const data: unknown = JSON.parse(
+          new TextDecoder().decode(Buffer.concat(chunks)),
+        );
+        const number = (name: string) => {
+          const raw = header(name);
+          const value = raw === null ? NaN : Number(raw);
+          return Number.isSafeInteger(value) && value >= 0 ? value : null;
+        };
+        return {
+          data,
+          totalResults: number('total-results'),
+          lastModifiedVersion: number('last-modified-version'),
+        };
+      } catch {
+        throw unavailable(
+          'Zotero returned an unreadable or oversized response.',
+        );
+      } finally {
+        reader?.releaseLock();
+      }
+    } finally {
+      // Fail closed if persistence fails. The lease also fences crashed requests.
+      await zoteroThrottle(token, cooldown);
+      if (retry) await sleep(400 * 2 ** attempt, options.signal);
     }
-    if (response.status === 401 || response.status === 403) {
-      await response.body?.cancel();
-      throw new PlatformError(
-        'FORBIDDEN',
-        'Zotero rejected the key or it no longer grants access to this library. Reconnect with a valid read-only key.',
-      );
-    }
-    if (response.status === 404) {
-      await response.body?.cancel();
-      throw new PlatformError(
-        'NOT_FOUND',
-        'That Zotero library, collection or item is not available.',
-      );
-    }
-    if (response.status >= 500 && attempt < 2) {
-      await response.body?.cancel();
-      await sleep(400 * 2 ** attempt, options.signal);
-      continue;
-    }
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw unavailable();
-    }
-    // A Backoff header on success asks clients to slow down; honour briefly.
-    const backoff = retryAfterSeconds(header('backoff'));
-    const text = await response.text();
-    if (text.length > 5_000_000)
-      throw unavailable('The Zotero response was too large.');
-    let data: unknown;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw unavailable('Zotero returned an unreadable response.');
-    }
-    if (backoff && backoff <= 5) await sleep(backoff * 1000, options.signal);
-    const number = (name: string) => {
-      const value = Number(header(name));
-      return Number.isInteger(value) && value >= 0 ? value : null;
-    };
-    return {
-      data,
-      totalResults: number('total-results'),
-      lastModifiedVersion: number('last-modified-version'),
-    };
   }
   throw unavailable();
 }
@@ -373,7 +419,58 @@ async function credentialFor(actor: VerifiedActor, libraryId: string) {
       'FORBIDDEN',
       'The stored Zotero connection can no longer be used. Reconnect Zotero.',
     );
-  return { apiKey, library: lib };
+  return { apiKey, library: lib, connectionId: row.id };
+}
+
+const importContext = (
+  actorId: string,
+  projectId: string,
+  connectionId: string,
+  link: ImportLink,
+  record: ReferenceRecord,
+) =>
+  JSON.stringify([
+    actorId,
+    projectId,
+    connectionId,
+    link.source,
+    link.library,
+    link.key,
+    link.version,
+    recordHash(record),
+  ]);
+
+/** Reject client-invented provenance/versions or altered preview metadata.
+ * Current actor/project rights and active owner connection are still required.
+ */
+export async function verifyZoteroImports(
+  actor: VerifiedActor,
+  projectId: string,
+  items: z.output<typeof importItem>[],
+) {
+  const row = await activeConnection(actor);
+  if (!row?.ciphertext)
+    throw new PlatformError('NOT_FOUND', 'Connect Zotero first.');
+  const allowed = zoteroAccess.parse(row.access).libraries;
+  for (const item of items) {
+    const link = item.link;
+    const proof = link?.proof?.split('.');
+    if (
+      !link ||
+      item.atlasId ||
+      !allowed.some((lib) => lib.id === link.library) ||
+      proof?.length !== 2 ||
+      proof[0] !== row.id ||
+      !verifyImportContext(
+        importContext(actor.id, projectId, row.id, link, item.record),
+        proof[1] ?? '',
+      )
+    )
+      throw new PlatformError(
+        'CONFLICT',
+        'The Zotero preview changed or is no longer available. Preview it again.',
+      );
+  }
 }
 
 const collectionRow = z
@@ -451,7 +548,9 @@ export async function zoteroItems(
       start: String(start),
       format: 'json',
       sort: 'dateModified',
+      // Zotero negates the entire OR set (API::getSearchParamValues).
       itemType: '-attachment || note',
+      includeTrashed: '0',
       // Incremental reads: only items modified after a known library version.
       ...(input.since !== undefined ? { since: String(input.since) } : {}),
     },
@@ -506,7 +605,11 @@ export async function previewZoteroImport(
   await withActor(actor, (tx) =>
     requireProject(tx, projectId, 'project.write'),
   );
-  const { apiKey, library: lib } = await credentialFor(actor, input.library);
+  const {
+    apiKey,
+    library: lib,
+    connectionId,
+  } = await credentialFor(actor, input.library);
   const keys = [...new Set(input.itemKeys)];
   const res = await zoteroGet(
     `/${lib}/items`,
@@ -527,11 +630,11 @@ export async function previewZoteroImport(
     }));
   return withActor(actor, async (tx) => {
     await requireProject(tx, projectId, 'project.write');
-    return summarize(
-      'ZOTERO',
-      lib,
-      await classify(tx, projectId, parsed),
-      issues,
-    );
+    const classified = await classify(tx, projectId, parsed);
+    for (const item of classified) {
+      if (item.link && item.record)
+        item.link.proof = `${connectionId}.${signImportContext(importContext(actor.id, projectId, connectionId, item.link, item.record))}`;
+    }
+    return summarize('ZOTERO', lib, classified, issues);
   });
 }
