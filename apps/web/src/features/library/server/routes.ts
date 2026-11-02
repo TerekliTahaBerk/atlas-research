@@ -10,6 +10,7 @@ import { researchSearch } from '@/features/discovery/server/service';
 import {
   exportFormat,
   exportProject,
+  exportSelection,
   getProjectPaper,
   libraryPage,
   renderExport,
@@ -27,6 +28,7 @@ import {
   verifyScannerRequest,
 } from './sources';
 import { supabaseSourceStorage } from './storage';
+import { previewFileImport } from './interchange';
 
 const uuid = z.uuid();
 const params = (url: URL) =>
@@ -72,7 +74,21 @@ export async function researchPost(
   request: Request,
   requestId: string,
 ) {
-  const [root, id, leaf, extra] = path;
+  const [root, id, leaf, extra, more] = path;
+  if (
+    root === 'projects' &&
+    leaf === 'imports' &&
+    extra === 'preview' &&
+    more === undefined
+  ) {
+    await rateLimit('import-preview', actor.id, 30, 60);
+    // JSON escaping can inflate a 2 MB file; content length is re-checked.
+    return previewFileImport(
+      actor,
+      uuid.parse(id),
+      await readJson(request, 4_500_000),
+    );
+  }
   if (extra !== undefined) return undefined;
   if (root === 'projects' && leaf === 'uploads') {
     await rateLimit('upload', actor.id, 30, 3600);
@@ -107,18 +123,30 @@ export async function exportResponse(
   if (extra !== undefined || leaf !== 'export') return undefined;
   if (root !== 'papers' && root !== 'projects') return undefined;
   const format = exportFormat.parse(url.searchParams.get('format') ?? 'bibtex');
+  const ids = url.searchParams.get('ids');
+  const documentId = url.searchParams.get('documentId');
   const papers =
     root === 'papers'
       ? [await getProjectPaper(actor, uuid.parse(id))]
-      : await exportProject(
-          actor,
-          uuid.parse(id),
-          uuid
-            .optional()
-            .parse(url.searchParams.get('collectionId') || undefined),
-        );
+      : ids || documentId
+        ? await exportSelection(actor, uuid.parse(id), {
+            ...(ids ? { ids: ids.split(',').slice(0, 500) } : {}),
+            ...(documentId ? { documentId } : {}),
+          })
+        : await exportProject(
+            actor,
+            uuid.parse(id),
+            uuid
+              .optional()
+              .parse(url.searchParams.get('collectionId') || undefined),
+          );
   const file = renderExport(papers, format);
-  const name = root === 'papers' ? 'atlas-reference' : 'atlas-references';
+  const name =
+    root === 'papers'
+      ? 'atlas-reference'
+      : documentId
+        ? 'atlas-note-bibliography'
+        : 'atlas-references';
   return new Response(file.body, {
     headers: {
       'Content-Type': `${file.type}; charset=utf-8`,

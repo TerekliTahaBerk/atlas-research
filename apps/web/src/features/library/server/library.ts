@@ -13,9 +13,14 @@ import {
   researchCommand,
   sourceState,
   tagDto,
+  personDisplay,
+  referenceRecord,
+  referenceTypeOf,
   toBibtex,
+  toCslJson,
   toRis,
   type CitationEntry,
+  type ReferenceRecord,
   type LibraryQuery,
   type NormalizedPaper,
   type ProjectPaperDto,
@@ -125,6 +130,7 @@ const paperRow = z.object({
   addedById: z.uuid(),
   privateTitle: z.string().nullable(),
   metadata: z.unknown().nullable(),
+  reference: z.unknown().nullable(),
   collectionIds: z.array(z.uuid()),
   tagIds: z.array(z.uuid()),
   sources: z.array(
@@ -142,8 +148,14 @@ const paperRow = z.object({
 });
 function toDto(row: z.infer<typeof paperRow>): ProjectPaperDto {
   const paper = row.metadata ? normalizedPaper.parse(row.metadata) : null;
+  // Stored by the SQL import command from a validated record; re-validated
+  // here so a malformed row degrades to a title-only private source.
+  const reference = row.reference
+    ? (referenceRecord.safeParse(row.reference).data ?? null)
+    : null;
   return projectPaperDto.parse({
     ...row,
+    reference,
     origin: paper ? 'PROVIDER' : 'PRIVATE',
     title: paper?.title ?? row.privateTitle ?? '',
     paper,
@@ -158,7 +170,7 @@ function toDto(row: z.infer<typeof paperRow>): ProjectPaperDto {
 const paperSelect = Prisma.sql`
  SELECT pp.id, pp.project_id AS "projectId", pp.artifact_id AS "artifactId", pp.version,
   pp.reading_status::text AS "readingStatus", pp.created_at::text AS "addedAt", pp.updated_at::text AS "updatedAt",
-  pp.added_by_id AS "addedById", pp.private_title AS "privateTitle", pp.metadata,
+  pp.added_by_id AS "addedById", pp.private_title AS "privateTitle", pp.metadata, pp.reference_metadata AS reference,
   coalesce((SELECT array_agg(cm.collection_id ORDER BY cm.collection_id) FROM collection_memberships cm
    JOIN paper_collections c ON c.id=cm.collection_id AND c.archived_at IS NULL WHERE cm.project_paper_id=pp.id),ARRAY[]::uuid[]) AS "collectionIds",
   coalesce((SELECT array_agg(t.tag_id ORDER BY t.tag_id) FROM project_paper_tags t WHERE t.project_paper_id=pp.id),ARRAY[]::uuid[]) AS "tagIds",
@@ -348,25 +360,68 @@ export async function sourceAnnotations(
 
 // ------------------------------------------------------------------ export
 
-function citationEntry(dto: ProjectPaperDto): CitationEntry {
+/** Bibliographic export: provider metadata or imported reference metadata. */
+export function exportRecord(dto: ProjectPaperDto): ReferenceRecord {
+  if (dto.reference) return dto.reference;
   const paper = dto.paper;
   return {
+    type: referenceTypeOf(paper?.publicationType ?? null),
+    originalType: null,
     title: dto.title,
-    authors: paper?.authors.map((a) => a.name) ?? [],
-    year: paper?.year ?? null,
-    venue: paper?.venue ?? null,
+    // Provider author names are display strings; they stay literal rather
+    // than being re-split into guessed family/given parts.
+    authors: paper?.authors.map((a) => ({ literal: a.name })) ?? [],
+    editors: [],
     doi: paper?.doi ?? null,
+    issued: paper?.year ? { year: paper.year, month: null, day: null } : null,
+    containerTitle: paper?.venue ?? null,
+    volume: null,
+    issue: null,
+    pages: null,
+    publisher: null,
+    issn: [],
+    isbn: [],
+    abstract: paper?.abstract ?? null,
+    language: paper?.language ?? null,
+    keywords: [],
     url: paper?.doi
       ? `https://doi.org/${paper.doi}`
       : (paper?.landingPageUrl ?? null),
-    publicationType: paper?.publicationType ?? null,
   };
 }
-export const exportFormat = z.enum(['bibtex', 'ris']);
+function citationEntry(dto: ProjectPaperDto): CitationEntry {
+  const r = exportRecord(dto);
+  return {
+    title: r.title,
+    authors: r.authors.map(personDisplay),
+    year: r.issued?.year ?? null,
+    venue: r.containerTitle,
+    doi: r.doi,
+    url: r.url,
+    publicationType: dto.reference
+      ? null
+      : (dto.paper?.publicationType ?? null),
+    recordType: dto.reference ? r.type : null,
+    volume: r.volume,
+    issue: r.issue,
+    pages: r.pages,
+    publisher: r.publisher,
+    atlasId: dto.id,
+  };
+}
+export const exportFormat = z.enum(['bibtex', 'ris', 'csl-json']);
 export function renderExport(
   papers: ProjectPaperDto[],
   format: z.infer<typeof exportFormat>,
 ) {
+  if (format === 'csl-json')
+    return {
+      body: toCslJson(
+        papers.map((p) => ({ atlasId: p.id, record: exportRecord(p) })),
+      ),
+      type: 'application/vnd.citationstyles.csl+json',
+      extension: 'json',
+    };
   const entries = papers.map(citationEntry);
   return format === 'bibtex'
     ? {
@@ -379,6 +434,42 @@ export function renderExport(
         type: 'application/x-research-info-systems',
         extension: 'ris',
       };
+}
+/**
+ * A03: export of explicitly selected papers or of the papers a research note
+ * cites. Bibliographic metadata only — never annotation text, quotes or PDF
+ * locators. Each source is re-authorized; another project's IDs match nothing.
+ */
+export async function exportSelection(
+  actor: VerifiedActor,
+  projectId: string,
+  selection: { ids?: string[]; documentId?: string },
+) {
+  z.uuid().parse(projectId);
+  const ids = z
+    .array(z.uuid())
+    .max(500)
+    .parse(selection.ids ?? []);
+  return withActor(actor, async (tx) => {
+    await requireProject(tx, projectId, 'project.read');
+    let artifactIds: string[] = [];
+    if (selection.documentId) {
+      const [doc] = z.array(z.object({ refs: z.array(z.uuid()) })).parse(
+        await tx.$queryRaw`SELECT v.reference_artifact_ids AS refs FROM documents d JOIN document_versions v ON v.id=d.current_version_id
+            WHERE d.id=${z.uuid().parse(selection.documentId)}::uuid AND d.project_id=${projectId}::uuid AND d.archived_at IS NULL`,
+      );
+      if (!doc) throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
+      artifactIds = doc.refs;
+    }
+    const rows = z.array(paperRow).parse(
+      await tx.$queryRaw(
+        Prisma.sql`${paperSelect} WHERE pp.project_id=${projectId}::uuid
+          AND (pp.id=ANY(${ids}::uuid[]) OR pp.artifact_id=ANY(${artifactIds}::uuid[]))
+          ORDER BY lower(coalesce(pp.private_title,pp.metadata->>'title')), pp.id LIMIT 1000`,
+      ),
+    );
+    return rows.map(toDto);
+  });
 }
 export async function exportProject(
   actor: VerifiedActor,

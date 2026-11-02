@@ -241,6 +241,8 @@ model ProjectPaper {
  paperId String? @map("paper_id") @db.Uuid
  privateTitle String? @map("private_title") @db.VarChar(1000)
  metadata Json?
+ /// A03: project-scoped imported bibliographic metadata (private references only).
+ referenceMetadata Json? @map("reference_metadata")
  readingStatus ReadingStatus @default(TO_READ) @map("reading_status")
  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
  addedById String @map("added_by_id") @db.Uuid
@@ -639,3 +641,39 @@ model ResearchArtifactLink {
  @@unique([projectId, id])
  @@map("research_artifact_links")
 }
+
+/// A03: external record → project paper identity (idempotent imports).
+model ReferenceImportLink {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ projectPaperId String @map("project_paper_id") @db.Uuid
+ source String @db.VarChar(20)
+ library String @db.VarChar(80)
+ itemKey String @map("item_key") @db.VarChar(200)
+ itemVersion Int? @map("item_version")
+ recordHash String @map("record_hash") @db.Char(64)
+ importedById String @map("imported_by_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, source, library, itemKey])
+ @@index([projectId, projectPaperId])
+ @@map("reference_import_links")
+}
+
+/// A03: one user's Zotero connection; the credential is application-encrypted.
+model ExternalConnection {
+ id String @id @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ provider String @db.VarChar(20)
+ externalUserId String @map("external_user_id") @db.VarChar(20)
+ displayName String? @map("display_name") @db.VarChar(200)
+ access Json
+ credentialCiphertext String? @map("credential_ciphertext") @db.VarChar(2000)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+ @@map("external_connections")
+}
+

@@ -30,6 +30,7 @@ import {
 import { rateLimit } from '@/features/platform/server/limiter';
 import { PlatformError } from '@/features/platform/server/errors';
 import { executeResearchCommand } from '@/features/library/server/library';
+import { executeReferenceImport } from '@/features/library/server/interchange';
 import { providerResolver } from '@/features/discovery/server/service';
 import { executeArtifactCommand } from '@/features/artifacts/server/commands';
 import {
@@ -144,6 +145,8 @@ export async function POST(
         artifactCommand.parse(body),
         requestId,
       );
+    if (name === 'reference.import')
+      return executeReferenceImport(actor, body, requestId);
     if (
       typeof name === 'string' &&
       (researchCommandNames as string[]).includes(name)

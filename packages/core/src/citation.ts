@@ -10,10 +10,35 @@ export interface CitationEntry {
   doi: string | null;
   url: string | null;
   publicationType: string | null;
+  /** A03: exact interchange type; when set it decides the entry type. */
+  recordType?: string | null;
+  volume?: string | null;
+  issue?: string | null;
+  /** Published page range of the work, never a PDF evidence locator. */
+  pages?: string | null;
+  publisher?: string | null;
+  /** Project paper ID written as an `atlas:<id>` round-trip marker. */
+  atlasId?: string | null;
 }
 
-type EntryKind = 'article' | 'conference' | 'generic';
+type EntryKind =
+  | 'article'
+  | 'conference'
+  | 'book'
+  | 'chapter'
+  | 'thesis'
+  | 'report'
+  | 'generic';
+const recordKinds: Record<string, EntryKind> = {
+  'journal-article': 'article',
+  'conference-paper': 'conference',
+  book: 'book',
+  'book-chapter': 'chapter',
+  thesis: 'thesis',
+  report: 'report',
+};
 function kind(entry: CitationEntry): EntryKind {
+  if (entry.recordType) return recordKinds[entry.recordType] ?? 'generic';
   const type = entry.publicationType?.toLowerCase() ?? '';
   if (/proceedings|conference/.test(type)) return 'conference';
   if (entry.venue && /article|journal/.test(type)) return 'article';
@@ -91,19 +116,35 @@ export function toBibtex(entries: readonly CitationEntry[]) {
         fields.push([
           type === 'article'
             ? 'journal'
-            : type === 'conference'
+            : type === 'conference' || type === 'chapter'
               ? 'booktitle'
-              : 'howpublished',
+              : type === 'thesis'
+                ? 'school'
+                : type === 'report'
+                  ? 'institution'
+                  : 'howpublished',
           escapeLatex(entry.venue),
         ]);
+      if (entry.volume) fields.push(['volume', escapeLatex(entry.volume)]);
+      if (entry.issue) fields.push(['number', escapeLatex(entry.issue)]);
+      if (entry.pages)
+        fields.push(['pages', escapeLatex(entry.pages).replace(/–/g, '--')]);
+      if (entry.publisher)
+        fields.push(['publisher', escapeLatex(entry.publisher)]);
       if (entry.doi) fields.push(['doi', escapeLatex(entry.doi)]);
       if (entry.url) fields.push(['url', entry.url.replace(/[{}\s]/g, '')]);
-      const bibType =
-        type === 'article'
-          ? 'article'
-          : type === 'conference'
-            ? 'inproceedings'
-            : 'misc';
+      if (entry.atlasId) fields.push(['atlasid', `atlas:${entry.atlasId}`]);
+      const bibType = (
+        {
+          article: 'article',
+          conference: 'inproceedings',
+          book: 'book',
+          chapter: 'incollection',
+          thesis: 'phdthesis',
+          report: 'techreport',
+          generic: 'misc',
+        } as const
+      )[type];
       return `@${bibType}{${keys[index]},\n${fields
         .map(([name, value]) => `  ${name} = {${value}}`)
         .join(',\n')}\n}`;
@@ -122,19 +163,34 @@ export function toRis(entries: readonly CitationEntry[]) {
       const lines: [string, string][] = [
         [
           'TY',
-          type === 'article'
-            ? 'JOUR'
-            : type === 'conference'
-              ? 'CPAPER'
-              : 'GEN',
+          (
+            {
+              article: 'JOUR',
+              conference: 'CPAPER',
+              book: 'BOOK',
+              chapter: 'CHAP',
+              thesis: 'THES',
+              report: 'RPRT',
+              generic: 'GEN',
+            } as const
+          )[type],
         ],
         ['TI', risValue(entry.title)],
       ];
       for (const author of entry.authors) lines.push(['AU', risValue(author)]);
       if (entry.year !== null) lines.push(['PY', String(entry.year)]);
       if (entry.venue) lines.push(['T2', risValue(entry.venue)]);
+      if (entry.volume) lines.push(['VL', risValue(entry.volume)]);
+      if (entry.issue) lines.push(['IS', risValue(entry.issue)]);
+      if (entry.pages) {
+        const [start, end] = risValue(entry.pages).split(/\s*[-–]+\s*/);
+        if (start) lines.push(['SP', start]);
+        if (end) lines.push(['EP', end]);
+      }
+      if (entry.publisher) lines.push(['PB', risValue(entry.publisher)]);
       if (entry.doi) lines.push(['DO', risValue(entry.doi)]);
       if (entry.url) lines.push(['UR', risValue(entry.url)]);
+      if (entry.atlasId) lines.push(['ID', `atlas:${entry.atlasId}`]);
       lines.push(['ER', '']);
       return lines
         .map(([tag, value]) => `${tag}  - ${value}`.trimEnd())
