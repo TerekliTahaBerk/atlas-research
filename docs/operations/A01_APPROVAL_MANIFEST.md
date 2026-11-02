@@ -1,5 +1,7 @@
 # A01 hosted approval manifest and execution sequence
 
+**Later closure evidence, 2 November 2026:** [Final consolidation](../phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md) supersedes earlier access/state observations below. Read-only target access is available; catalog and anonymous history denial pass. G1 authenticated denial and G2–G5 approvals remain open. The final repository has 12 migrations, with 9 pending on hosted Atlas. No hosted write/export was executed.
+
 **2 November 2026 continuation:** see [A01 G1–G3 activation result](A01_G1_G3_ACTIVATION_RESULT.md). G1 remains `OPEN — VALID AUTHENTICATED SESSION REQUIRED`; this session had no authorized access to the target (connector permission denied), so no hosted check, export, write or migration ran. G2 and G3 remain `NOT RUN — APPROVAL REQUIRED`. All ten repository migration hashes are unchanged at `c26096b`; A02 added no migration. The authenticated probe is now scripted in `ops/g1/authenticated-probe.mjs`.
 
 Updated **1 November 2026, 18:32 UTC**. G1 read-only verification was authorized and partially completed; G1 remains OPEN pending valid-session authenticated HTTP denial. Every hosted write/export/restore/provisioning/deployment gate remains **UNAPPROVED / NOT EXECUTED**. Approval of one gate does not authorize another, project resume, billing changes, secret issuance, unrelated projects or production writes. This is a concrete review manifest, not an execution authorization. Canonical evidence: [A01 report](../phases/A01_INFRASTRUCTURE_READINESS_REPORT.md).

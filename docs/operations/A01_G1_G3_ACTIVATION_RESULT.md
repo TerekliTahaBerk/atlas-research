@@ -1,5 +1,7 @@
 # A01 G1–G3 activation result — 2 November 2026
 
+**Later closure evidence, 2 November 2026:** [Final consolidation](../phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md) supersedes earlier access/state observations below. Read-only target access is available; catalog and anonymous history denial pass. G1 authenticated denial and G2–G5 approvals remain open. The final repository has 12 migrations, with 9 pending on hosted Atlas. No hosted write/export was executed.
+
 **Verdict: `A01 PARTIAL — APPROVAL REQUIRED`.** G1 `OPEN — VALID AUTHENTICATED SESSION REQUIRED`; G2 `NOT RUN — APPROVAL REQUIRED`; G3 `NOT RUN — APPROVAL REQUIRED` (also blocked by G1 and G2). No hosted read, export, write, credential, session, restore, migration, provisioning or setting change happened in this session.
 
 Repository head reviewed: `master` at `c26096b45cf8b1346fd686b6ab2925c4bddd80c9` (PR #18 merged). Latest master CI [run 41347215306](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41347215306) passed quality, isolated-auth and offline-engines; the earlier A02 task-test failure on `0837835` was a separate application defect fixed by PR #18 and is not an A01 gate result.
