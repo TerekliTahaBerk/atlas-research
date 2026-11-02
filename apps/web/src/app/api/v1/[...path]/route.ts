@@ -31,6 +31,10 @@ import { rateLimit } from '@/features/platform/server/limiter';
 import { PlatformError } from '@/features/platform/server/errors';
 import { executeResearchCommand } from '@/features/library/server/library';
 import { executeReferenceImport } from '@/features/library/server/interchange';
+import {
+  integrationsGet,
+  integrationsPost,
+} from '@/features/integrations/server/routes';
 import { providerResolver } from '@/features/discovery/server/service';
 import { executeArtifactCommand } from '@/features/artifacts/server/commands';
 import {
@@ -131,6 +135,13 @@ export async function POST(
       return buildProposal(actor, await readJson(request));
     if (segments[0] === 'ai') return aiPost(actor, segments, request);
     if (path !== 'commands') {
+      const integration = await integrationsPost(
+        actor,
+        segments,
+        request,
+        requestId,
+      );
+      if (integration !== undefined) return integration;
       const handled = await researchPost(actor, segments, request, requestId);
       if (handled !== undefined) return handled;
       throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
@@ -221,6 +232,8 @@ export async function GET(
     if (artifacts !== undefined) return artifacts;
     const research = await researchGet(actor, path, url, request.signal);
     if (research !== undefined) return research;
+    const integration = await integrationsGet(actor, path, url, request.signal);
+    if (integration !== undefined) return integration;
     throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
   });
 }

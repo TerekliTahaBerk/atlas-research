@@ -34,6 +34,13 @@ const environment = z.object({
   ATLAS_SEMANTIC_SCHOLAR_BASE_URL: providerBase.optional(),
   ATLAS_STORAGE_SERVICE_KEY: z.string().min(20).optional(),
   ATLAS_SCANNER_SECRET: z.string().min(32).optional(),
+  // A03: 32-byte key (base64/base64url) encrypting stored third-party
+  // credentials; Zotero host override for loopback fixtures only.
+  ATLAS_INTEGRATION_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9+/_=-]{43,44}$/)
+    .optional(),
+  ATLAS_ZOTERO_BASE_URL: providerBase.optional(),
 });
 export function validateEnvironment(input: Record<string, string | undefined>) {
   const result = environment.safeParse(input);
