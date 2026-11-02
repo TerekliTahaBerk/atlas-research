@@ -1,5 +1,7 @@
 # A01 hosted activation verification — 1 November 2026
 
+**2 November 2026 continuation:** see [A01 G1–G3 activation result](A01_G1_G3_ACTIVATION_RESULT.md). G1 remains `OPEN — VALID AUTHENTICATED SESSION REQUIRED`; this session had no authorized access to the target (connector permission denied), so no hosted check, export, write or migration ran. G2 and G3 remain `NOT RUN — APPROVAL REQUIRED`. All ten repository migration hashes are unchanged at `c26096b`; A02 added no migration. The authenticated probe is now scripted in `ops/g1/authenticated-probe.mjs`.
+
 Core hosted evidence collected **18:25–18:32 UTC / 21:25–21:32 Europe/Istanbul**; supplementary compatibility counts and local plan validation completed through 18:45 UTC. Repository baseline: `f5d60a558c207ded08aaf51a648972489b7237a6`; dedicated branch `test/a01-hosted-g1-g2`. Latest master [run 41335396362](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41335396362) passed quality, isolated-auth and offline-engines. No open PRs were returned at preflight.
 
 Authorization: this session permits named-project read-only verification and repository preparation only. **No hosted export, DDL/DML, remediation, migration, user/session creation, token refresh, restore, resource purchase/provisioning or deployment was performed.** No database passwords, session tokens, response bodies or personal row contents are retained here. Earlier A01 observations remain historical evidence.
