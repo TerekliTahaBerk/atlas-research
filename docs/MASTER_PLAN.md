@@ -6,6 +6,10 @@ Current consolidation evidence and unresolved hosted approvals: [A01–A03 final
 
 The [A00 capability/status matrix](phases/A00_REPOSITORY_HARDENING_REPORT.md#canonical-capabilitystatus-matrix) records the historical audit baseline; the final closure linked above records current consolidation and hosted gates. Earlier phase delivery notes describe their implementation scope, not the present hosted state.
 
+## A04 (Phase 05) delivery state
+
+Project channels, durable messages/threads, mentions, reactions, typed research sharing, persistent notifications, private Supabase Realtime with epoch revocation and cursor backfill, and contextual @Atlas are implemented with disposable PostgreSQL, real GoTrue + Supabase Realtime and browser evidence; see the [A04 report](phases/A04_RESEARCH_COMMUNICATION_REPORT.md). The [Phase 05 specification](phases/PHASE_05.md) remains the historical plan. Hosted activation of migration `20261103090000_research_communication` awaits explicit approval; nothing was applied to the hosted project.
+
 ## Phase 04 delivery state
 
 Documents, immutable versions, autosave/conflict recovery, source-aware citations, tasks/milestones/assignments, typed artifact links, project search, a live graph projection and approval-gated AI proposals are implemented locally with real-PostgreSQL and browser evidence; see the [Phase 04 report](phases/PHASE_04_IMPLEMENTATION_REPORT.md). Hosted activation remains blocked behind the Phase 02/03 gates and the [Phase 04 activation plan](phases/PHASE_04_ACTIVATION_PLAN.md). Realtime co-editing (Phase 07) and communication/notifications (Phase 05) are not implemented.

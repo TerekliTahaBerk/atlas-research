@@ -24,7 +24,8 @@ import {
   getMessage,
   getThread,
   listChannels,
-  listMessages,
+  messageChanges,
+  messagePage,
   mentionCandidates,
 } from '../../apps/web/src/features/communication/server/reads';
 import { listNotifications } from '../../apps/web/src/features/communication/server/notifications';
@@ -421,7 +422,7 @@ describe.sequential('Journey A — normal collaboration', () => {
     // Joining is idempotent and never grants anything new.
     await comm(editor, { command: 'channel.join', id: general });
     first = (await send(editor, general, 'Draft results are in the notes.')).id;
-    const page = await listMessages(owner, general, {});
+    const page = await messagePage(owner, general);
     expect(page.items.map((m) => m.id)).toEqual([first]);
     expect(page.items[0]).toMatchObject({
       author: { id: editor.id },
@@ -438,9 +439,9 @@ describe.sequential('Journey A — normal collaboration', () => {
     expect(thread.root.replyCount).toBe(1);
     expect(thread.replies.map((m) => m.id)).toEqual([reply]);
     // Replies stay out of the main timeline.
-    expect(
-      (await listMessages(owner, general, {})).items.map((m) => m.id),
-    ).toEqual([first]);
+    expect((await messagePage(owner, general)).items.map((m) => m.id)).toEqual([
+      first,
+    ]);
     const inbox = await listNotifications(editor, undefined);
     expect(inbox.items[0]).toMatchObject({
       kind: 'THREAD_REPLY',
@@ -715,9 +716,9 @@ describe.sequential('A04.2 message and thread invariants', () => {
   });
 
   it('viewers read but cannot post', async () => {
-    expect(
-      (await listMessages(viewer, general, {})).items.length,
-    ).toBeGreaterThan(0);
+    expect((await messagePage(viewer, general)).items.length).toBeGreaterThan(
+      0,
+    );
     expect(await failure(send(viewer, general, 'hello'))).toBe('FORBIDDEN');
     expect(await failure(send(outsider, general, 'hello'))).toBe('NOT_FOUND');
     expect(await failure(send(wsAdmin, general, 'hello'))).toBe('NOT_FOUND');
@@ -744,7 +745,7 @@ describe.sequential('A04.2 message and thread invariants', () => {
     expect(detail.channel.archived).toBe(true);
     expect(detail.channel.capabilities).toEqual(['channel.read']);
     expect(
-      (await listMessages(member, experiments, {})).items.map((m) => m.id),
+      (await messagePage(member, experiments)).items.map((m) => m.id),
     ).toContain(kept);
     expect(await failure(send(editor, experiments, 'more'))).toBe('CONFLICT');
     expect(
@@ -768,7 +769,7 @@ describe.sequential('A04.2 message and thread invariants', () => {
 
 describe.sequential('Journey B — offline recovery', () => {
   it('a lost acknowledgement retried with the same key commits exactly once', async () => {
-    const head = (await listMessages(owner, general, {})).changeSeq;
+    const head = (await messagePage(owner, general)).changeSeq;
     const key = randomUUID();
     const attempt = () =>
       comm(owner, {
@@ -803,12 +804,10 @@ describe.sequential('Journey B — offline recovery', () => {
       ),
     ).toBe('CONFLICT');
     // Reconnect backfill from the last seen cursor returns it exactly once.
-    const backfill = await listMessages(owner, general, { since: head });
+    const backfill = await messageChanges(owner, general, head);
     expect(backfill.items.filter((m) => m.id === a.id)).toHaveLength(1);
     expect(backfill.items.find((m) => m.id === a.id)!.clientKey).toBe(key);
-    const again = await listMessages(owner, general, {
-      since: backfill.changeSeq,
-    });
+    const again = await messageChanges(owner, general, backfill.changeSeq);
     expect(again.items).toEqual([]);
   });
 
@@ -827,7 +826,7 @@ describe.sequential('Journey B — offline recovery', () => {
     const seen: MessageDto[] = [];
     let before: number | undefined;
     for (;;) {
-      const page = await listMessages(owner, channel, before ? { before } : {});
+      const page = await messagePage(owner, channel, before);
       seen.unshift(...page.items);
       if (page.before === null) break;
       before = page.before;
@@ -840,7 +839,7 @@ describe.sequential('Journey B — offline recovery', () => {
     let cursor = 0;
     const replayed = new Set<string>();
     for (;;) {
-      const page = await listMessages(owner, channel, { since: cursor });
+      const page = await messageChanges(owner, channel, cursor);
       for (const m of page.items) replayed.add(m.id);
       cursor = page.changeSeq;
       if (!page.more) break;
@@ -853,7 +852,7 @@ describe.sequential('Journey B — offline recovery', () => {
       expectedVersion: target.version,
       body: 'message 5 (edited)',
     });
-    const delta = await listMessages(owner, channel, { since: cursor });
+    const delta = await messageChanges(owner, channel, cursor);
     expect(delta.items.map((m) => [m.id, m.body])).toEqual([
       [target.id, 'message 5 (edited)'],
     ]);
@@ -968,8 +967,8 @@ describe.sequential('Journey C — restricted channel and revocation', () => {
     expect(await asBrowser(leaver.id, newTopic)).toBe(true);
     for (const work of [
       () => getChannel(member, restricted),
-      () => listMessages(member, restricted, {}),
-      () => listMessages(member, restricted, { since: 0 }),
+      () => messagePage(member, restricted),
+      () => messageChanges(member, restricted, 0),
       () => getMessage(member, leaked),
       () => mentionCandidates(member, restricted, ''),
       () => discussionContext(member, { channelId: restricted }),
@@ -1144,7 +1143,7 @@ describe.sequential('Journey D — research sharing', () => {
 
   it('a message containing an artifact ID grants nothing to outsiders', async () => {
     expect(await failure(getMessage(outsider, shared))).toBe('NOT_FOUND');
-    expect(await failure(listMessages(outsider, general, { since: 0 }))).toBe(
+    expect(await failure(messageChanges(outsider, general, 0))).toBe(
       'NOT_FOUND',
     );
   });
@@ -1535,7 +1534,7 @@ describe.sequential('A04.9 grants, delivery and abuse limits', () => {
         },
       );
     const started = performance.now();
-    const page = await listMessages(owner, channel, {});
+    const page = await messagePage(owner, channel);
     const ms = Math.round(performance.now() - started);
     console.log(
       `COMMUNICATION_PERFORMANCE ${JSON.stringify({ messages: page.items.length, pageMs: ms })}`,

@@ -319,42 +319,50 @@ const pageQuery = z
   .strict();
 
 /**
- * Timeline (top-level messages, newest page first, returned oldest→newest)
- * or, with `since`, every row changed after a change cursor — including
- * thread replies, edits, tombstones and reaction changes — for backfill.
+ * Every row changed after a change cursor — including thread replies, edits,
+ * tombstones and reaction changes — in commit order, for reconnect backfill.
  */
-export async function listMessages(
+export async function messageChanges(
   actor: VerifiedActor,
   channelId: string,
-  raw: unknown,
+  since: number,
 ) {
   z.uuid().parse(channelId);
-  const query = pageQuery.parse(raw);
+  z.number().int().min(0).parse(since);
   return withActor(actor, async (tx) => {
     const channel = await loadChannel(tx, actor, channelId);
-    if (query.since !== undefined) {
-      const rows = z
-        .array(messageRow)
-        .parse(
-          await tx.$queryRaw(
-            Prisma.sql`${messageSelect} WHERE m.channel_id=${channelId}::uuid AND m.change_seq>${query.since}::bigint ORDER BY m.change_seq LIMIT ${CHANGE_PAGE + 1}`,
-          ),
-        );
-      const page = rows.slice(0, CHANGE_PAGE);
-      return messageChangesDto.parse({
-        items: await hydrate(tx, actor, channel.projectId, page),
-        // The cursor advances only over rows actually returned.
-        changeSeq:
-          rows.length > CHANGE_PAGE
-            ? page.at(-1)!.changeSeq
-            : channel.changeSeq,
-        more: rows.length > CHANGE_PAGE,
-      });
-    }
+    const rows = z
+      .array(messageRow)
+      .parse(
+        await tx.$queryRaw(
+          Prisma.sql`${messageSelect} WHERE m.channel_id=${channelId}::uuid AND m.change_seq>${since}::bigint ORDER BY m.change_seq LIMIT ${CHANGE_PAGE + 1}`,
+        ),
+      );
+    const page = rows.slice(0, CHANGE_PAGE);
+    const more = rows.length > CHANGE_PAGE;
+    return messageChangesDto.parse({
+      items: await hydrate(tx, actor, channel.projectId, page),
+      // The cursor advances only over rows actually returned.
+      changeSeq: more ? page.at(-1)!.changeSeq : channel.changeSeq,
+      more,
+    });
+  });
+}
+
+/** Top-level timeline page, newest first, returned oldest→newest. */
+export async function messagePage(
+  actor: VerifiedActor,
+  channelId: string,
+  before?: number,
+) {
+  z.uuid().parse(channelId);
+  z.number().int().min(1).optional().parse(before);
+  return withActor(actor, async (tx) => {
+    const channel = await loadChannel(tx, actor, channelId);
     const rows = z.array(messageRow).parse(
       await tx.$queryRaw(
         Prisma.sql`${messageSelect} WHERE m.channel_id=${channelId}::uuid AND m.thread_root_id IS NULL
-            ${query.before ? Prisma.sql`AND m.seq<${query.before}::bigint` : Prisma.empty}
+            ${before ? Prisma.sql`AND m.seq<${before}::bigint` : Prisma.empty}
             ORDER BY m.seq DESC LIMIT ${MESSAGE_PAGE + 1}`,
       ),
     );
@@ -365,6 +373,18 @@ export async function listMessages(
       changeSeq: channel.changeSeq,
     });
   });
+}
+
+/** HTTP entry point: `?since=` backfills changes, otherwise a timeline page. */
+export async function listMessages(
+  actor: VerifiedActor,
+  channelId: string,
+  raw: unknown,
+) {
+  const query = pageQuery.parse(raw);
+  return query.since !== undefined
+    ? messageChanges(actor, channelId, query.since)
+    : messagePage(actor, channelId, query.before);
 }
 
 export async function getThread(actor: VerifiedActor, messageId: string) {
@@ -410,6 +430,7 @@ export async function getMessage(actor: VerifiedActor, messageId: string) {
       );
     if (!row) throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
     const [message] = await hydrate(tx, actor, row.projectId, [row]);
+    if (!message) throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
     return message;
   });
 }

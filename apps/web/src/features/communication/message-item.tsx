@@ -376,7 +376,8 @@ export function PendingItem({
       aria-label={`Your message, ${label}`}
       className={cn(
         'flex gap-2.5 px-5 py-[7px]',
-        send.status === 'failed' ? 'bg-dangers/40' : 'opacity-70',
+        // No opacity: pending text must keep AA contrast.
+        send.status === 'failed' ? 'bg-dangers/40' : 'bg-card',
       )}
     >
       <PersonMark name="You" />
@@ -387,7 +388,7 @@ export function PendingItem({
             role="status"
             className={cn(
               'text-[11px]',
-              send.status === 'failed' ? 'text-danger' : 'text-tx3',
+              send.status === 'failed' ? 'text-danger' : 'text-tx2',
             )}
           >
             {label}
