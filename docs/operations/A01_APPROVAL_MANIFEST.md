@@ -1,5 +1,7 @@
 # A01 hosted approval manifest and execution sequence
 
+**Execution update, 3 November 2026:** [Current evidence](A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1–G3 PASS; all 12 migrations are installed. Approved G4 development Storage/scanner and isolated extraction services are running; G5 non-AI hosted journeys and the loopback Zotero fixture passed, and all test identities/content were cleaned. Automatic AI indexing, paid AI, live Zotero credentials and production remain outside this verification.
+
 **Later closure evidence, 2 November 2026:** [Final consolidation](../phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md) supersedes earlier access/state observations below. Read-only target access is available; catalog and anonymous history denial pass. G1 authenticated denial and G2–G5 approvals remain open. The final repository has 12 migrations, with 9 pending on hosted Atlas. No hosted write/export was executed.
 
 **2 November 2026 continuation:** see [A01 G1–G3 activation result](A01_G1_G3_ACTIVATION_RESULT.md). G1 remains `OPEN — VALID AUTHENTICATED SESSION REQUIRED`; this session had no authorized access to the target (connector permission denied), so no hosted check, export, write or migration ran. G2 and G3 remain `NOT RUN — APPROVAL REQUIRED`. All ten repository migration hashes are unchanged at `c26096b`; A02 added no migration. The authenticated probe is now scripted in `ops/g1/authenticated-probe.mjs`.

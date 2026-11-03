@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 import urllib.parse
 import uuid
-from transport import request, MAX_BYTES
+from transport import request, MAX_BYTES, protected_api_headers
 
 
 def api(origin, secret, action, payload):
@@ -15,7 +15,8 @@ def api(origin, secret, action, payload):
     timestamp = str(int(time.time()))
     path = 'internal/extraction/'+action
     signature = hmac.new(secret, path.encode()+b'.'+timestamp.encode()+b'.'+body, hashlib.sha256).hexdigest()
-    return json.loads(request(origin+'/api/v1/'+path, body, {'Content-Type': 'application/json', 'x-atlas-extraction-timestamp': timestamp, 'x-atlas-extraction-signature': signature}, maximum=65536, timeout=180))['data']
+    headers = protected_api_headers(origin, {'Content-Type': 'application/json', 'x-atlas-extraction-timestamp': timestamp, 'x-atlas-extraction-signature': signature})
+    return json.loads(request(origin+'/api/v1/'+path, body, headers, maximum=65536, timeout=180))['data']
 
 
 def main():

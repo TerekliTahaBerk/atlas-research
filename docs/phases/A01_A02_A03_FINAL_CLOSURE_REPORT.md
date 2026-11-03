@@ -1,5 +1,7 @@
 # A01–A03 final closure report
 
+**Execution update, 3 November 2026:** [Current evidence](../operations/A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1–G3 PASS; all 12 migrations are installed. Approved G4 development Storage/scanner and isolated extraction services are running; G5 non-AI hosted journeys and the loopback Zotero fixture passed, and all test identities/content were cleaned. Automatic AI indexing, paid AI, live Zotero credentials and production remain outside this verification.
+
 Evidence date: **2 November 2026, Europe/Istanbul**. Scope: Atlas repository, synthetic disposable infrastructure and expressly authorized read-only checks of `hgngonpirctrwbckhbmy`. **No A04 implementation, agent merge, hosted mutation/export, real private Zotero access, paid provider request or deployment command was performed. Existing Git integration created protected previews automatically.**
 
 ## Executive summary and independent verdicts

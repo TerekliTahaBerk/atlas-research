@@ -1,5 +1,7 @@
 # Security and privacy foundation
 
+**3 November 2026:** [Current development execution](operations/A01_HOSTED_EXECUTION_2026-11-02.md) verifies G1–G3, narrow runtime roles, real scanning, private storage, tenant denial and fixture cleanup. The older access blockers below are historical; paid AI and production remain gated.
+
 Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
 
 The [A00 security findings](phases/A00_REPOSITORY_HARDENING_REPORT.md) are historical. The final closure rechecks effective history privileges, installed checksums and anonymous HTTP denial successfully on the named Atlas target. G1 remains open pending a valid-session authenticated HTTP denial; direct migration TLS/owner verification and G2 recovery remain prerequisites to activation. No remediation was reapplied while the current catalog contract passed. Repository and isolated CI results do not prove hosted operation.

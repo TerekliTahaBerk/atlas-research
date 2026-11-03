@@ -23,6 +23,26 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 HTTP = urllib.request.build_opener(NoRedirect, urllib.request.ProxyHandler({}))
 
 
+def protected_api_headers(origin, headers, credential_path=Path('/run/secrets/vercel_access.json')):
+    """Project-scoped OIDC goes only to the exact approved Atlas API origin.
+
+    Generic request()/Storage downloads deliberately never read this credential.
+    The host refreshes the short-lived token; parsers never mount this file.
+    """
+    if not credential_path.exists():
+        return headers
+    credential = json.loads(credential_path.read_text())
+    parsed = urllib.parse.urlsplit(origin)
+    token = credential.get('token')
+    if (credential.get('origin') != origin or parsed.scheme != 'https'
+            or parsed.path or parsed.query or parsed.fragment or parsed.username
+            or parsed.port not in (None, 443) or not isinstance(token, str)
+            or len(token) > 32768
+            or not re.fullmatch(r'[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', token)):
+        raise ValueError('invalid origin-bound preview credential')
+    return {**headers, 'x-vercel-trusted-oidc-idp-token': token}
+
+
 def read_bounded(response, maximum):
     body = bytearray()
     deadline = time.monotonic() + 30
@@ -45,11 +65,11 @@ def api(origin, secret, action, payload):
     body = json.dumps(payload, separators=(',', ':')).encode()
     timestamp = str(int(time.time()))
     signature = hmac.new(secret, timestamp.encode()+b'.'+body, hashlib.sha256).hexdigest()
-    return json.loads(request(origin+'/api/v1/internal/scanner/'+action, body, {
+    return json.loads(request(origin+'/api/v1/internal/scanner/'+action, body, protected_api_headers(origin, {
         'Content-Type': 'application/json',
         'x-atlas-scanner-timestamp': timestamp,
         'x-atlas-scanner-signature': signature,
-    }))['data']
+    })))['data']
 
 
 def validate_job(job, storage_host):
@@ -97,6 +117,9 @@ def main():
     secret = Path('/run/secrets/scanner_secret').read_bytes().strip()
     if len(secret) < 32:
         raise ValueError('scanner secret too short')
+    poll_seconds = int(os.environ.get('ATLAS_SCANNER_POLL_SECONDS', '5'))
+    if not 5 <= poll_seconds <= 300:
+        raise ValueError('scanner idle polling must be between 5 and 300 seconds')
     while True:
         try:
             jobs = api(origin, secret, 'claim', {'max': 1, 'leaseSeconds': 300})
@@ -113,7 +136,8 @@ def main():
                     'sha256': measured, 'verdict': verdict,
                     'scanner': 'atlas-clamav-qpdf-v1',
                 })
-            time.sleep(5 if not jobs else 1)
+            print(json.dumps({'event': 'SCANNER_POLL_OK', 'at': int(time.time()), 'claimed': len(jobs)}), flush=True)
+            time.sleep(poll_seconds if not jobs else 1)
         except (OSError, ValueError, KeyError, TypeError):
             print('Scanner operation unavailable; retrying with bounded backoff.', flush=True)
             time.sleep(30)  # no file metadata, URLs, tokens or raw errors
