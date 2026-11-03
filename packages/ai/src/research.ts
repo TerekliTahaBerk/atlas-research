@@ -236,8 +236,20 @@ export const runInput = z
     text: z.string().trim().min(1).max(6000),
     references: z.array(reference).max(12),
     consent: z.literal(true),
+    /**
+     * A04 contextual @Atlas: one channel or one thread of it. The server
+     * derives the discussion text under the actor's live access; clients
+     * never supply it. Always a fresh conversation (no cross-thread history).
+     */
+    discussion: z
+      .object({ channelId: z.uuid(), threadRootId: z.uuid().optional() })
+      .strict()
+      .optional(),
   })
-  .strict();
+  .strict()
+  .refine((v) => !(v.discussion && v.conversationId), {
+    message: 'Discussion requests always start a new conversation.',
+  });
 export const runSnapshot = z.object({
   id: z.uuid(),
   conversationId: z.uuid(),
