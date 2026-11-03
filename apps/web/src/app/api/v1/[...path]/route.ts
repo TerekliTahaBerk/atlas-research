@@ -207,7 +207,11 @@ export async function GET(
   }
   return respond(async () => {
     const actor = await verifyActor();
-    await rateLimit('read', actor.id, 120);
+    // A04: the navigation unread badge has its own bucket so it never
+    // starves research reads.
+    if (path.join('/') === 'notifications/unread')
+      await rateLimit('inbox-count', actor.id, 60);
+    else await rateLimit('read', actor.id, 120);
     const listCursor = z
       .string()
       .max(1024)

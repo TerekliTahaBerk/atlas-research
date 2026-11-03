@@ -66,18 +66,18 @@ Explicit invocation from the channel or thread ("Ask Atlas"). `GET /channels/:id
 
 ## 11. API contracts
 
-See [API contracts — A04](../API_CONTRACTS.md#a04-implemented-interfaces). Rate buckets: `message` 60/min, `reaction` 120/min, `read-state` 240/min, management `write` 30/min, `atlas-context` 30/min.
+See [API contracts — A04](../API_CONTRACTS.md#a04-implemented-interfaces). Rate buckets: `inbox-count` 60/min (sidebar unread badge), `message` 60/min, `reaction` 120/min, `read-state` 240/min, management `write` 30/min, `atlas-context` 30/min.
 
 ## 12. Test evidence (local, disposable, 3 November 2026)
 
-| Check                                                                              | Result                                                              |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm db:validate`             | PASS                                                                |
-| `pnpm test` (unit)                                                                 | PASS 318 (29 files; 10 new A04)                                     |
-| `pnpm test:integration` (pgvector PG17, non-owner runtime)                         | PASS 168 (10 files; 35 new A04); A01–A03 suites unchanged and green |
-| `pnpm test:realtime` (real GoTrue v2.197.0 + Supabase Realtime v2.143.1 + gateway) | PASS 6/6, three consecutive runs                                    |
-| `pnpm test:auth:e2e` — new A04 browser journey                                     | see PR/CI (local run recorded in the PR description)                |
-| `pnpm build`, `pnpm test:e2e` (preview)                                            | see PR/CI                                                           |
+| Check                                                                              | Result                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm db:validate`             | PASS                                                                                                                                                                                                                                                                                   |
+| `pnpm test` (unit)                                                                 | PASS 318 (29 files; 10 new A04)                                                                                                                                                                                                                                                        |
+| `pnpm test:integration` (pgvector PG17, non-owner runtime)                         | PASS 168 (10 files; 35 new A04); A01–A03 suites unchanged and green                                                                                                                                                                                                                    |
+| `pnpm test:realtime` (real GoTrue v2.197.0 + Supabase Realtime v2.143.1 + gateway) | PASS 6/6, three consecutive runs                                                                                                                                                                                                                                                       |
+| `pnpm test:auth:e2e` (real GoTrue + Storage + Realtime, Chromium)                  | PASS 14/14 (13 existing A01–A03 journeys + new A04 two-browser journey). A first full run showed the new sidebar unread badge pushed read-heavy journeys over the shared 120/min `read` bucket; fixed with a separate `inbox-count` bucket and no duplicate refresh on first subscribe |
+| `pnpm build`, `pnpm test:e2e` (preview)                                            | see PR/CI                                                                                                                                                                                                                                                                              |
 
 Harness changes: Realtime service, logical WAL, Supabase bootstrap roles, gateway `/realtime/v1/` route (publishable key exchanged for the disposable anon JWT, as the hosted gateway does), `GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated` (hosted default), and the app CSP now allows the configured Supabase origin's `ws(s)://` form (without it browsers blocked Realtime). Limitation: the self-hosted Realtime image is not byte-identical to hosted Supabase Realtime; hosted subscribe/reconnect/revoke remains unverified until §13.
 

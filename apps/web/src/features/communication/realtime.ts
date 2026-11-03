@@ -31,6 +31,7 @@ export function useRealtimeTopic(
   onEvent: (event: RealtimeEvent) => void,
   onResync: () => void,
   onDenied?: () => void,
+  options: { skipInitialResync?: boolean } = {},
 ): LiveStatus {
   const [status, setStatus] = useState<LiveStatus>('connecting');
   const handlers = useRef({ onEvent, onResync, onDenied });
@@ -45,6 +46,7 @@ export function useRealtimeTopic(
       return;
     }
     let alive = true;
+    let joinedOnce = false;
     let channel: ReturnType<SupabaseClient['channel']> | undefined;
     const online = () => {
       if (!alive) return;
@@ -76,7 +78,9 @@ export function useRealtimeTopic(
         if (state === 'SUBSCRIBED') {
           setStatus('live');
           // Close the gap between the last fetch and this subscription.
-          handlers.current.onResync();
+          if (!options.skipInitialResync || joinedOnce)
+            handlers.current.onResync();
+          joinedOnce = true;
         } else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') {
           setStatus(navigator.onLine ? 'reconnecting' : 'offline');
           // A refused join may mean the topic rotated or access was revoked;
@@ -92,6 +96,7 @@ export function useRealtimeTopic(
       window.removeEventListener('offline', offline);
       if (channel) void supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topic]);
   return topic ? status : 'connecting';
 }

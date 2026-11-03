@@ -43,11 +43,9 @@ export function useUnreadNotifications() {
   useEffect(() => {
     refresh();
     window.addEventListener(INBOX_CHANGED, refresh);
-    window.addEventListener('focus', refresh);
-    const interval = setInterval(refresh, 60000);
+    const interval = setInterval(refresh, 120000);
     return () => {
       window.removeEventListener(INBOX_CHANGED, refresh);
-      window.removeEventListener('focus', refresh);
       clearInterval(interval);
     };
   }, [refresh]);
@@ -63,6 +61,9 @@ export function useUnreadNotifications() {
       }
     },
     refresh,
+    undefined,
+    // The count was just fetched; only re-subscriptions need a refresh.
+    { skipInitialResync: true },
   );
   return state.unread;
 }
