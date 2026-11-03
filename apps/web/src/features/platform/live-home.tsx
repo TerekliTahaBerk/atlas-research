@@ -164,9 +164,8 @@ export function LiveHome({
             <h2 className="mb-2 font-serif tracking-[-0.02em] text-xl text-tx">
               Your research starts here
             </h2>
-            Documents, discovery, manuscripts and Atlas AI will arrive in later
-            phases. Your workspace and project records are saved; no sample
-            research is attached to them.
+            Your workspace and project records are saved. Open a project to
+            continue your research.
           </div>
         </div>
       </div>

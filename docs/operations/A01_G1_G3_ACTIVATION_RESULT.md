@@ -1,6 +1,6 @@
 # A01 G1–G3 activation result — 2 November 2026
 
-**Execution update, 2 November 2026:** [Current evidence](A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1 and real encrypted G2 restore PASS; user-approved G3 installed all 12 migrations with preserved application data and passing security checks. G4/G5 remain pending; paid AI/production remain disabled.
+**Execution update, 3 November 2026:** [Current evidence](A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1–G3 PASS; all 12 migrations are installed. Approved G4 development Storage/scanner and isolated extraction services are running; G5 non-AI hosted journeys and the loopback Zotero fixture passed, and all test identities/content were cleaned. Automatic AI indexing, paid AI, live Zotero credentials and production remain outside this verification.
 
 **Later closure evidence, 2 November 2026:** [Final consolidation](../phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md) supersedes earlier access/state observations below. Read-only target access is available; catalog and anonymous history denial pass. G1 authenticated denial and G2–G5 approvals remain open. The final repository has 12 migrations, with 9 pending on hosted Atlas. No hosted write/export was executed.
 
