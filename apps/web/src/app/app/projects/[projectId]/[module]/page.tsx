@@ -19,6 +19,7 @@ import { LiveReader } from '@/features/reader/live-reader';
 import { LiveDocuments } from '@/features/documents/live-documents';
 import { LiveTasks } from '@/features/tasks/live-tasks';
 import { LiveGraph } from '@/features/graph/live-graph';
+import { LiveChannels } from '@/features/communication/live-channels';
 export async function generateMetadata({
   params,
 }: {
@@ -71,6 +72,15 @@ export default async function Page({
           ) : (
             <LiveReader project={project} />
           )}
+        </Suspense>
+      </LiveFrame>
+    );
+  // A04: real project channels; the synthetic preview stays preview-only.
+  if (research && selected.slug === 'channels')
+    return (
+      <LiveFrame state={state}>
+        <Suspense fallback={<WorkspaceLoading />}>
+          <LiveChannels project={project} />
         </Suspense>
       </LiveFrame>
     );
