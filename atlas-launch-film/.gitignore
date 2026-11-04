@@ -1,0 +1,6 @@
+node_modules/
+out/
+output/frames/
+output/contact/
+.remotion/
+public/assets/audio/*.wav

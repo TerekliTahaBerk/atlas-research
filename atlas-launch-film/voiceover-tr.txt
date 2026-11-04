@@ -1,0 +1,39 @@
+ATLAS — LANSMAN FİLMİ · İSTEĞE BAĞLI TÜRKÇE SESLENDİRME
+Süre 60 sn · Ses: sakin, sıcak, kendinden emin, düşünceli. Doğal tempo; sessizliğe yer bırakın.
+Film anlatım olmadan da eksiksizdir. Ekrandaki yazılar İngilizce kalır; bu metin
+Türkçe seslendirme için bir uyarlamadır, birebir çeviri değildir.
+Zaman kodları her cümlenin başlaması gereken anı gösterir.
+
+[00:01.5]  Her keşif bir soruyla başlar.
+
+[00:06.8]  Ama büyük fikirler tek başına var olmaz.
+[00:09.4]  Makalelerde… notlarda… deneylerde… sohbetlerde yaşarlar.
+
+[00:13.8]  Bu, Atlas.
+
+[00:18.8]  Gerçekten ne öğrenmek istediğinizi sorun —
+[00:21.8]  ve önemli olanı keşfedin.
+
+[00:26.0]  Sonra okumanın ötesine geçin.
+[00:28.6]  Bir pasajı sorgulayın; yanıtınız kaynağına dayansın.
+[00:31.3]  Öğrendiklerinizi saklayın.
+
+[00:33.8]  Fikirlerin nasıl bağlandığını görün —
+[00:36.6]  asıl sorduğunuz sorunun etrafında.
+
+[00:41.6]  İçgörüyü işe dönüştürün.
+[00:44.8]  Araştırmayı birlikte ileri taşıyın.
+
+[00:49.8]  Sorulardan…
+[00:52.4]  bilgiye.
+
+[00:56.2]  Atlas.
+[00:57.2]  Araştırmanın buluştuğu yer.
+
+— son —
+
+Yönlendirme notları
+• 12,55. saniyedeki logo vuruşunun ve 56,0. saniyedeki son vurgunun üstüne konuşmayın; hemen ardından girin.
+• "Bu, Atlas." — alçakgönüllü, neredeyse kişisel. Sunucu enerjisi yok.
+• Türkçe cümleler İngilizceden biraz uzundur; gerekirse tempoyu değil duraklamaları kısaltın.
+• Yapay ses (TTS) kullanmayın. Kayıt 48 kHz WAV olarak teslim edilmeli.

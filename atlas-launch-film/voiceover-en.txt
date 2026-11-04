@@ -1,0 +1,39 @@
+ATLAS — LAUNCH FILM · OPTIONAL ENGLISH VOICEOVER
+Runtime 60 s · Voice: calm, warm, confident, thoughtful. Natural pace; let silence breathe.
+The film is complete without narration — every line below is also carried on screen.
+Timecodes mark where each line should begin. Lines are deliberately short so they sit
+between interface sound cues rather than on top of them.
+
+[00:01.5]  Every discovery starts with a question.
+
+[00:06.8]  But great ideas don't exist in isolation.
+[00:09.4]  They live across papers… notes… experiments… conversations.
+
+[00:13.8]  This is Atlas.
+
+[00:18.8]  Ask what you're really trying to find out —
+[00:21.8]  and discover what matters.
+
+[00:26.0]  Then go beyond reading.
+[00:28.6]  Question a passage, and get an answer grounded in the source.
+[00:31.3]  Keep what you learn.
+
+[00:33.8]  See how ideas connect —
+[00:36.6]  around the question you're actually asking.
+
+[00:41.6]  Turn insight into work.
+[00:44.8]  And move research forward. Together.
+
+[00:49.8]  From questions…
+[00:52.4]  to knowledge.
+
+[00:56.2]  Atlas.
+[00:57.2]  Where research comes together.
+
+— end —
+
+Direction notes
+• Do not land a line on the 12.55 s wordmark hit or the 56.0 s final accent; speak just after them.
+• "This is Atlas." — understated, almost private. No announcer energy.
+• Avoid TTS. If recorded, deliver as a 48 kHz WAV and mix around −20 LUFS under the score
+  (see README → "Adding the voiceover").
