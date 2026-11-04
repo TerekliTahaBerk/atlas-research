@@ -276,6 +276,43 @@ describe('composer', () => {
     );
   });
 
+  it('keeps keystrokes typed immediately after a mention pick in order', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [{ id: ada, name: 'Ada Lovelace' }],
+          requestId: 'r',
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const submit = vi.fn();
+    render(
+      <TooltipProvider>
+        <Composer
+          channelId="44444444-4444-4444-8444-444444444444"
+          label="Message #general"
+          placeholder="Message #general"
+          disabled={false}
+          shares={[]}
+          onRemoveShare={() => undefined}
+          onSubmit={submit}
+        />
+      </TooltipProvider>,
+    );
+    const box = screen.getByRole('combobox', { name: 'Message #general' });
+    await userEvent.type(box, '@Ad');
+    fireEvent.mouseDown(
+      await screen.findByRole('option', { name: 'Ada Lovelace' }),
+    );
+    // No click: continue typing exactly where the caret was left.
+    await userEvent.keyboard('can you review?{Enter}');
+    await waitFor(() => expect(submit).toHaveBeenCalled());
+    expect(submit.mock.calls[0]![0].body).toBe(
+      `${mentionToken(ada)} can you review?`,
+    );
+  });
+
   it('explains why a read-only channel cannot be posted to', () => {
     render(
       <TooltipProvider>

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUp, AtSign, BookOpen, Sparkles, X } from 'lucide-react';
 import { cn } from '@atlas/ui/lib/utils';
 import {
@@ -59,6 +59,13 @@ export function Composer({
   const [options, setOptions] = useState<{ id: string; name: string }[]>([]);
   const [active, setActive] = useState(0);
   const area = useRef<HTMLTextAreaElement>(null);
+  const nextCaret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (nextCaret.current === null || !area.current) return;
+    area.current.focus();
+    area.current.setSelectionRange(nextCaret.current, nextCaret.current);
+    nextCaret.current = null;
+  }, [text]);
   useEffect(() => {
     if (query === null) return;
     let alive = true;
@@ -85,11 +92,9 @@ export function Composer({
     setText(next);
     setChosen((c) => (c.some((p) => p.id === person.id) ? c : [...c, person]));
     setQuery(null);
-    requestAnimationFrame(() => {
-      el?.focus();
-      const pos = before.length + person.name.length + 2;
-      el?.setSelectionRange(pos, pos);
-    });
+    // Applied before the browser paints or handles the next keystroke, so
+    // fast typing after a pick continues exactly at the caret.
+    nextCaret.current = before.length + person.name.length + 2;
   };
   const toBody = () => {
     let body = text;
