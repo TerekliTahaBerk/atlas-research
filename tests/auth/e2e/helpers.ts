@@ -76,9 +76,21 @@ export async function register(page: Page) {
   await expect(page).toHaveURL(/\/register$/);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
+  // Synchronize on the real registration response, not on a fixed window:
+  // the first request to the catch-all API route on a cold `next dev`
+  // server includes on-demand compilation (~6–7 s in CI), which exceeded the
+  // default 5 s expect timeout whenever registration was the first API call.
+  const registration = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/v1/auth',
+  );
   await page
     .getByRole('button', { name: 'Create account', exact: true })
     .click();
+  expect((await registration).status(), 'registration request status').toBe(
+    200,
+  );
   await expect(page.getByRole('main').getByRole('status')).toContainText(
     'check your inbox',
   );

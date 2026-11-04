@@ -173,6 +173,13 @@ export const communicationCommand = z.discriminatedUnion('command', [
   z
     .object({ command: z.literal('channel.member.remove'), id, profileId: id })
     .strict(),
+  /**
+   * Explicit, audited recovery of a RESTRICTED channel that no manager can
+   * still manage. Project owners only; refused for any managed channel.
+   */
+  z
+    .object({ command: z.literal('channel.recover'), id, profileId: id })
+    .strict(),
   z
     .object({
       command: z.literal('channel.read'),
@@ -280,9 +287,18 @@ export const channelDto = z.object({
   capabilities: z.array(channelCapability),
 });
 export type ChannelDto = z.infer<typeof channelDto>;
+/** Orphaned restricted channel, visible to project owners only. */
+export const recoverableChannelDto = z.object({
+  id,
+  name: z.string(),
+  /** Existing members who can still write to the project. */
+  eligible: z.array(z.object({ id, name: z.string().nullable() })),
+});
+export type RecoverableChannelDto = z.infer<typeof recoverableChannelDto>;
 export const channelListDto = z.object({
   items: z.array(channelDto),
   canCreate: z.boolean(),
+  recoverable: z.array(recoverableChannelDto).default([]),
 });
 export type ChannelListDto = z.infer<typeof channelListDto>;
 export const personRef = z.object({ id, name: z.string().nullable() });
@@ -357,6 +373,11 @@ export const messageChangesDto = z.object({
   items: z.array(messageDto),
   changeSeq: z.number().int(),
   more: z.boolean(),
+  /**
+   * The channel's current private topic. A client still subscribed to an
+   * older topic missed a rotation notice and must re-fetch the channel.
+   */
+  topic: z.string(),
 });
 export type MessageChangesDto = z.infer<typeof messageChangesDto>;
 export const threadDto = z.object({

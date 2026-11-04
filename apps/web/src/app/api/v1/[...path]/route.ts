@@ -47,6 +47,7 @@ import { executeCommunicationCommand } from '@/features/communication/server/com
 import {
   communicationBucket,
   communicationGet,
+  readBucket,
 } from '@/features/communication/server/routes';
 import {
   exportResponse,
@@ -207,11 +208,10 @@ export async function GET(
   }
   return respond(async () => {
     const actor = await verifyActor();
-    // A04: the navigation unread badge has its own bucket so it never
-    // starves research reads.
-    if (path.join('/') === 'notifications/unread')
-      await rateLimit('inbox-count', actor.id, 60);
-    else await rateLimit('read', actor.id, 120);
+    // A04/A04.1: the unread badge and live cursor reconciliation have their
+    // own buckets so background sync never starves research reads.
+    const [bucket, limit] = readBucket(path, url);
+    await rateLimit(bucket, actor.id, limit);
     const listCursor = z
       .string()
       .max(1024)

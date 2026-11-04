@@ -810,5 +810,7 @@ model CommunicationOutbox {
  attempts Int @default(0)
  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(3)
  abandonedAt DateTime? @map("abandoned_at") @db.Timestamptz(3)
+ nextAttemptAt DateTime @default(dbgenerated("date_trunc('milliseconds'::text, now())")) @map("next_attempt_at") @db.Timestamptz(3)
+ lastError String? @map("last_error") @db.VarChar(16)
  @@map("communication_outbox")
 }

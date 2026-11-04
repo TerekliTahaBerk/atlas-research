@@ -95,10 +95,10 @@ Harness changes: Realtime service, logical WAL, Supabase bootstrap roles, gatewa
 ## 14. Known limitations
 
 - Hosted Realtime behaviour unverified (above). DB-native broadcast on hosted depends on the project's Realtime "broadcast from database" support.
-- Delivery is post-commit best effort from the web request; there is no background sweeper, so queued events from a crashed dispatch go out with the next command (clients still recover by backfill/polling).
+- Delivery is post-commit best effort from the web request; there is no background sweeper, so queued events from a crashed dispatch go out with the next command (clients still recover by backfill/polling). _Superseded by [A04.1](A04_1_HOSTED_ACCEPTANCE_REPORT.md): live reconciliation, topic refresh, backoff/expiry, pg_cron and read-path sweeps._
 - An invoker's own completed Atlas answer remains in their private AI history after later channel revocation (they had access at generation time).
 - Unread counts are tracked for joined members only; no message search, edit history, DMs, attachments, email/push or presence.
-- Restricted channels whose managers all lose project access cannot be recovered through the UI (owners deliberately have no bypass).
+- Restricted channels whose managers all lose project access cannot be recovered through the UI (owners deliberately have no bypass). _Superseded by [A04.1](A04_1_HOSTED_ACCEPTANCE_REPORT.md): explicit, audited owner-only `channel.recover`._
 
 ## 15. Next-phase (Phase 06 beta) entry criteria
 

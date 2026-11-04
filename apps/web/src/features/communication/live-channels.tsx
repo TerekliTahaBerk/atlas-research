@@ -59,11 +59,13 @@ import {
   type Timeline,
 } from './timeline';
 import { useRealtimeTopic, type LiveStatus } from './realtime';
+import { Reconciler, type DeliveryHealth } from './delivery';
 import { MessageItem, PendingItem } from './message-item';
 import { Composer, type ComposerSubmit, type ShareDraft } from './composer';
 import {
   ChannelSettingsDialog,
   CreateChannelDialog,
+  RecoverChannelDialog,
   ShareResearchDialog,
 } from './channel-dialogs';
 import { AtlasPanel } from './atlas-panel';
@@ -113,11 +115,15 @@ const statusCopy: Record<LiveStatus, string> = {
   offline: 'Offline — unsent messages stay here until you retry',
   unavailable: 'Live updates unavailable — refreshing periodically',
 };
+const delayedCopy =
+  'Some live updates arrived late — this channel was synced from the server';
 
 /**
  * Real project channels (A04). Content always comes from authorized server
- * reads; the private Realtime topic only triggers a cursor backfill, and a
- * periodic backfill runs whenever the live connection is not established.
+ * reads; the private Realtime topic only triggers a cursor backfill. A
+ * bounded cursor reconciliation runs even while the socket is live (A04.1),
+ * so a lost event or a missed topic rotation is recovered without user
+ * action; see `delivery.ts`.
  */
 export function LiveChannels({ project }: { project: ProjectDto }) {
   const router = useRouter();
@@ -133,7 +139,11 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
   const [loadError, setLoadError] = useState('');
   const [timeline, dispatch] = useReducer(reducer, undefined, emptyTimeline);
   const [syncing, setSyncing] = useState(false);
+  const [health, setHealth] = useState<DeliveryHealth>('ok');
   const [creating, setCreating] = useState(false);
+  const [recovering, setRecovering] = useState<
+    ChannelListDto['recoverable'][number] | null
+  >(null);
   const [settings, setSettings] = useState(false);
   const [sharing, setSharing] = useState<'main' | 'thread' | null>(null);
   const [shares, setShares] = useState<ShareDraft[]>([]);
@@ -156,16 +166,13 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
     setShares([]);
     setThreadShares([]);
     setAtlasOpen(false);
+    setHealth('ok');
   }
   const threadId = params.get('thread');
   const highlightId = params.get('message');
-  const cursor = useRef(0);
   const active = useRef<string | null>(null);
-  const syncingRef = useRef(false);
-  const again = useRef(false);
-  useEffect(() => {
-    cursor.current = timeline.changeSeq;
-  }, [timeline.changeSeq]);
+  const reconciler = useRef<Reconciler | null>(null);
+  const subscribedTopic = useRef<string | null>(null);
 
   const navigate = useCallback(
     (next: {
@@ -219,41 +226,34 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
   }, []);
 
   /** Drains every change after the applied cursor (exactly-once merge). */
-  const backfill = useCallback(async () => {
-    const channelId = active.current;
-    if (!channelId) return;
-    if (syncingRef.current) {
-      again.current = true;
-      return;
-    }
-    syncingRef.current = true;
-    setSyncing(true);
-    try {
-      for (;;) {
-        const page = await fetchChanges(channelId, cursor.current);
-        if (active.current !== channelId) return;
-        dispatch({
-          type: 'merge',
-          items: page.items,
-          changeSeq: page.changeSeq,
-        });
-        cursor.current = Math.max(cursor.current, page.changeSeq);
-        if (!page.more && !again.current) break;
-        again.current = false;
-      }
-    } catch (e) {
-      if (e instanceof ApiError && e.code === 'NOT_FOUND')
-        void refreshDetail(channelId);
-    } finally {
-      syncingRef.current = false;
-      setSyncing(false);
-    }
-  }, [refreshDetail]);
+  const backfill = useCallback(
+    () => reconciler.current?.run('command') ?? Promise.resolve(),
+    [],
+  );
 
   useEffect(() => {
     if (!selectedId) return;
     active.current = selectedId;
-    cursor.current = 0;
+    const channelId = selectedId;
+    const loop = new Reconciler({
+      fetchChanges: (since) => fetchChanges(channelId, since),
+      apply: (page) => {
+        if (active.current === channelId)
+          dispatch({
+            type: 'merge',
+            items: page.items,
+            changeSeq: page.changeSeq,
+          });
+      },
+      topic: () => subscribedTopic.current,
+      // A rotation notice was lost: re-fetch the authorized topic, which
+      // resubscribes (or reveals that access was revoked).
+      onTopicStale: () => void refreshDetail(channelId),
+      onDenied: () => void refreshDetail(channelId),
+      onHealth: setHealth,
+      onSyncing: setSyncing,
+    });
+    reconciler.current = loop;
     let alive = true;
     void (async () => {
       const next = await refreshDetail(selectedId);
@@ -267,7 +267,9 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
           changeSeq: page.changeSeq,
           before: page.before,
         });
-        cursor.current = page.changeSeq;
+        loop.seed(page.changeSeq);
+        // Changes committed between the page and now are drained here.
+        void loop.run('resync');
       } catch (e) {
         if (alive)
           setLoadError(
@@ -277,6 +279,8 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
     })();
     return () => {
       alive = false;
+      loop.stop();
+      if (reconciler.current === loop) reconciler.current = null;
     };
   }, [selectedId, refreshDetail]);
 
@@ -305,9 +309,11 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
       ) {
         if (event.payload.channelId !== channelId) return;
         // Duplicate or stale events are harmless: the cursor dedupes.
-        if (event.payload.changeSeq <= cursor.current) return;
+        const loop = reconciler.current;
+        if (!loop || event.payload.changeSeq <= loop.position) return;
         clearTimeout(timer.current);
-        timer.current = setTimeout(() => void backfill(), 60);
+        const changeSeq = event.payload.changeSeq;
+        timer.current = setTimeout(() => loop.hint(changeSeq), 60);
       } else if (
         event.event === 'channel.changed' ||
         event.event === 'topic.rotated'
@@ -315,26 +321,34 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
         void refreshDetail(channelId).then(() => loadList());
       }
     },
-    [backfill, refreshDetail, loadList],
+    [refreshDetail, loadList],
   );
+  useEffect(() => {
+    subscribedTopic.current = detail?.topic ?? null;
+  }, [detail?.topic]);
   const status = useRealtimeTopic(
     detail?.topic ?? null,
     onEvent,
-    () => void backfill(),
+    () => void reconciler.current?.run('resync'),
     () => {
       if (active.current) void refreshDetail(active.current);
     },
   );
+  // Bounded reconciliation in every state, live included; paused while the
+  // tab is hidden and run immediately when it becomes visible or focused.
   useEffect(() => {
-    if (!detail || status === 'live') return;
-    const interval = setInterval(() => void backfill(), 15000);
-    return () => clearInterval(interval);
-  }, [detail, status, backfill]);
+    if (!detail) return;
+    const sync = () =>
+      reconciler.current?.update(status, document.visibilityState === 'hidden');
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, [detail, status]);
   useEffect(() => {
-    const focus = () => void backfill();
+    const focus = () => void reconciler.current?.run('resync');
     window.addEventListener('focus', focus);
     return () => window.removeEventListener('focus', focus);
-  }, [backfill]);
+  }, []);
 
   const messages = useMemo(() => topLevel(timeline), [timeline]);
   const lastSeq = messages.at(-1)?.seq ?? 0;
@@ -610,6 +624,30 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
                 </button>
               );
             })}
+            {list?.recoverable.length ? (
+              <section aria-labelledby="channel-recovery" className="mt-3">
+                <h2
+                  id="channel-recovery"
+                  className="px-2 pb-1 text-[11.5px] font-medium text-tx3"
+                >
+                  Needs a manager
+                </h2>
+                {list.recoverable.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setRecovering(c)}
+                    className="flex h-[30px] w-full items-center gap-2 rounded-md px-2 text-tx2 hover:bg-hov hover:text-tx"
+                  >
+                    <Lock aria-hidden="true" className="size-[13px] text-tx3" />
+                    <span className="min-w-0 flex-1 truncate text-left">
+                      {c.name}
+                    </span>
+                    <span className="sr-only">: appoint a manager</span>
+                  </button>
+                ))}
+              </section>
+            ) : null}
           </div>
         </nav>
       ) : null}
@@ -643,7 +681,12 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
               <span
                 role="status"
                 aria-live="polite"
-                title={statusCopy[status]}
+                title={
+                  status === 'live' && health === 'delayed'
+                    ? delayedCopy
+                    : statusCopy[status]
+                }
+                data-delivery={health}
                 className={cn(
                   'inline-flex items-center gap-1 text-[11px]',
                   status === 'live' ? 'text-tx3' : 'text-warn',
@@ -657,10 +700,16 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
                 ) : (
                   <WifiOff aria-hidden="true" className="size-3" />
                 )}
-                <span className={cn(status === 'live' && 'sr-only')}>
+                <span
+                  className={cn(
+                    status === 'live' && health === 'ok' && 'sr-only',
+                  )}
+                >
                   {syncing && status !== 'live'
                     ? 'Backfilling…'
-                    : statusCopy[status]}
+                    : status === 'live' && health === 'delayed'
+                      ? 'Live · synced'
+                      : statusCopy[status]}
                 </span>
               </span>
             ) : null}
@@ -913,6 +962,18 @@ export function LiveChannels({ project }: { project: ProjectDto }) {
           }}
         />
       ) : null}
+      <RecoverChannelDialog
+        key={recovering?.id ?? 'none'}
+        channel={recovering}
+        actorId={actorId}
+        onOpenChange={(open) => !open && setRecovering(null)}
+        onRecovered={(id, self) => {
+          setRecovering(null);
+          flash('Manager appointed');
+          void loadList();
+          if (self) navigate({ channel: id, thread: null, message: null });
+        }}
+      />
       <CreateChannelDialog
         key={creating ? 'open' : 'closed'}
         projectId={project.id}

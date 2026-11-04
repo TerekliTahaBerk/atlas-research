@@ -8,6 +8,7 @@ import {
   type ArtifactKind,
   type ChannelDetailDto,
   type ParticipantDto,
+  type RecoverableChannelDto,
 } from '@atlas/core';
 import { Btn } from '@/components/atlas/button';
 import {
@@ -630,6 +631,100 @@ export function ShareResearchDialog({
             </ul>
           </>
         )}
+      </ModalContent>
+    </Modal>
+  );
+}
+
+/**
+ * Explicit, audited recovery of a restricted channel that no manager can
+ * still manage (A04.1). Owners appoint an existing eligible member; only if
+ * they choose themself do they gain access, and that is shown and audited.
+ */
+export function RecoverChannelDialog({
+  channel,
+  actorId,
+  onOpenChange,
+  onRecovered,
+}: {
+  channel: RecoverableChannelDto | null;
+  actorId: string | null;
+  onOpenChange: (open: boolean) => void;
+  onRecovered: (id: string, self: boolean) => void;
+}) {
+  const options = [
+    ...(channel?.eligible ?? []).map((p) => ({
+      id: p.id,
+      label: p.name ?? 'Former participant',
+    })),
+    ...(actorId && !channel?.eligible.some((p) => p.id === actorId)
+      ? [{ id: actorId, label: 'Me (grants me access to this channel)' }]
+      : []),
+  ];
+  const [chosen, setChosen] = useState(options[0]?.id ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  return (
+    <Modal open={!!channel} onOpenChange={onOpenChange}>
+      <ModalContent className="w-[min(460px,calc(100vw-32px))] rounded-2xl p-5">
+        <ModalTitle className="mb-1 text-ui font-medium">
+          Appoint a manager for #{channel?.name}
+        </ModalTitle>
+        <ModalDescription className="mb-4 text-ctl text-tx2">
+          No manager of this restricted channel can manage it any more. As
+          project owner you can appoint a new manager. This is recorded in the
+          audit log and the appointee is notified. Choosing yourself gives you
+          access to the channel&apos;s history.
+        </ModalDescription>
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!channel || !chosen) return;
+            setBusy(true);
+            setError('');
+            try {
+              await communicate({
+                command: 'channel.recover',
+                id: channel.id,
+                profileId: chosen,
+              });
+              onRecovered(channel.id, chosen === actorId);
+            } catch (err) {
+              setError(errorText(err));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <label className="text-ctl">
+            New manager
+            <select
+              value={chosen}
+              onChange={(e) => setChosen(e.target.value)}
+              className={cn(field, 'mt-1')}
+            >
+              {options.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {error ? (
+            <p role="alert" className="text-ctl text-danger">
+              {error}
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Btn type="button" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Btn>
+            <Btn type="submit" variant="primary" disabled={!chosen || busy}>
+              {busy ? 'Appointing…' : 'Appoint manager'}
+            </Btn>
+          </div>
+        </form>
       </ModalContent>
     </Modal>
   );
