@@ -104,4 +104,18 @@ The V1 score's harmonic language was kept (D-centred, Dmaj9 / Bm11 / Gmaj7 / A6/
 
 ## 6. Technical verification
 
-To be filled from ffprobe and EBU R128 measurement of the final files.
+Measured on the rendered files with ffprobe and ffmpeg `ebur128`:
+
+| File | Video | Frames / duration | Audio | Loudness |
+|---|---|---|---|---|
+| `atlas-launch-v2-16x9.mp4` (25.6 MB) | H.264 High · 1920×1080 · 30 fps · yuv420p · BT.709 TV range | 1800 / 60.0 s | AAC-LC 48 kHz | −15.2 LUFS · −2.0 dBFS peak |
+| `atlas-launch-v2-9x16.mp4` (22.4 MB) | H.264 High · 1080×1920 · 30 fps · yuv420p · BT.709 | 1800 / 60.0 s | AAC-LC 48 kHz | −15.2 LUFS · −2.0 dBFS |
+| `atlas-teaser-v2-9x16.mp4` (9.5 MB) | H.264 High · 1080×1920 · 30 fps · yuv420p · BT.709 | 720 / 24.0 s | AAC-LC 48 kHz | −15.6 LUFS · −1.9 dBFS |
+
+**Checks:**
+
+- **Inspection frames:** every 2 s for both masters (`output/atlas-launch-v2-contact-sheet.png`, `output/atlas-launch-v2-9x16-contact-sheet.png`).
+- **Boundary frames:** adjacent pairs at all eight scene boundaries (frames 88/92, 238/242, 388/392, 658/662, 928/932, 1198/1202, 1432/1440, 1648/1652). Each shows the same hero object at the same anchor.
+- **End state:** the final frame is black and the audio tail is silent.
+- **Renderer:** Remotion 4.0.539 with local fonts and no network access during render.
+- **Typecheck:** `tsc --noEmit` (strict) passes.
