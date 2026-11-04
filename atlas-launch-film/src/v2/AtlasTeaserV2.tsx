@@ -10,7 +10,8 @@ import { AtlasLaunchV2 } from './AtlasLaunchV2';
  */
 export const TEASER_EDIT: Array<{ name: string; from: number; len: number }> = [
   { name: 'Hook', from: 0, len: 90 },
-  { name: 'Fragments → Atlas', from: 90, len: 150 },
+  { name: 'Fragments → Atlas', from: 150, len: 90 },
+  { name: 'Mosaic + click', from: 300, len: 90 },
   { name: 'Evidence → Insight', from: 740, len: 160 },
   { name: 'Connect', from: 990, len: 180 },
   { name: 'Atlas', from: 1650, len: 150 },

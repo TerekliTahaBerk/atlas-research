@@ -58,7 +58,12 @@ pluck(hz('A5'), C.wordmark + 0.05, 0.032, 0.3, 2.4);
 swell(['A2', 'E3', 'B3', 'E4'], C.unfold - 0.5, 1.4, 0.024);
 pad(CH.Bm11, C.unfold + 0.4, 4.0, 0.026, 1.2, 1.2);
 for (let t = C.arc, i = 0; t < C.submit; t += 0.5, i++) pluck(hz(['D5', 'A4', 'F#5', 'E5'][i % 4]), t, 0.016, i % 2 ? 0.45 : -0.45, 0.8, 0.6);
+// Mosaic: eight modules land on 16ths; the dive back is a tonal fall.
+['D5', 'E5', 'F#5', 'A5', 'B5', 'D6', 'E6', 'F#6'].forEach((n, i) => pluck(hz(n), C.mosaic + 0.08 + i * 0.05, 0.02, -0.6 + i * 0.17, 0.7));
+swell(['B2', 'F#3', 'D4', 'A4'], C.mosaic - 0.2, 0.7, 0.016);
+tone({ f: hz('A5'), f2: hz('D5'), t0: C.dive, dur: 0.5, amp: 0.02, attack: 0.04, release: 0.5, send: 0.7, harm: [1, 0.2] });
 for (let t = C.composer; t < C.submit; t += 0.25) tick(t, 0.008);
+tick(C.button, 0.02, 0.2);
 click(C.submit, 0.08, 1500);
 boom(C.submit, 0.1, 90, 50, 1.4);
 

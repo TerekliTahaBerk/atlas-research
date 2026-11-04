@@ -69,9 +69,9 @@
     "linkC": 5.0,
     "converge": 6.0,
     "wordmark": 6.8,
-    "unfold": 8.8,
-    "arc": 9.5,
-    "composer": 11.0,
+    "unfold": 8.6,
+    "arc": 9.4,
+    "composer": 11.85,
     "submit": 12.5,
     "answer": 13.5,
     "papers": 14.5,
@@ -115,6 +115,9 @@
     "collapse": 56.6,
     "finalWordmark": 57.2,
     "tagline": 57.9,
-    "fadeOut": 59.3
+    "fadeOut": 59.3,
+    "mosaic": 10.4,
+    "dive": 11.3,
+    "button": 12.1
   }
 }

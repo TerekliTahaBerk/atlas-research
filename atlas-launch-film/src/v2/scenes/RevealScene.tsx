@@ -12,6 +12,9 @@ import { font } from '../../design/typography';
 import { COMPOSER, pick as pickA } from '../anchors';
 import { BrandMoment, horizonY } from '../components/BrandMoment';
 import { Composer } from '../components/Composer';
+import { Cursor } from '../components/Cursor';
+import { Mosaic } from '../components/Mosaic';
+import { people } from '../../data/demoResearch';
 import { Window, useWin, winToScreen } from '../components/Window';
 import { at } from '../storyboard';
 
@@ -68,23 +71,40 @@ export const RevealScene: React.FC = () => {
   const cRest = winToScreen(w, [c.x + c.w / 2, c.y + 28]);
   const S = anchor.w / (c.w * w.zoom);
   const depth = 1.15;
-  const end = aim(cRest, [anchor.cx, anchor.cy], S, depth, [width / 2, height / 2]);
-
-  const keys = portrait
-    ? [
-        { at: unfold, s: 0.94, ry: -10, rx: 4, x: 0, y: 30 },
-        { at: unfold + 70, s: 1, ry: -4, rx: 2, x: 0, y: 0 },
-        { at: unfold + 95, s: 1.02, ry: 0, rx: 0 },
-        { at: submit - 6, ...end, ry: 0, rx: 0 },
-        { at: 170, ...end },
-      ]
-    : [
-        { at: unfold, s: 0.9, ry: -16, rx: 5, x: 90, y: 20 },
-        { at: unfold + 70, s: 1, ry: -5, rx: 2, x: 0, y: 0 },
-        { at: unfold + 95, s: 1.02, ry: 0, rx: 0, x: 0, y: 0 },
-        { at: submit - 6, ...end, ry: 0, rx: 0 },
-        { at: 170, ...end },
-      ];
+  const O: [number, number] = [width / 2, height / 2];
+  const end = aim(cRest, [anchor.cx, anchor.cy], S, depth, O);
+  const mosaicAt = at('reveal', 'mosaic');
+  const diveAt = at('reveal', 'dive');
+  const composerAt = at('reveal', 'composer');
+  const buttonAt = at('reveal', 'button');
+  // Send button (window space) for the macro click.
+  const btn = portrait ? [566, 848] : [241 + (1359 - 680) / 2 + 680 - 24, 896];
+  const btnRest = winToScreen(w, btn as [number, number]);
+  const macro = aim(btnRest, [O[0] - pick(60, 40), O[1] - pick(20, 60)], pick(5.2, 4.2), depth, O);
+  const winCenter = winToScreen(w, [w.width / 2, w.height / 2]);
+  const grid = aim(winCenter, O, pick(0.31, 0.34), 1, O);
+  const flat = { ry: 0, rx: 0 };
+  const keys = [
+    ...(portrait
+      ? [
+          { at: unfold, s: 0.94, ry: -10, rx: 4, x: 0, y: 30 },
+          { at: mosaicAt - 4, s: 1, ry: -2, rx: 1, x: 0, y: 0 },
+        ]
+      : [
+          { at: unfold, s: 0.9, ry: -16, rx: 5, x: 90, y: 20 },
+          { at: mosaicAt - 4, s: 1, ry: -3, rx: 1, x: 0, y: 0 },
+        ]),
+    { at: mosaicAt + 12, ...grid, ...flat },
+    { at: diveAt, ...grid, s: grid.s * 0.97, ...flat },
+    { at: composerAt, ...end, ...flat },
+    { at: buttonAt, ...end, ...flat },
+    { at: submit - 2, ...macro, ...flat },
+    { at: submit + 4, ...macro, s: macro.s * 1.01, ...flat },
+    { at: 150, ...end, ...flat },
+    { at: 170, ...end },
+  ];
+  const tileReveal = (i: number) => progress(frame, mosaicAt + 2 + i * 1.5, mosaicAt + 14 + i * 1.5, ease.out) * (1 - progress(frame, diveAt + 4, diveAt + 14, ease.in));
+  const cursorT = progress(frame, buttonAt - 14, submit - 3, ease.inOut);
 
   // Window: top edge starts on the horizon line, edge-on, and swings open.
   const top0 = lineY - w.top;
@@ -108,6 +128,7 @@ export const RevealScene: React.FC = () => {
               <HomeView narrow={portrait} />
             </Window>
           ) : null}
+          {frame >= mosaicAt ? <Mosaic reveal={tileReveal} /> : null}
         </Layer>
         <Layer depth={depth}>
           <div
@@ -117,7 +138,7 @@ export const RevealScene: React.FC = () => {
               top: w.top + c.y * w.zoom,
               transform: `scale(${w.zoom}) translateY(${(1 - composerIn) * 30}px)`,
               transformOrigin: '0 0',
-              opacity: composerIn,
+              opacity: composerIn * (1 - progress(frame, mosaicAt - 6, mosaicAt + 2) * (1 - progress(frame, diveAt + 2, composerAt - 2))),
             }}
           >
             <Composer
@@ -126,12 +147,22 @@ export const RevealScene: React.FC = () => {
               press={progress(frame, submit, submit + 8, (t) => t)}
             />
           </div>
+          {frame >= buttonAt - 14 && frame < 150 ? (
+            <Cursor
+              x={mix(btnRest[0] + pick(220, 160), btnRest[0] - 4, cursorT)}
+              y={mix(btnRest[1] + pick(110, 160), btnRest[1] - 2, cursorT)}
+              name={people.elif.first}
+              tint={people.elif.color}
+              press={progress(frame, submit, submit + 8, (t) => t)}
+              opacity={progress(frame, buttonAt - 14, buttonAt - 6) * (1 - progress(frame, submit + 6, submit + 12))}
+            />
+          ) : null}
         </Layer>
         <Layer depth={1.6} dof={5}>
-          <div style={{ position: 'absolute', left: pick(60, 40), top: pick(720, 1500), opacity: open * 0.9 * (1 - progress(frame, submit - 30, submit)) }}>
+          <div style={{ position: 'absolute', left: pick(60, 40), top: pick(720, 1500), opacity: open * 0.9 * (1 - progress(frame, mosaicAt - 14, mosaicAt - 2)) }}>
             <Chip icon={BookOpen} tint={kind.paper} t="Chen & Duarte, 2023" s="Paper · page 3 of 14" />
           </div>
-          <div style={{ position: 'absolute', left: pick(1500, 640), top: pick(160, 320), opacity: open * 0.9 * (1 - progress(frame, submit - 30, submit)) }}>
+          <div style={{ position: 'absolute', left: pick(1500, 640), top: pick(160, 320), opacity: open * 0.9 * (1 - progress(frame, mosaicAt - 14, mosaicAt - 2)) }}>
             <Chip icon={FileText} tint={kind.doc} t="Reading notes" s="low-rank pairs" />
           </div>
         </Layer>
