@@ -13,7 +13,16 @@ import { publicError } from '../../apps/web/src/features/platform/server/errors'
 import {
   dispatchOutbox,
   executeCommunicationCommand,
+  resetSweepThrottle,
+  sweepOutbox,
 } from '../../apps/web/src/features/communication/server/commands';
+import { Reconciler } from '../../apps/web/src/features/communication/delivery';
+import {
+  emptyTimeline,
+  mergeMessages,
+  type Timeline,
+} from '../../apps/web/src/features/communication/timeline';
+import { createDatabase } from '../../packages/database/src/index';
 import {
   getChannel,
   messageChanges,
@@ -27,15 +36,20 @@ import {
  * mocked; every expectation is observed on an actual WebSocket.
  */
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const direct = process.env.DIRECT_URL;
 const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const service = process.env.ATLAS_STORAGE_SERVICE_KEY;
 const database = process.env.DATABASE_URL;
 if (!supabaseUrl || !publishable || !service || !database)
   throw new Error('The disposable Supabase harness environment is required.');
-for (const value of [supabaseUrl, database])
+if (!direct) throw new Error('The disposable harness DIRECT_URL is required.');
+for (const value of [supabaseUrl, database, direct])
   if (!['127.0.0.1', 'localhost'].includes(new URL(value).hostname))
     throw new Error('Realtime tests run only against loopback services.');
-if (!new URL(database).pathname.endsWith('/atlas_auth_test'))
+if (
+  !new URL(database).pathname.endsWith('/atlas_auth_test') ||
+  !new URL(direct).pathname.endsWith('/atlas_auth_test')
+)
   throw new Error('Realtime tests require the disposable auth database.');
 
 type Actor = { id: string; email: string; token: string };
@@ -124,6 +138,15 @@ const comm = (
 ) => executeCommunicationCommand(who, command, randomUUID(), { dispatch });
 
 let owner: Actor, editor: Actor, outsider: Actor;
+// Harness-only observer of outbox state (the runtime role cannot read it).
+const harnessAdmin = createDatabase(direct);
+const pendingFor = async (messageId: string) =>
+  harnessAdmin.$queryRaw<
+    { n: number }[]
+  >`SELECT count(*)::int AS n FROM communication_outbox
+    WHERE payload->>'id'=${messageId} AND delivered_at IS NULL AND abandoned_at IS NULL`.then(
+    (rows) => rows[0]?.n ?? 0,
+  );
 let project: string;
 let restricted: string;
 let general: string;
@@ -202,6 +225,7 @@ beforeAll(async () => {
 }, 60000);
 afterAll(async () => {
   for (const client of clients) await client.removeAllChannels();
+  await harnessAdmin.$disconnect();
   await runtimeDatabase().$disconnect();
   vi.unstubAllEnvs();
 });
@@ -345,5 +369,181 @@ describe.sequential('Journey B transport: reconnect and backfill', () => {
     expect(other.events.some((e) => e.event === 'notification.created')).toBe(
       false,
     );
+  });
+});
+
+/*
+ * A04.1 regression for the lost-event scenario, over real sockets: a live,
+ * subscribed reader; another user's message commits; the dispatcher fails
+ * (here: never runs); no later command dispatches; the reader stays on the
+ * same screen. Before A04.1 the reader saw nothing until a focus change and
+ * the event stayed queued indefinitely.
+ */
+describe.sequential('A04.1 lost delivery over real Supabase Realtime', () => {
+  const reader = (who: Actor, channelId: string, topic: () => string) => {
+    let state: Timeline = emptyTimeline();
+    const stale: string[] = [];
+    const loop = new Reconciler({
+      fetchChanges: (since) => messageChanges(who, channelId, since),
+      apply: (page) => {
+        state = mergeMessages(state, page.items, { changeSeq: page.changeSeq });
+      },
+      topic,
+      onTopicStale: (current) => stale.push(current),
+      onDenied: () => stale.push('DENIED'),
+      // The timer path is covered deterministically in the unit suite; here
+      // each poll is triggered explicitly to observe real server state.
+      setTimer: () => null,
+      clearTimer: () => undefined,
+    });
+    return {
+      loop,
+      stale,
+      get state() {
+        return state;
+      },
+    };
+  };
+
+  it('a live subscriber recovers a message whose event was never dispatched, exactly once, and the queued event is retried without any command', async () => {
+    const topic = (await getChannel(editor, general)).topic;
+    const live = await listen(editor, topic);
+    expect(await live.joined).toBe('SUBSCRIBED');
+    const view = reader(editor, general, () => topic);
+    view.loop.seed((await messagePage(editor, general)).changeSeq);
+    view.loop.update('live', false);
+    const { id } = await comm(
+      owner,
+      {
+        command: 'message.send',
+        channelId: general,
+        body: 'Committed while the dispatcher was failing',
+        idempotencyKey: randomUUID(),
+      },
+      false,
+    );
+    // Reproduction: socket live, nothing delivered, event stuck in the queue.
+    await quiet(2000);
+    expect(live.events.some((e) => e.payload.id === id)).toBe(false);
+    expect(await pendingFor(id)).toBe(1);
+    // Fix 1: the bounded live reconcile shows it, exactly once.
+    await view.loop.run('poll');
+    const copies = () =>
+      Object.values(view.state.messages).filter((m) => m.id === id);
+    expect(copies()).toHaveLength(1);
+    await view.loop.run('poll');
+    expect(copies()).toHaveLength(1);
+    // Fix 2: that same cursor read schedules a throttled sweep, which
+    // delivers the queued hint to every other live subscriber.
+    const other = await listen(owner, topic);
+    expect(await other.joined).toBe('SUBSCRIBED');
+    resetSweepThrottle();
+    expect(await sweepOutbox()).toBeGreaterThan(0);
+    await until(() => other.events.some((e) => e.payload.id === id));
+    expect(await pendingFor(id)).toBe(0);
+    view.loop.stop();
+  });
+
+  it('a lost topic.rotated is detected by reconciliation, the client moves to the new topic, and the queued pre-rotation hint never reaches the old topic', async () => {
+    const third = await user('rt-third');
+    await platform(third, {
+      command: 'bootstrap',
+      displayName: 'Realtime third',
+      workspaceName: 'Personal',
+      researchInterests: [],
+    });
+    const invite = await platform(owner, {
+      command: 'invitation.create',
+      scope: 'project',
+      scopeId: project,
+      role: 'VIEWER',
+      email: third.email,
+    });
+    await platform(third, {
+      command: 'invitation.accept',
+      token: new URLSearchParams(
+        new URL(invite.invitationLink!).hash.slice(1),
+      ).get('token')!,
+    });
+    const lab = (
+      await comm(owner, {
+        command: 'channel.create',
+        projectId: project,
+        name: 'lab-notes',
+        visibility: 'RESTRICTED',
+        idempotencyKey: randomUUID(),
+      })
+    ).id;
+    for (const who of [editor, third])
+      await comm(owner, {
+        command: 'channel.member.add',
+        id: lab,
+        profileId: who.id,
+      });
+    let subscribed = (await getChannel(editor, lab)).topic;
+    const old = subscribed;
+    const editorOld = await listen(editor, old);
+    const thirdOld = await listen(third, old);
+    expect(await editorOld.joined).toBe('SUBSCRIBED');
+    expect(await thirdOld.joined).toBe('SUBSCRIBED');
+    const view = reader(editor, lab, () => subscribed);
+    view.loop.seed((await messagePage(editor, lab)).changeSeq);
+    view.loop.update('live', false);
+    // A pre-revocation message whose hint is still queued…
+    const { id: before } = await comm(
+      owner,
+      {
+        command: 'message.send',
+        channelId: lab,
+        body: 'Queued before the revocation',
+        idempotencyKey: randomUUID(),
+      },
+      false,
+    );
+    // …then a revocation whose rotation notice is also not dispatched.
+    await comm(
+      owner,
+      { command: 'channel.member.remove', id: lab, profileId: third.id },
+      false,
+    );
+    await quiet(1500);
+    expect(editorOld.events.some((e) => e.event === 'topic.rotated')).toBe(
+      false,
+    );
+    // The reader's reconcile names the new topic: it is stale, refresh it.
+    await view.loop.run('poll');
+    const current = (await getChannel(editor, lab)).topic;
+    expect(current).not.toBe(old);
+    expect(view.stale).toEqual([current]);
+    expect(
+      Object.values(view.state.messages).filter((m) => m.id === before),
+    ).toHaveLength(1);
+    subscribed = current;
+    const editorNew = await listen(editor, current);
+    expect(await editorNew.joined).toBe('SUBSCRIBED');
+    // The retry delivers only the content-free rotation notice to the old
+    // topic; the pre-rotation message hint is suppressed, not sent.
+    resetSweepThrottle();
+    await sweepOutbox();
+    await until(() => thirdOld.events.some((e) => e.event === 'topic.rotated'));
+    await quiet(2000);
+    expect(thirdOld.events.map((e) => e.event)).toEqual(['topic.rotated']);
+    const [row] = await harnessAdmin.$queryRaw<
+      { lastError: string | null }[]
+    >`SELECT last_error AS "lastError" FROM communication_outbox WHERE payload->>'id'=${before} AND event='message.created'`;
+    expect(row?.lastError).toBe('SUPERSEDED');
+    // Delivery continues for remaining members on the new topic only.
+    const { id: next } = await comm(owner, {
+      command: 'message.send',
+      channelId: lab,
+      body: 'After the rotation',
+      idempotencyKey: randomUUID(),
+    });
+    await until(() => editorNew.events.some((e) => e.payload.id === next));
+    await quiet(1500);
+    expect(thirdOld.events.some((e) => e.payload.id === next)).toBe(false);
+    expect(await (await listen(third, current)).joined).toBe('DENIED');
+    expect(await failure(messageChanges(third, lab, 0))).toBe('NOT_FOUND');
+    view.loop.stop();
   });
 });

@@ -81,9 +81,42 @@ export async function listChannels(actor: VerifiedActor, projectId: string) {
         ),
       );
     const caps = await projectCapabilities(tx, projectId);
+    // Owners only (the SQL function answers [] for everyone else).
+    const recoverable = caps.includes('project.update')
+      ? z
+          .array(
+            z.object({
+              id: z.uuid(),
+              name: z.string(),
+              eligible: z.array(z.uuid()),
+            }),
+          )
+          .parse(
+            (
+              z
+                .array(z.object({ r: z.unknown() }))
+                .parse(
+                  await tx.$queryRaw`SELECT atlas_private.channel_recovery(${projectId}::uuid) AS r`,
+                )[0] ?? { r: [] }
+            ).r,
+          )
+      : [];
+    const names = await participantNames(
+      tx,
+      projectId,
+      recoverable.flatMap((c) => c.eligible),
+    );
     return channelListDto.parse({
       items: rows.map(toChannel),
       canCreate: caps.includes('project.write'),
+      recoverable: recoverable.map((c) => ({
+        id: c.id,
+        name: c.name,
+        eligible: c.eligible.map((id) => ({
+          id,
+          name: names.get(id)?.name ?? null,
+        })),
+      })),
     });
   });
 }
@@ -345,6 +378,7 @@ export async function messageChanges(
       // The cursor advances only over rows actually returned.
       changeSeq: more ? page.at(-1)!.changeSeq : channel.changeSeq,
       more,
+      topic: channelTopic(channel.id, channel.epoch),
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'server-only';
+import { after } from 'next/server';
 import { z } from 'zod';
 import type { VerifiedActor } from '@/features/platform/server/database';
 import { rateLimit } from '@/features/platform/server/limiter';
@@ -12,6 +13,7 @@ import {
 } from './reads';
 import { listNotifications, notificationUnread } from './notifications';
 import { atlasContext } from './atlas';
+import { sweepOutbox } from './commands';
 
 const uuid = z.uuid();
 const params = (url: URL) =>
@@ -31,8 +33,13 @@ export async function communicationGet(
     return listChannels(actor, uuid.parse(id));
   if (root === 'channels' && id !== undefined) {
     if (leaf === undefined) return getChannel(actor, uuid.parse(id));
-    if (leaf === 'messages')
-      return listMessages(actor, uuid.parse(id), params(url));
+    if (leaf === 'messages') {
+      const result = await listMessages(actor, uuid.parse(id), params(url));
+      // Cursor reconciliation doubles as the bounded delivery retry; it runs
+      // after the authorized read and never affects its response.
+      if (url.searchParams.has('since')) after(() => sweepOutbox());
+      return result;
+    }
     if (leaf === 'people')
       return mentionCandidates(
         actor,
@@ -66,6 +73,23 @@ export async function communicationGet(
     if (id === 'unread' && leaf === undefined) return notificationUnread(actor);
   }
   return undefined;
+}
+
+/**
+ * Rate bucket for an authenticated GET. Live cursor reconciliation has its
+ * own bucket so background sync never starves research reads (and the
+ * reverse); the unread badge likewise.
+ */
+export function readBucket(path: string[], url: URL): [string, number] {
+  if (path.join('/') === 'notifications/unread') return ['inbox-count', 60];
+  if (
+    path.length === 3 &&
+    path[0] === 'channels' &&
+    path[2] === 'messages' &&
+    url.searchParams.has('since')
+  )
+    return ['channel-sync', 120];
+  return ['read', 120];
 }
 
 /** Separate buckets so reading/reacting cannot starve sending, and vice versa. */

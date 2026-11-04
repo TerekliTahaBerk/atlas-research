@@ -84,6 +84,24 @@ export async function dispatchOutbox(maximum = 100) {
   }
 }
 
+/**
+ * Bounded, independent retry for queued events: any authorized cursor read
+ * may trigger one dispatch per server instance every `SWEEP_INTERVAL_MS`.
+ * It complements the in-database schedule (pg_cron) and needs no worker
+ * host. Backoff, expiry and superseded-epoch suppression live in SQL.
+ */
+export const SWEEP_INTERVAL_MS = 10_000;
+let lastSweep = Number.NEGATIVE_INFINITY;
+export async function sweepOutbox(now = Date.now()) {
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return null;
+  lastSweep = now;
+  return dispatchOutbox(100);
+}
+/** Test seam: restarts the per-instance throttle. */
+export function resetSweepThrottle() {
+  lastSweep = Number.NEGATIVE_INFINITY;
+}
+
 export async function executeCommunicationCommand(
   actor: VerifiedActor,
   raw: CommunicationCommandInput | unknown,
