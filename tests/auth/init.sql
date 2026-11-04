@@ -24,3 +24,10 @@ GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin IN SCHEMA storage GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin IN SCHEMA storage GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin IN SCHEMA storage GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+-- A04: Supabase Realtime (self-hosted image) expects the bootstrap roles and
+-- schemas that Supabase's Postgres image provides. They own nothing of Atlas.
+CREATE ROLE dashboard_user NOLOGIN;
+CREATE ROLE supabase_admin NOLOGIN;
+CREATE SCHEMA _realtime;
+CREATE SCHEMA realtime;
+GRANT USAGE ON SCHEMA realtime TO anon, authenticated, service_role;

@@ -25,9 +25,16 @@ import {
 } from './repository';
 import { hashText, revalidateEvidence, resolveReferences } from './retrieval';
 import { coalesceDeltas } from './stream-buffer';
+import {
+  discussionBlock,
+  discussionContext,
+} from '@/features/communication/server/atlas';
 
 export async function prepareRun(actor: VerifiedActor, raw: unknown) {
   const input = runInput.parse(raw);
+  // The idempotency hash covers what the client asked for, not context that
+  // the server re-derives (a retried request must not conflict with itself).
+  const hash = hashText(JSON.stringify(input));
   const config = aiConfig();
   let text: string;
   try {
@@ -37,6 +44,27 @@ export async function prepareRun(actor: VerifiedActor, raw: unknown) {
       'VALIDATION_ERROR',
       'This command is not available.',
     );
+  }
+  // Contextual @Atlas: re-derive the exact authorized discussion now. A
+  // channel of another project is indistinguishable from a missing one.
+  const discussion = input.discussion
+    ? await discussionContext(actor, input.discussion)
+    : undefined;
+  if (discussion && discussion.channel.projectId !== input.projectId)
+    throw new PlatformError('NOT_FOUND', 'Resource unavailable.');
+  if (discussion) {
+    const seen = new Set(
+      input.references.flatMap((r) =>
+        r.kind === 'paper' ? [r.projectPaperId] : [],
+      ),
+    );
+    for (const paper of discussion.papers)
+      if (!seen.has(paper.projectPaperId) && input.references.length < 12)
+        input.references.push({
+          kind: 'paper',
+          projectId: input.projectId,
+          projectPaperId: paper.projectPaperId,
+        });
   }
   await resolveReferences(actor, input.projectId, input.references);
   const scope = await withActor(actor, async (tx) => {
@@ -63,7 +91,7 @@ export async function prepareRun(actor: VerifiedActor, raw: unknown) {
     createConversation: !input.conversationId,
     provider: config.policy.provider,
     model: config.policy.model,
-    hash: hashText(JSON.stringify(input)),
+    hash,
     amount,
     cap: config.cap,
   };
@@ -88,7 +116,15 @@ export async function prepareRun(actor: VerifiedActor, raw: unknown) {
       );
     throw error;
   });
-  return { input, text, config, scope, id: actual, isNew: id === actual };
+  return {
+    input,
+    text,
+    discussion: discussion ? discussionBlock(discussion) : undefined,
+    config,
+    scope,
+    id: actual,
+    isNew: id === actual,
+  };
 }
 export async function streamRun(
   actor: VerifiedActor,
@@ -199,7 +235,17 @@ export async function streamRun(
             model: config.policy.model,
             maxOutputTokens: config.policy.maxOutputTokens,
           },
-          messages: [...messages, { role: 'user', content: prepared.text }],
+          // The discussion block is request-only context; the persisted
+          // prompt stays the user's own command text.
+          messages: [
+            ...messages,
+            {
+              role: 'user',
+              content: prepared.discussion
+                ? `${prepared.text}\n\n${prepared.discussion}`
+                : prepared.text,
+            },
+          ],
           context: {
             actorId: actor.id,
             projectId: input.projectId,

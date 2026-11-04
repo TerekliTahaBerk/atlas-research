@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   artifactCommand,
   artifactCommandNames,
+  communicationCommandNames,
   platformCommand,
   researchCommand,
   researchCommandNames,
@@ -42,6 +43,11 @@ import {
   documentExportResponse,
 } from '@/features/artifacts/server/routes';
 import { buildProposal } from '@/features/ai/server/proposals';
+import { executeCommunicationCommand } from '@/features/communication/server/commands';
+import {
+  communicationBucket,
+  communicationGet,
+} from '@/features/communication/server/routes';
 import {
   exportResponse,
   researchGet,
@@ -84,10 +90,16 @@ export async function POST(
       typeof body === 'object' && body !== null && 'command' in body
         ? body.command
         : undefined;
+    const communication =
+      typeof name === 'string' &&
+      (communicationCommandNames as string[]).includes(name);
     // Autosave has its own bucket so debounced saves cannot starve other writes.
     if (name === 'document.save')
       await rateLimit('document-save', actor.id, 120);
-    else
+    else if (communication) {
+      const [bucket, maximum] = communicationBucket(name);
+      await rateLimit(bucket, actor.id, maximum);
+    } else
       await rateLimit(
         path === 'context' ? 'navigation' : 'write',
         actor.id,
@@ -147,6 +159,8 @@ export async function POST(
       throw new PlatformError('NOT_FOUND', 'Endpoint unavailable.');
     }
     // One command endpoint; research names dispatch to their fixed commands.
+    if (communication)
+      return executeCommunicationCommand(actor, body, requestId);
     if (
       typeof name === 'string' &&
       (artifactCommandNames as string[]).includes(name)
@@ -193,7 +207,11 @@ export async function GET(
   }
   return respond(async () => {
     const actor = await verifyActor();
-    await rateLimit('read', actor.id, 120);
+    // A04: the navigation unread badge has its own bucket so it never
+    // starves research reads.
+    if (path.join('/') === 'notifications/unread')
+      await rateLimit('inbox-count', actor.id, 60);
+    else await rateLimit('read', actor.id, 120);
     const listCursor = z
       .string()
       .max(1024)
@@ -228,6 +246,8 @@ export async function GET(
     }
     if (path.join('/') === 'invitations') return invitations(actor, listCursor);
     if (path[0] === 'ai') return aiGet(actor, path, url);
+    const communication = await communicationGet(actor, path, url);
+    if (communication !== undefined) return communication;
     const artifacts = await artifactGet(actor, path, url);
     if (artifacts !== undefined) return artifacts;
     const research = await researchGet(actor, path, url, request.signal);

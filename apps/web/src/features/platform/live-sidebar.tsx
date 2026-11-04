@@ -9,7 +9,10 @@ import {
   ChevronsUpDown,
   LogOut,
   Plus,
+  Inbox,
 } from 'lucide-react';
+import { UnreadBadge } from '@/components/atlas/chips';
+import { useUnreadNotifications } from '@/features/communication/live-inbox';
 import {
   Menu,
   MenuTrigger,
@@ -38,6 +41,7 @@ export function LiveSidebar({
   const pathname = usePathname();
   const shell = useShell();
   const selected = state.workspaces.find((w) => w.id === state.workspaceId);
+  const unread = useUnreadNotifications();
   const nav = (href: string, title: string, Icon: typeof House) => (
     <a
       onClick={() => onNavigate?.()}
@@ -126,6 +130,25 @@ export function LiveSidebar({
         Search Atlas <span className="ml-auto text-xs text-tx3">⌘K</span>
       </button>
       {nav('/app/home', 'Home', House)}
+      <a
+        onClick={() => onNavigate?.()}
+        href="/app/inbox"
+        className={cn(
+          row,
+          pathname === '/app/inbox' && 'bg-hov text-tx',
+          drawer && 'h-9',
+        )}
+        aria-current={pathname === '/app/inbox' ? 'page' : undefined}
+      >
+        <Inbox aria-hidden="true" className="size-[15px] shrink-0" />
+        <span className="flex-1 truncate">Inbox</span>
+        {unread ? (
+          <UnreadBadge>
+            {unread}
+            <span className="sr-only"> unread notifications</span>
+          </UnreadBadge>
+        ) : null}
+      </a>
       {nav('/app/workspaces', 'Workspaces', FolderKanban)}
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="px-2 pt-3.5 pb-1 text-[11.5px] text-tx3">Projects</div>

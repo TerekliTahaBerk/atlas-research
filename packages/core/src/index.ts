@@ -57,3 +57,4 @@ export * from './documents';
 export * from './artifacts';
 export * from './research-journey';
 export * from './interchange';
+export * from './communication';

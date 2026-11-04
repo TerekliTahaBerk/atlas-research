@@ -152,12 +152,18 @@ jobs:
       - name: Start disposable Auth (startup diagnostics contain no user sessions)
         run: |
           if ! docker compose -f tests/auth/compose.yml up -d --wait; then
-            docker compose -f tests/auth/compose.yml logs --no-color auth storage
+            docker compose -f tests/auth/compose.yml logs --no-color auth storage realtime
             exit 1
           fi
+      # A04: Realtime installs its tenant schema on first connection; the
+      # Atlas migration then attaches its private-topic policy as on hosted.
+      - name: Install the Realtime tenant schema
+        run: node tests/realtime/prepare.mjs
       - run: pnpm --filter @atlas/database exec prisma migrate deploy
       - run: psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -c "GRANT atlas_runtime TO atlas_auth_runtime; CREATE ROLE atlas_auth_ai_worker LOGIN INHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD 'atlas_ai_worker_test_only'; GRANT atlas_ai_worker TO atlas_auth_ai_worker;"
       - run: pnpm db:generate
+      - name: Private Realtime subscribe, revoke and reconnect (real GoTrue + Realtime)
+        run: pnpm test:realtime
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:auth:e2e
       # No auth traces/screenshots/mailbox/log upload: tokens remain ephemeral.

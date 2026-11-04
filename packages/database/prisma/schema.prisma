@@ -677,3 +677,138 @@ model ExternalConnection {
  @@map("external_connections")
 }
 
+
+// ---------------------------------------------------------------- A04
+// Research communication. Writes go only through atlas_private.mutate; the
+// relational invariants (composite project/channel keys, same-channel
+// threads, tombstones) live in the migration SQL.
+
+/// A project channel. RESTRICTED channels need an explicit member row.
+model Channel {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ name String @db.VarChar(80)
+ description String @default("") @db.VarChar(500)
+ visibility String @default("PROJECT") @db.VarChar(12)
+ isDefault Boolean @default(false) @map("is_default")
+ createdById String @map("created_by_id") @db.Uuid
+ epoch String @db.Uuid
+ lastSeq BigInt @default(0) @map("last_seq")
+ changeSeq BigInt @default(0) @map("change_seq")
+ version Int @default(1)
+ archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+ archivedById String? @map("archived_by_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ @@unique([projectId, id])
+ @@unique([projectId, name])
+ @@map("channels")
+}
+model ChannelMember {
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ channelId String @map("channel_id") @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ role String @default("MEMBER") @db.VarChar(10)
+ notify String @default("ALL") @db.VarChar(10)
+ lastReadSeq BigInt @default(0) @map("last_read_seq")
+ addedById String @map("added_by_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+ @@id([channelId, profileId])
+ @@map("channel_members")
+}
+/// Durable message; `seq` orders a channel, `changeSeq` drives backfill.
+model ChannelMessage {
+ id String @id @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ channelId String @map("channel_id") @db.Uuid
+ seq BigInt
+ changeSeq BigInt @map("change_seq")
+ threadRootId String? @map("thread_root_id") @db.Uuid
+ authorId String @map("author_id") @db.Uuid
+ kind String @default("USER") @db.VarChar(10)
+ body String
+ clientKey String @map("client_key") @db.Uuid
+ requestHash String @map("request_hash") @db.Char(64)
+ aiRunId String? @map("ai_run_id") @db.Uuid
+ version Int @default(1)
+ replyCount Int @default(0) @map("reply_count")
+ lastReplyAt DateTime? @map("last_reply_at") @db.Timestamptz(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ editedAt DateTime? @map("edited_at") @db.Timestamptz(3)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+ deletedById String? @map("deleted_by_id") @db.Uuid
+ @@unique([channelId, seq])
+ @@unique([authorId, clientKey])
+ @@unique([projectId, id])
+ @@unique([projectId, channelId, id])
+ @@map("channel_messages")
+}
+model MessageMention {
+ projectId String @map("project_id") @db.Uuid
+ channelId String @map("channel_id") @db.Uuid
+ messageId String @map("message_id") @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ @@id([messageId, profileId])
+ @@map("message_mentions")
+}
+model MessageReaction {
+ projectId String @map("project_id") @db.Uuid
+ channelId String @map("channel_id") @db.Uuid
+ messageId String @map("message_id") @db.Uuid
+ profileId String @map("profile_id") @db.Uuid
+ emoji String @db.VarChar(16)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ @@id([messageId, profileId, emoji])
+ @@map("message_reactions")
+}
+/// Typed reference to the existing artifact registry; grants nothing.
+model MessageReference {
+ projectId String @map("project_id") @db.Uuid
+ channelId String @map("channel_id") @db.Uuid
+ messageId String @map("message_id") @db.Uuid
+ ordinal Int @db.SmallInt
+ artifactId String @map("artifact_id") @db.Uuid
+ artifactKind String @map("artifact_kind") @db.VarChar(30)
+ sourceVersionId String? @map("source_version_id") @db.Uuid
+ annotationId String? @map("annotation_id") @db.Uuid
+ page Int?
+ @@id([messageId, ordinal])
+ @@map("message_references")
+}
+/// Content-free, recipient-scoped notification.
+model Notification {
+ id String @id @db.Uuid
+ recipientId String @map("recipient_id") @db.Uuid
+ organizationId String @map("organization_id") @db.Uuid
+ workspaceId String @map("workspace_id") @db.Uuid
+ projectId String @map("project_id") @db.Uuid
+ kind String @db.VarChar(20)
+ actorId String? @map("actor_id") @db.Uuid
+ channelId String? @map("channel_id") @db.Uuid
+ messageId String? @map("message_id") @db.Uuid
+ taskId String? @map("task_id") @db.Uuid
+ dedupKey String @map("dedup_key") @db.VarChar(200)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ readAt DateTime? @map("read_at") @db.Timestamptz(3)
+ @@unique([recipientId, dedupKey])
+ @@map("notifications")
+}
+/// Identifier-only Realtime events, written with the durable change.
+model CommunicationOutbox {
+ id BigInt @id @default(autoincrement())
+ topic String @db.VarChar(200)
+ event String @db.VarChar(40)
+ payload Json
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ attempts Int @default(0)
+ deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(3)
+ abandonedAt DateTime? @map("abandoned_at") @db.Timestamptz(3)
+ @@map("communication_outbox")
+}

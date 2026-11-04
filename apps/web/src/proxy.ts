@@ -13,7 +13,8 @@ export async function proxy(request: NextRequest) {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    `connect-src 'self' ${provider} ${process.env.NODE_ENV === 'development' ? (process.env.ATLAS_ORIGIN ?? '').replace(/^http/, 'ws') : ''}`,
+    // A04: the exact Supabase origin's WebSocket form for private Realtime.
+    `connect-src 'self' ${provider} ${provider.replace(/^http/, 'ws')} ${process.env.NODE_ENV === 'development' ? (process.env.ATLAS_ORIGIN ?? '').replace(/^http/, 'ws') : ''}`,
     // PDF.js runs its parser in a same-origin worker module.
     "worker-src 'self'",
     "font-src 'self'",

@@ -4,6 +4,10 @@
 
 See the [canonical capability/status matrix and A00 evidence](phases/A00_REPOSITORY_HARDENING_REPORT.md). Phase 01–04 implementations are integrated into `master`; hosted Phase 02–04 activation remains blocked by migration-history/browser privileges, recovery verification and worker/provider gates. PR #11 (Phase 04 post-merge hardening) has since been merged into `master`. A01 requires the explicit target, approvals and verification sequence in the A00 report before any hosted changes.
 
+## A04 implementation update (Phase 05 — communication hub)
+
+A04 code is implemented and verified in disposable environments (channels, threads, mentions, reactions, research sharing, notifications, private Realtime, @Atlas context). Hosted verification requires the approval packet in the [A04 report](phases/A04_RESEARCH_COMMUNICATION_REPORT.md). Phase 06 (beta) entry criteria are listed there.
+
 ## Phase 04 implementation update
 
 Phase 04 implementation and the Phase 04.1 hardening pass cover documents, versions, tasks, links, search and AI proposals, including archive-list restoration and progressive Board/List pagination. Actual verification and remaining gates are recorded in the [Phase 04 implementation report](phases/PHASE_04_IMPLEMENTATION_REPORT.md). Hosted activation remains blocked; Phase 05 planning can use stable artifact IDs and `mentioned_profile_ids` after reviewing that evidence. Phase 05 implementation is not part of this pass.
