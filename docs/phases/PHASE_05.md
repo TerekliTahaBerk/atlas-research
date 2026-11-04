@@ -2,7 +2,7 @@
 
 Current repository capability classifications and hosted blockers: [A00 audit](A00_REPOSITORY_HARDENING_REPORT.md). This phase specification defines scope and acceptance requirements; historical checklists alone do not certify current activation.
 
-Status: historical specification. Implementation state: A04 code complete in disposable environments, hosted activation pending approval — see [A04 report](A04_RESEARCH_COMMUNICATION_REPORT.md).
+Status: historical specification. Implementation state: A04 code complete in disposable environments, hosted activation pending approval — see [A04 report](A04_RESEARCH_COMMUNICATION_REPORT.md) and the [A04.1 hardening report](A04_1_HOSTED_ACCEPTANCE_REPORT.md).
 
 ## 1. Objective
 
