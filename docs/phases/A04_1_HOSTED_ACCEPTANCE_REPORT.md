@@ -35,7 +35,7 @@ Reproduced on real PostgreSQL + real Supabase Realtime v2.143.1 (`tests/realtime
 - **Degraded-delivery state**: a live-state reconcile that finds changes no event announced sets `data-delivery="delayed"` and shows "Live · synced" with the explanation "Some live updates arrived late — this channel was synced from the server". It clears on the next delivered event. Existing connecting/reconnecting/offline/unavailable states are unchanged.
 - **Read budget**: change reads have their own `channel-sync` bucket (120/min), so background reconciliation cannot starve research reads (the class of defect A04 hit with the unread badge). Steady state is ≤2 reads/min per open channel while live, 0 while hidden.
 - **Independent outbox retry** (migration `20261104090000_communication_reliability`):
-  - `comm_dispatch` backs off exponentially (2, 4, 8 … ≤60 s), abandons after 8 attempts, expires undelivered hints after 15 min, records only SQLSTATE in `last_error`, and **never sends an event addressed to a superseded epoch** (`SUPERSEDED`); only the content-free `topic.rotated` may still reach an old topic. Dispatch takes the shared 71001 lock, so it cannot interleave with a revocation's rotation.
+  - `comm_dispatch` backs off exponentially (2, 4, 8 … ≤60 s), abandons after 8 attempts, expires undelivered hints after 15 min, records only SQLSTATE in `last_error`, and **never sends an event addressed to a superseded epoch** (`SUPERSEDED`); only the content-free `topic.rotated` may still reach an old topic. Dispatch takes the shared 71001 lock, so it cannot interleave with a platform-level revocation (membership/scope changes take that lock exclusively). Channel-level `channel.member.remove`/`channel.leave` also take it shared and are therefore **not** serialized with dispatch — see the residual P3 in §9.
   - In-database schedule: when pg_cron is installed, the migration (or the idempotent `ops/sql/a04-1-dispatch-schedule.sql`) schedules `atlas-comm-dispatch` every 20 s. This is a Supabase/PostgreSQL capability with no web process, Mac worker or paid service.
   - Read-path sweep: after an authorized `?since=` read, `after(() => sweepOutbox())` dispatches at most once per server instance per 10 s — useful where pg_cron is not enabled. It never affects the response.
   - `next_attempt_at` defaults to `date_trunc('milliseconds', now())`: a plain `now()` in a `timestamptz(3)` column rounds up half the time, which made fresh rows briefly not due. Found by a flaky regression run, fixed at the root, and the test's own `now()` comparison was corrected rather than retried.
@@ -161,9 +161,35 @@ Pending §5. Planned journeys: owner creates PROJECT and RESTRICTED channels; ed
 | `pnpm test:realtime`                                                   | PASS 8/8, three consecutive runs                                                                                                                                                                                                  |
 | `pnpm build`                                                           | PASS                                                                                                                                                                                                                              |
 | `pnpm test:e2e`                                                        | 95/101 locally; the 6 failures are the preview pixel baselines (home/documents/manuscripts, 2–3% diff). The identical 6 fail on an unmodified `master` worktree in this container (different Chromium build); CI is authoritative |
-| `pnpm test:auth:e2e`                                                   | See the CI section of the PR. Locally (Node 22, shared container) the full run showed one-off registration-step timeouts in A01 journeys and once the A04 two-browser reaction step; the affected specs pass when re-run          |
-| GitHub `quality`, `isolated-auth`, `offline-engines`                   | Recorded in the PR                                                                                                                                                                                                                |
+| `pnpm test:auth:e2e`                                                   | Final head: PASS 14/14 locally from a fully cold start (`.next` removed, OS page cache dropped). Earlier local and CI failures are explained in §10                                                                               |
+| GitHub `quality`, `isolated-auth`, `offline-engines`                   | See §10 (final head)                                                                                                                                                                                                              |
 
-## 9. A05 readiness
+## 9. Residual security findings
+
+- **P3: channel-level removal vs. dispatch race.** `comm_dispatch` and `channel.member.remove`/`channel.leave` both take the 71001 lock in shared mode. If a removal commits while a dispatch is between its epoch check and its commit, one identifier-only hint for a message created _before_ the removal can reach the old topic. No content can leak (every read re-authorizes and returns `NOT_FOUND`; payloads are IDs only), and A04 without A04.1 had the same exposure for every queued hint. Fix: lock the channel row `FOR SHARE` during the epoch check, so removal and send fully serialize. This needs an additive migration and a new approval hash, so it is deferred rather than changing the rehearsed migration 14.
+- **P3: owners see orphaned restricted channel names.** By design, `channel_recovery` shows owners the name and eligible members of restricted channels nobody can manage. Documented in §3.3.
+- **Hosted (pre-existing, not A04):** leaked-password protection is disabled in Supabase Auth (advisor WARN). Enabling it is a separate hosted change.
+- No P0/P1 security defect is known.
+
+## 10. PR #24 CI recovery (4 November 2026)
+
+**Failure.** Run [41851782126](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41851782126) at `a1e4882`: `quality` and `offline-engines` passed; `isolated-auth` failed 13/14. `ai-research.spec.ts:44` stopped in `register()`, where the status region was still empty after 5 s. The A04 communication journey passed.
+
+**Root cause.** The registration form was not at fault. Instrumented runs that captured only URLs, HTTP statuses and navigations (no bodies, passwords or sessions) showed React hydrated before both clicks and the `POST /api/v1/auth` was sent about 1.8 s after page load. The response then took **7.0 s on a cold `next dev` server**, against **318 ms warm**: the first request to the catch-all `/api/v1/[...path]` route triggers on-demand compilation of every feature's server code. The helper asserted the status text inside Playwright's default 5 s expect window, so whichever spec registered first raced that compilation. `ai-research` runs first alphabetically.
+
+- **Unmodified `master` has the same race:** about 6.0 s for the first cold response. A04/A04.1 add roughly 1 s of server code to that route, which made the race lose more often.
+- GoTrue was not rate-limiting and the network was not interrupted: the response was 200 and the message rendered once it arrived.
+
+**Fix (test synchronization only).** `register()` now waits for the real `POST /api/v1/auth` response, bounded by the 60 s test timeout, asserts HTTP 200, then asserts the same `check your inbox` text. No timeout was raised, no retry was added and no assertion was weakened. Registration behavior is unchanged.
+
+**Proof.** With `.next` removed and the OS page cache dropped (a true cold start), `ai-research.spec.ts` failed **4/4 without the fix** and passed **4/4 with it**. The full authenticated suite then passed 14/14 from a cold start.
+
+**Related latent race (not failing in CI; follow-up).** Run alone and cold, `core-platform.spec.ts` can hit the same first-compile latency on the project routes. A click that lands before hydration (for example on "New project") is dropped because server-rendered controls exist before their handlers. In the full suite, `ai-research` runs first and absorbs those compiles. The durable fix is to run authenticated E2E against `next build && next start`, or to add a hydration-ready signal. That is a harness change outside this PR.
+
+**Final head and CI.** Code fix `243225f`: run [41862844553](https://github.com/TerekliTahaBerk/atlas-research/actions/runs/41862844553) in progress when this section was written; final per-head results are recorded on PR #24 and in the follow-up update of this section.
+
+**Migrations.** 13 (`921bafff…709720`) and 14 (`26be3fc8…8cf0a`) are byte-identical to the rehearsed and approval-packet versions. The §5 approval packet therefore remains valid as written.
+
+## 11. A05 readiness
 
 **Not ready.** Code-level A04.1 is complete and verified in disposable environments, with no known unresolved P0/P1 defect. Hosted A04 verification is blocked on: (1) your approval of §5; (2) an operator-Mac session to refresh and restore the encrypted baseline and run the deploy; then (3) the §7 hosted journeys. Phase A05 has not been started.
