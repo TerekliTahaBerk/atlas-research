@@ -77,8 +77,7 @@ export const papers: Paper[] = [
   },
 ];
 
-export const researchQuestion =
-  'How can structure prediction scale to long proteins without exhausting memory?';
+export const researchQuestion = 'How do we model long proteins without running out of memory?';
 
 export const highlightedSentence =
   'With r = 32, peak memory on a 1,400-residue target falls from 61 GB to 19 GB';

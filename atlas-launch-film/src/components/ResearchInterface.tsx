@@ -22,6 +22,12 @@ export type ResearchState = {
   expand: number;
   /** In-app scroll offset in px. */
   scroll: number;
+  /** 0 = compact composer look, 1 = full Research input (V2 hand-off). */
+  inputOpen?: number;
+  /** Hide the focused row (it is lifted out as a hero object). */
+  hideFocus?: boolean;
+  /** Blur in px applied to non-focused rows (depth of field). */
+  rowBlur?: number;
 };
 
 const Cite: React.FC<{ n: number }> = ({ n }) => (
@@ -78,13 +84,13 @@ export const ResearchInterface: React.FC<{ s: ResearchState; narrow: boolean }> 
               boxShadow: '0 1px 2px rgba(0,0,0,.12)',
             }}
           >
-            <div style={{ minHeight: 60, fontSize: 15, lineHeight: 1.55, padding: '14px 16px 4px', color: text ? color.tx : color.tx3 }}>
+            <div style={{ minHeight: 60 - 26 * (1 - (s.inputOpen ?? 1)), fontSize: 15, lineHeight: 1.55, padding: '14px 16px 4px', color: text ? color.tx : color.tx3 }}>
               {text || 'Ask a question, paste a DOI, or describe a method'}
               {s.caret ? (
                 <span style={{ display: 'inline-block', width: 1.5, height: 18, background: color.tx, verticalAlign: -3, marginLeft: 1 }} />
               ) : null}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 10px', height: 50 * (s.inputOpen ?? 1), opacity: s.inputOpen ?? 1, overflow: 'hidden' }}>
               <div style={{ display: 'flex', gap: 2 }}>
                 {(narrow ? modes.slice(0, 2) : modes).map((m, i) => (
                   <span
@@ -190,7 +196,8 @@ export const ResearchInterface: React.FC<{ s: ResearchState; narrow: boolean }> 
                         borderRadius: 12,
                         background: f > 0 ? `rgba(46,46,44,${f})` : 'transparent',
                         boxShadow: f > 0 ? `inset 0 0 0 1px rgba(91,141,239,${0.45 * f})` : undefined,
-                        opacity: t * dim,
+                        opacity: t * dim * (isFocus && s.hideFocus ? 0 : 1),
+                        filter: !isFocus && (s.rowBlur ?? 0) > 0.2 ? `blur(${s.rowBlur}px)` : undefined,
                         transform: `translateY(${(1 - t) * 14}px)`,
                         zIndex: isFocus ? 2 : 1,
                       }}

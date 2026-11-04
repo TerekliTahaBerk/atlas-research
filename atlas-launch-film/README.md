@@ -1,5 +1,7 @@
 # Atlas — Cinematic Brand Launch Film
 
+> **V2 (current):** the cinematic overhaul lives in `src/v2/`. Its compositions are in the Studio's **Atlas-Launch-V2** folder: `AtlasLaunchV2`, `AtlasLaunchV2Vertical` and `AtlasTeaserV2`. Render it with `npm run audio:v2 && npm run render:v2`. For the reasoning and the timeline, see `V1_AUDIT.md`, `V2_MOTION_PLAN.md` and `v1-v2-improvement-report.md`. V1 stays registered, unchanged, for comparison.
+
 This folder holds a 60-second launch film for **Atlas Research**, built with React, TypeScript and [Remotion](https://www.remotion.dev/docs). Every frame comes from editable code. The film uses no screenshots, no stock footage and no third-party audio.
 
 | Deliverable | File |
@@ -10,6 +12,8 @@ This folder holds a 60-second launch film for **Atlas Research**, built with Rea
 | Final timing and scene descriptions | `storyboard.md` |
 | Optional narration (English / Turkish) | `voiceover-en.txt`, `voiceover-tr.txt` |
 | QA contact sheets (regenerate with `node scripts/stills.mjs`) | `output/contact-sheet-*.png` |
+| **V2** 16:9 master · 9:16 master · 9:16 teaser (23.3 s) | `output/atlas-launch-v2-16x9.mp4`, `output/atlas-launch-v2-9x16.mp4`, `output/atlas-teaser-v2-9x16.mp4` |
+| **V2** contact sheet (every 2 s) and report | `output/atlas-launch-v2-contact-sheet.png`, `v1-v2-improvement-report.md` |
 
 The film is self-contained. It has its own `package.json` and lockfile, sits outside the pnpm workspace, and imports nothing from `apps/` or `packages/`. The root ESLint and Prettier configs ignore this folder.
 
@@ -71,7 +75,14 @@ node scripts/stills.mjs AtlasLaunch
 node scripts/stills.mjs AtlasLaunchVertical 120,700,1100
 ```
 
-## Editing
+## Editing V2
+
+- **Timing:** edit `src/v2/timeline.json` (scene boundaries and about 60 cues, in seconds), then run `npm run audio:v2`.
+- **Camera:** scenes declare `Rig` keys. `aim()` solves the keys that put a known window point on a screen anchor. Change anchors in `src/v2/anchors.ts` and both sides of the hand-off follow.
+- **Graph:** set node topology (phase A/B plane coordinates) and the plane-camera keys at the top of `src/v2/scenes/ConnectScene.tsx`.
+- **Sound-off:** the editorial lines carry the story without audio. Render a silent cut with `npm run render:v2:silent`.
+
+## Editing (V1)
 
 - **Timing:** `src/data/timeline.json` holds scene boundaries and about 40 named cues, in seconds. The picture (`src/data/storyboard.ts` → `localCue()`) and the score both read from it. After moving a cue, run `npm run audio` so the music and sound effects follow.
 - **Copy:** headlines are inline in each `src/scenes/*Scene.tsx` file, passed to `<FeatureTitle>` or `<CinematicText>`. Demo research content (papers, people, tasks, graph topology) is in `src/data/demoResearch.ts`.

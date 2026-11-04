@@ -6,7 +6,7 @@ import { color } from '../design/tokens';
  * The near-black world the film lives in: a soft overhead key light and a
  * gentle vignette, consistent across every scene so dissolves stay seamless.
  */
-export const Stage: React.FC<{ light?: number; children?: React.ReactNode }> = ({ light = 1, children }) => (
+export const Stage: React.FC<{ light?: number; vignette?: number; children?: React.ReactNode }> = ({ light = 1, vignette = 1, children }) => (
   <AbsoluteFill style={{ background: color.stage, overflow: 'hidden' }}>
     <AbsoluteFill
       style={{
@@ -18,6 +18,7 @@ export const Stage: React.FC<{ light?: number; children?: React.ReactNode }> = (
     <AbsoluteFill
       style={{
         pointerEvents: 'none',
+        opacity: vignette,
         background: 'radial-gradient(ellipse 95% 95% at 50% 45%, rgba(0,0,0,0) 62%, rgba(0,0,0,.38) 100%)',
       }}
     />

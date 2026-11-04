@@ -1,0 +1,120 @@
+{
+  "fps": 30,
+  "durationSeconds": 60,
+  "bpm": 120,
+  "scenes": [
+    {
+      "id": "hook",
+      "title": "The Hook",
+      "start": 0,
+      "end": 3
+    },
+    {
+      "id": "fragments",
+      "title": "From Fragments to Atlas",
+      "start": 3,
+      "end": 8
+    },
+    {
+      "id": "reveal",
+      "title": "The Product Reveal",
+      "start": 8,
+      "end": 13
+    },
+    {
+      "id": "discover",
+      "title": "Discover",
+      "start": 13,
+      "end": 22
+    },
+    {
+      "id": "understand",
+      "title": "Understand",
+      "start": 22,
+      "end": 31
+    },
+    {
+      "id": "connect",
+      "title": "Connect",
+      "start": 31,
+      "end": 40
+    },
+    {
+      "id": "collaborate",
+      "title": "Collaborate",
+      "start": 40,
+      "end": 48
+    },
+    {
+      "id": "create",
+      "title": "Create",
+      "start": 48,
+      "end": 55
+    },
+    {
+      "id": "atlas",
+      "title": "Atlas",
+      "start": 55,
+      "end": 60
+    }
+  ],
+  "cues": {
+    "hookPoint": 0.0,
+    "hookMark": 1.5,
+    "hookRelease": 2.2,
+    "fragBurst": 3.0,
+    "isolation": 3.8,
+    "linkA": 4.0,
+    "linkB": 4.5,
+    "linkC": 5.0,
+    "converge": 6.0,
+    "wordmark": 6.8,
+    "unfold": 8.8,
+    "arc": 9.5,
+    "composer": 11.0,
+    "submit": 12.5,
+    "answer": 13.5,
+    "papers": 14.5,
+    "discoverTitle": 14.0,
+    "focusPaper": 16.5,
+    "openPaper": 19.5,
+    "morphPage": 20.5,
+    "readTitle": 22.3,
+    "highlight": 23.0,
+    "selectMenu": 24.0,
+    "askAtlas": 24.5,
+    "liftEvidence": 25.0,
+    "answerStream": 27.0,
+    "verified": 28.5,
+    "saveNote": 29.6,
+    "nodeForm": 31.0,
+    "waveA": 32.0,
+    "waveB": 32.5,
+    "waveC": 33.0,
+    "waveD": 33.5,
+    "reorganize": 35.0,
+    "connectTitle": 35.5,
+    "pullBack": 36.5,
+    "edgePulse": 38.0,
+    "taskSpawn": 38.5,
+    "taskDive": 39.0,
+    "forwardTitle": 40.5,
+    "cursorIn": 41.0,
+    "assign": 42.0,
+    "comment": 43.0,
+    "together": 44.0,
+    "status": 45.0,
+    "openManuscript": 46.5,
+    "insert": 49.0,
+    "compile": 51.0,
+    "preview": 52.0,
+    "createTitle": 52.5,
+    "liftPage": 53.5,
+    "journey": 55.0,
+    "journeyLinks": 55.5,
+    "collapse": 56.6,
+    "finalWordmark": 57.2,
+    "tagline": 57.9,
+    "fadeOut": 59.3
+  }
+}
