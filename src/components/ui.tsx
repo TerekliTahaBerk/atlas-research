@@ -21,6 +21,7 @@ export function Icon({
     | "settings"
     | "arrow"
     | "people"
+    | "search"
     | "close";
 }) {
   const paths = {
@@ -34,6 +35,7 @@ export function Icon({
     people:
       "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8m8 0a4 4 0 0 1 0 8",
     close: "m6 6 12 12M6 18 18 6",
+    search: "M21 21l-5-5M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14",
   };
   return (
     <svg

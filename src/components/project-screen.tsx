@@ -160,6 +160,8 @@ function ProjectBody({
         >
           Overview
         </Link>
+        <Link href={`${path}/discover`}>Research</Link>
+        <Link href={`${path}/sources`}>Library</Link>
         <Link
           href={`${path}/members`}
           aria-current={section === "members" ? "page" : undefined}
@@ -183,8 +185,19 @@ function ProjectBody({
         <>
           <section className="overview-card">
             <span className="eyebrow">Project workspace</span>
-            <h2>A shared starting point</h2>
-            <p>Keep your research question and collaborators together.</p>
+            <h2>Start with a source</h2>
+            <p>
+              Discover a paper, keep it in your library, and read with your
+              notes beside you.
+            </p>
+            <div className="actions">
+              <Link className="button primary" href={`${path}/discover`}>
+                Find papers
+              </Link>
+              <Link className="button" href={`${path}/sources`}>
+                Open library
+              </Link>
+            </div>
             <dl>
               <div>
                 <dt>Workspace</dt>

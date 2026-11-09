@@ -40,6 +40,28 @@ export async function api<T>(
 }
 export function message(error: unknown) {
   const code = error instanceof ApiError ? error.code : "INTERNAL_ERROR";
+  const research: Record<string, string> = {
+    INVALID_DOI: "Enter a DOI such as 10.1234/example or its doi.org link.",
+    INVALID_URL: "Enter a valid http or https article link.",
+    PROVIDER_BUSY: "Crossref is busy. Wait a moment and search again.",
+    PROVIDER_UNAVAILABLE:
+      "Crossref could not respond. Try again, or add the source manually.",
+    REVISION_CONFLICT:
+      "Someone changed this record. Refresh before saving again.",
+    DUPLICATE_SOURCE:
+      "This DOI or article link is already in this project’s library.",
+    STORAGE_UNAVAILABLE:
+      "PDF storage is temporarily unavailable. Your source details are still saved.",
+    FILE_TOO_LARGE: "Choose a PDF of 25 MB or less.",
+    INVALID_PDF:
+      "This file does not look like a complete PDF. Choose another copy.",
+    UPLOAD_IN_PROGRESS:
+      "This upload is already being processed. Refresh, or try again shortly.",
+    STORAGE_QUOTA: "This project has reached its 250 MB PDF storage limit.",
+    UPLOAD_FAILED:
+      "The PDF could not be saved. Your source details are safe; try the upload again.",
+  };
+  if (research[code]) return research[code];
   if (code === "MAIL_DISABLED")
     return "Email delivery is currently unavailable. Please contact your workspace administrator.";
   if (code === "REAUTH_REQUIRED")
