@@ -162,7 +162,9 @@ try {
     await page.waitForURL("**/home");
     await page
       .getByRole("heading", {
-        name: `Hello, ${name.split(" ")[0]}`,
+        name: new RegExp(
+          `Good (morning|afternoon|evening), ${name.split(" ")[0]}`,
+        ),
         exact: true,
       })
       .waitFor();
@@ -176,6 +178,7 @@ try {
   console.log(
     "PASS: three browser registrations, SMTP verification, sign-in and empty personal workspaces.",
   );
+  await pa.locator(".account-menu > summary").click();
   await pa
     .getByRole("button", { name: "Shared workspace", exact: true })
     .click();
@@ -188,10 +191,11 @@ try {
     .getByRole("button", { name: "Create workspace", exact: true })
     .click();
   await pa.getByRole("dialog").waitFor({ state: "hidden" });
-  await pa.getByRole("link", { name: "S Synthetic Team" }).waitFor();
+  await pa.getByRole("link", { name: "Synthetic Team", exact: true }).waitFor();
+  await pa.locator(".account-menu > summary").click();
   await pa
     .locator("#main")
-    .getByRole("button", { name: "New project", exact: true })
+    .getByRole("button", { name: "Create a project", exact: true })
     .click();
   await pa
     .getByRole("dialog")
@@ -314,7 +318,10 @@ try {
   stage = "keyboard drawer";
   await pa.goto(origin + "/home");
   await pa
-    .getByRole("heading", { name: "Hello, Researcher", exact: true })
+    .getByRole("heading", {
+      name: /Good (morning|afternoon|evening), Researcher/,
+      exact: true,
+    })
     .waitFor();
   await pa
     .getByRole("button", { name: "Open navigation", exact: true })
@@ -439,7 +446,10 @@ try {
   await pc.unroute("**/api/projects");
   await pc.getByRole("button", { name: "Try again", exact: true }).click();
   await pc
-    .getByRole("heading", { name: "Hello, Researcher", exact: true })
+    .getByRole("heading", {
+      name: /Good (morning|afternoon|evening), Researcher/,
+      exact: true,
+    })
     .waitFor();
   let release!: () => void;
   const gate = new Promise<void>((r) => {
@@ -457,7 +467,10 @@ try {
   await pc.screenshot({ path: join(folder, "loading-1440-dark.png") });
   release();
   await pc
-    .getByRole("heading", { name: "Hello, Researcher", exact: true })
+    .getByRole("heading", {
+      name: /Good (morning|afternoon|evening), Researcher/,
+      exact: true,
+    })
     .waitFor();
   await pc.unroute("**/api/projects");
   stage = "disabled mail deployment profile";

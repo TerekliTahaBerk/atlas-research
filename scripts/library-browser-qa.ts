@@ -159,6 +159,9 @@ try {
     .waitFor();
   await page.locator(".pdf-paper").waitFor({ state: "visible" });
   stage = "highlight and note";
+  await page
+    .getByRole("button", { name: "Highlight color blue", exact: true })
+    .click();
   const span = page
     .locator(".textLayer span")
     .filter({ hasText: "P-Hacking" })
@@ -182,6 +185,9 @@ try {
     .filter({ hasText: "A persistent observation" })
     .waitFor();
   await page.getByLabel("PDF page", { exact: true }).fill("2");
+  await page
+    .getByRole("button", { name: "Add page note", exact: true })
+    .click();
   await page
     .getByLabel("Annotation note", { exact: true })
     .fill("Page two note survives a new session.");
@@ -223,12 +229,25 @@ try {
     await page.getByLabel("PDF zoom", { exact: true }).inputValue(),
     "1.25",
   );
+  await page.getByLabel("PDF zoom", { exact: true }).selectOption("1");
+  await page.waitForFunction(() => {
+    const p = document.querySelector<HTMLElement>(".pdf-paper");
+    return (
+      p && getComputedStyle(p).visibility === "visible" && p.clientWidth <= 651
+    );
+  });
+  await page.screenshot({ path: join(folder, "reader-desktop-fit.png") });
   stage = "private range and export";
   const persisted = await (
       await context.request.get(`${base}/sources/${s}`)
     ).json(),
     v = persisted.versions.find((v: { fileId: string | null }) => v.fileId),
     file = `${base}/sources/${s}/versions/${v.id}/file`;
+  assert.equal(
+    persisted.annotations.find((a: { kind: string }) => a.kind === "highlight")
+      .color,
+    "blue",
+  );
   assert.equal(
     (
       await context.request.get(file, { headers: { range: "bytes=0-15" } })
@@ -251,6 +270,12 @@ try {
     assert.equal(exported.status(), 200);
     assert.match(await exported.text(), /10.1371\/journal.pbio.1002106/);
   }
+  await page.goto(origin + "/home");
+  await page
+    .getByRole("heading", { name: /Good (morning|afternoon|evening),/ })
+    .waitFor();
+  await page.locator(".continue-grid").waitFor();
+  await page.screenshot({ path: join(folder, "home-desktop.png") });
   stage = "library organization and narrow reader";
   await context.request.post(`${base}/collections`, {
     headers,
@@ -258,7 +283,9 @@ try {
   });
   await page.goto(origin + path + `/sources/${s}`);
   await page.getByRole("button", { name: "Edit details", exact: true }).click();
-  await page.getByLabel("Tags", { exact: false }).fill("methods");
+  await page
+    .getByLabel("Tags comma separated", { exact: true })
+    .fill("methods");
   await page.getByLabel("Methods", { exact: true }).check();
   await page
     .getByRole("button", { name: "Save source details", exact: true })
@@ -266,6 +293,55 @@ try {
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.goto(origin + path + "/sources");
   await page.locator(".paper-row").waitFor();
+  stage = "project picker and sidebar";
+  await page.locator(".project-switcher").first().click();
+  await page
+    .getByRole("dialog")
+    .getByRole("heading", { name: "Switch project", exact: true })
+    .waitFor();
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Close sidebar", exact: true })
+    .click();
+  assert.equal(await page.locator(".app-shell.sidebar-closed").count(), 1);
+  await page
+    .getByRole("button", { name: "Open navigation", exact: true })
+    .click();
+  stage = "keyboard search";
+  await page.keyboard.press("Meta+k");
+  assert.equal(
+    await page
+      .locator("#library-search")
+      .evaluate((n) => n === document.activeElement),
+    true,
+  );
+  stage = "reading filters";
+  await page
+    .getByRole("group", { name: "Reading status", exact: true })
+    .getByRole("button", { name: "To read", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "No matching sources", exact: true })
+    .waitFor();
+  await page
+    .getByRole("group", { name: "Reading status", exact: true })
+    .getByRole("button", { name: "Reading", exact: true })
+    .click();
+  await page.locator(".paper-row").waitFor();
+  await page
+    .getByRole("group", { name: "Reading status", exact: true })
+    .getByRole("button", { name: "All", exact: true })
+    .click();
+  await page.locator(".paper-row").waitFor();
+  stage = "theme switch";
+  await page.getByRole("button", { name: "Dark theme", exact: true }).click();
+  await page.screenshot({ path: join(folder, "library-desktop-dark.png") });
+  await page.getByRole("button", { name: "Light theme", exact: true }).click();
+  console.log({
+    layout: await page.evaluate(
+      `(()=>{const rect=(s)=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};return {sidebar:rect('.sidebar'),topbar:rect('.topbar'),collections:rect('.collections-pane'),search:rect('.library-toolbar form'),row:rect('.paper-row')};})()`,
+    ),
+  });
   await page.screenshot({ path: join(folder, "library-desktop.png") });
   await page.setViewportSize({ width: 390, height: 900 });
   await page.reload();
@@ -305,6 +381,8 @@ try {
   );
   console.log(`Controlled evidence: ${folder}`);
 } catch (error) {
+  if (error instanceof Error)
+    console.error(error.message.split("\n")[0].slice(0, 220));
   console.error(
     `FAIL at ${stage}: ${error instanceof Error ? error.name : "Error"}; raw credentials/URLs/provider content omitted.`,
   );
