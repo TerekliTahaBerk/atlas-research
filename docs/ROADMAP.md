@@ -1,6 +1,6 @@
 # Atlas roadmap
 
-Status: Phase 00 and Phase 01 P01-1–4 are merged. P01-5 has local operations evidence and a running owner-selected Coolify preview; [G01 remains open](PHASE_01_HANDOFF.md) for deferred email, independent recovery and full live acceptance. Detailed scope, dependencies, PR slices and evidence gates are in [Phase 00](phases/PHASE_00.md), [01](phases/PHASE_01.md), [02](phases/PHASE_02.md), [03](phases/PHASE_03.md), [04](phases/PHASE_04.md) and [05](phases/PHASE_05.md).
+Status: Phase 00 and Phase 01 P01-1–5 are merged, including PR #31 squash `8c9f6d5`. Phase 02 is in implementation. The owner deferred comprehensive G01/G02 reviews to [before the Phase 05 beta](BETA_REVIEW_BACKLOG.md); email and independent backup remain open and do not block Phase 02. Current delivery evidence belongs in [the Phase 02 handoff](PHASE_02_HANDOFF.md). Detailed scope and historical gate definitions remain in the phase specifications.
 
 ## Product
 

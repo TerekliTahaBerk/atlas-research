@@ -99,6 +99,9 @@ services:
       MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
       SMTP_HOST: ${SMTP_HOST:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      FILE_STORAGE_PATH: /data/atlas-files
+    volumes:
+      - atlas-private-files:/data/atlas-files
     expose: ["3000"]
     networks: [frontend, backend]
     depends_on: { migrate: { condition: service_completed_successfully } }
@@ -138,9 +141,32 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     stop_grace_period: 30s
+  files:
+    build: { context: ., target: files, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:files-${ATLAS_RELEASE}
+    environment:
+      <<: *atlas-isolated-env
+      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      FILE_STORAGE_PATH: /data/atlas-files
+      ATLAS_RELEASE: ${ATLAS_RELEASE}
+    volumes:
+      - atlas-private-files:/data/atlas-files
+    networks: [backend]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    mem_limit: 384m
+    cpus: 0.5
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
 networks:
   frontend: {}
   backend: { internal: true }
   egress: {}
 volumes:
   atlas-postgres: {}
+  atlas-private-files: {}

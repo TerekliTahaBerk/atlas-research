@@ -4,5 +4,5 @@
     "strict": true, "esModuleInterop": true, "skipLibCheck": true,"rewriteRelativeImportExtensions":true,
     "rootDir": "src/server", "outDir": "dist/worker", "declaration": false
   },
-  "include": ["src/server/mail/**/*.ts", "src/server/env.ts"]
+  "include": ["src/server/mail/**/*.ts", "src/server/files/**/*.ts", "src/server/env.ts"]
 }

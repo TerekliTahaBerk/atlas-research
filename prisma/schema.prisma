@@ -211,3 +211,161 @@ model RateLimit {
   @@map("rate_limits")
   @@schema("identity")
 }
+
+model Artifact {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  kind String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, projectId, id])
+  @@map("artifacts")
+  @@schema("app")
+}
+model Source {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  title String
+  authors String[]
+  year Int?
+  venue String @default("")
+  doi String?
+  url String?
+  abstract String @default("")
+  provenance Json
+  tags String[]
+  searchText String @default("")
+  createdBy String
+  archivedAt DateTime?
+  revision Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId, projectId, id])
+  @@unique([workspaceId, projectId, doi])
+  @@unique([workspaceId, projectId, url])
+  @@map("sources")
+  @@schema("app")
+}
+model SourceVersion {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  sourceId String @db.Uuid
+  ordinal Int
+  fileId String? @unique @db.Uuid
+  metadata Json
+  extractionStatus String @default("metadata_only")
+  pageCount Int?
+  textCharacters Int?
+  extractedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, projectId, id])
+  @@unique([workspaceId, projectId, sourceId, id])
+  @@unique([sourceId, ordinal])
+  @@map("source_versions")
+  @@schema("app")
+}
+model FileObject {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  filename String
+  sha256 String
+  bytes Int
+  createdBy String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, projectId, id])
+  @@map("file_objects")
+  @@schema("app")
+}
+model UploadIntent {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  sourceId String @db.Uuid
+  fileId String @db.Uuid
+  versionId String? @db.Uuid
+  createdBy String
+  expectedBytes Int
+  state String @default("uploading")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("upload_intents")
+  @@schema("app")
+}
+model Annotation {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  sourceId String @db.Uuid
+  versionId String @db.Uuid
+  authorId String
+  kind String
+  page Int
+  quote String @default("")
+  body String @default("")
+  rects Json
+  color String @default("yellow")
+  revision Int @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId, projectId, id])
+  @@map("annotations")
+  @@schema("app")
+}
+model Collection {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  name String
+  normalizedName String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, projectId, id])
+  @@unique([projectId, normalizedName])
+  @@map("collections")
+  @@schema("app")
+}
+model SourceCollection {
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  sourceId String @db.Uuid
+  collectionId String @db.Uuid
+  @@id([sourceId, collectionId])
+  @@map("source_collections")
+  @@schema("app")
+}
+model ReadingState {
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  sourceId String @db.Uuid
+  userId String
+  versionId String? @db.Uuid
+  status String @default("unread")
+  page Int @default(1)
+  zoom Float @default(1)
+  position Float @default(0)
+  updatedAt DateTime @updatedAt
+  @@id([sourceId, userId])
+  @@map("reading_states")
+  @@schema("app")
+}
+model FileJob {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  versionId String @db.Uuid
+  actorId String
+  sessionId String
+  state String @default("pending")
+  attempts Int @default(0)
+  error String?
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  createdAt DateTime @default(now())
+  @@index([state, nextAttemptAt])
+  @@map("file_jobs")
+  @@schema("ops")
+}

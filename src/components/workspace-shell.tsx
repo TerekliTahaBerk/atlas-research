@@ -108,6 +108,26 @@ export function WorkspaceShell({
         {projects.data?.length === 0 && (
           <p className="nav-hint">Your projects will appear here.</p>
         )}
+        {current && (
+          <div className="project-subnav">
+            <Link
+              className={`nav-item ${path.endsWith("/discover") ? "selected" : ""}`}
+              href={projectPath(current) + "/discover"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="search" />
+              Research
+            </Link>
+            <Link
+              className={`nav-item ${path.includes("/sources") ? "selected" : ""}`}
+              href={projectPath(current) + "/sources"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="folder" />
+              Library
+            </Link>
+          </div>
+        )}
         <div className="section-label">Workspaces</div>
         {workspaces.data?.map((w) => (
           <Link

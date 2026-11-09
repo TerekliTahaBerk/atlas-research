@@ -2,6 +2,14 @@
 
 Tarih: 2026-11-09. Durum: Faz 00 seçimi; hiçbir servis oluşturulmadı.
 
+## Faz 02 uygulama kararı — 9 Kasım 2026
+
+Kullanıcının en küçük çalışan kapsam talimatıyla Graphile tercihi yeniden değerlendirildi. Mevcut Faz 01 outbox/lease modelini kullanan, yalnız PDF metadata/metin işleyen `ops.file_jobs` kuyruğu seçildi; Graphile/Redis eklenmedi. Aşağıdaki Graphile bölümü tarihsel Faz 00 tercihidir, uygulanmış bağımlılık değildir. Tek files süreci, `FOR UPDATE SKIP LOCKED`, 60 saniye lease, en çok iki otomatik deneme ve 60 saniye backoff kullanır. Manuel tekrar yeni job kimliği oluşturur. İş sonucu aynı immutable sürümde yalnız türetilmiş durumu günceller. Queue rolü dosya/kaynak içeriği okuyamaz; runtime rolü actor+session ile workspace→project kilit sırasını ve güncel erişimi yeniden denetler. Parser sırasında transaction açık tutulmaz.
+
+`pdfinfo` (5 saniye/100 KB çıktı) ve `pdftotext` (15 saniye/2 MB çıktı) ayrı rootless container içinde çalışır; container 384 MiB/0.5 CPU, salt okunur root ve özel tmpfs kullanır. 25 MiB dosya, 500 sayfa işleme ve 250 MiB/proje yükleme rezervasyonu sınırı vardır. OCR/AI/embedding yoktur. İmza/EOF/hash kontrolleri antivirüs garantisi değildir; kötü niyetli corpus ve parser sertleştirme beta incelemesinde açıktır.
+
+Web ve files süreçleri yeni `atlas-private-files:/data/atlas-files` volume'unu paylaşır. Eski `atlas-postgres` volume'u değişmez. Özel 0600 staging dosyası fsync/hash sonrası değişmez 0400 final dosyaya hard-link edilir; ardından aynı transaction FileObject/SourceVersion/job/intent kaydını tamamlar. Başarısız istek kendi dosyasını temizler, 24 saatten eski `.part` dosyalarını worker temizler. İşlem link ile DB commit'i arasında öldürülürse erişilemeyen final orphan kalabilir; otomatik final-object silme yapılmaz. Reconciliation ve DB+files tutarlı bağımsız geri dönüş beta öncesinde doğrulanmalıdır. Yerel volume kalıcılığı bağımsız yedek değildir; e-posta ve S3 kullanıcı kararıyla kapalıdır.
+
 ## Dosya depolama
 
 Beta başlangıcında özel, kalıcı Atlas volume'u ve sunucu tarafından yetkilendirilen download/range proxy seçildi. PostgreSQL yalnız metadata, hash, sahiplik ve ilişkileri tutar; PDF blob'ları tabloya konmaz. Storage key rastgeledir, tenant bazında scope'ludur. Statik public klasöre dosya yazılmaz, doğrudan herkese açık veya uzun ömürlü signed URL verilmez. Range dahil her istek [AUTHORIZATION](../AUTHORIZATION.md) yolundan geçer.
