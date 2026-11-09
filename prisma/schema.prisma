@@ -681,3 +681,16 @@ model AiReview {
  @@map("ai_reviews")
  @@schema("app")
 }
+
+model WorkVisit {
+ actorId String
+ artifactId String @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ kind String
+ versionId String? @db.Uuid
+ openedAt DateTime @default(now())
+ @@id([actorId,artifactId])
+ @@map("work_visits")
+ @@schema("app")
+}

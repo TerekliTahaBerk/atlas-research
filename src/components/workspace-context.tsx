@@ -47,8 +47,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       active ? "/api/collaboration/inbox" : null,
     );
   const [collapsed, setCollapsed] = useState(false);
-  const current = projects.data?.find((p) =>
-    path.startsWith(`/w/${p.workspaceId}/p/${p.id}/`),
+  const current = projects.data?.find(
+    (p) =>
+      path === `/w/${p.workspaceId}/p/${p.id}` ||
+      path.startsWith(`/w/${p.workspaceId}/p/${p.id}/`),
   );
   return (
     <Context.Provider

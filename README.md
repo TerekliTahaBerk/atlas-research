@@ -22,6 +22,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Discussions experience:** searchable topics, source-linked messages, retained drafts, recipient Inbox and cursor-paged history. See the [delivery and verification record](docs/implementation/DISCUSSIONS_EXPERIENCE.md).
 
+**Home and Project Overview:** personal opened-work history, assigned/upcoming tasks and paged projects are separate from a project’s research purpose, content, priorities and recent changes. See the [delivery record and verification limits](docs/implementation/HOME_OVERVIEW_EXPERIENCE.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

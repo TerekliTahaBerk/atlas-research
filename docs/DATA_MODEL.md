@@ -84,3 +84,9 @@ Hesap kapatmada önce personal export/uyarı, shared project ownership devri ve 
 Export aynı-proje ve güncel erişim denetimli snapshot'tır. Faz 02 BibTeX/RIS metadata ve citation keys; Faz 03 Markdown + math + kaynak referans manifest'i; PDF byte'ları otomatik eklenmez. Bir export'ta source/version/citation UUID'leri ve locator durumu korunur; başka Atlas projesine permission taşıyan import paketi değildir. Kişisel AI geçmişi varsayılan export'a eklenmez. Export job üretiminde ve indirmede aktör yetkisi yeniden denetlenir; download URL public capability olmaz.
 
 Metadata/search/AI artifact'larında revision ve deletion propagation olayları outbox'tan geçer. Backup ve purge güvenilirliği [COOLIFY_PLAN](COOLIFY_PLAN.md), negatif bütünlük testleri [VERIFICATION_PLAN](VERIFICATION_PLAN.md) içindedir.
+
+## Home / Overview increment — 10 November 2026
+
+Migration 013 adds `WorkVisit` (`app.work_visits`): one actor/artifact row with workspace/project, source/document kind, optional immutable PDF version and actual opened timestamp. No private title, document content or historical edit-to-open backfill is stored. Actor FK, same-scope artifact FK and version FK preserve identifiers; forced RLS restricts reads and writes to the current actor with current research access and validates source/version ownership on writes. Viewers may record their own authorized visits; this grants no shared-content editing permission.
+
+Home resolves current active resource titles and saved per-user/per-version reading positions after current project authorization. Overview derives totals from complete active tables, independently of bounded shortlists. The user's project purpose remains human-authored metadata, protected by existing owner/admin permissions and an optional `expectedUpdatedAt` conflict guard. See [behavior and observed checks](implementation/HOME_OVERVIEW_EXPERIENCE.md).

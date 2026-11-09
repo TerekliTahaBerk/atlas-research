@@ -1,4 +1,5 @@
 "use client";
+import { WorkVisit } from "./work-visit";
 import {
   useCallback,
   useEffect,
@@ -82,31 +83,40 @@ export function PdfReader(props: Props) {
       </section>
     );
   return (
-    <ReaderDocument
-      key={version.id}
-      {...props}
-      detail={{
-        ...props.detail,
-        positions: [
-          ...(props.detail.positions ?? []).filter(
-            (p) => !positions[p.versionId],
-          ),
-          ...Object.values(positions),
-        ],
-      }}
-      onPositionSaved={rememberPosition}
-      version={version}
-      onVersion={(id) => {
-        const url = new URL(location.href),
-          library = url.searchParams.get("library");
-        url.search = new URLSearchParams({
-          version: id,
-          ...(library ? { library } : {}),
-        }).toString();
-        history.replaceState(null, "", url);
-        setVersionId(id);
-      }}
-    />
+    <>
+      <WorkVisit
+        w={props.w}
+        p={props.p}
+        id={props.detail.source.id}
+        kind="source"
+        versionId={version.id}
+      />
+      <ReaderDocument
+        key={version.id}
+        {...props}
+        detail={{
+          ...props.detail,
+          positions: [
+            ...(props.detail.positions ?? []).filter(
+              (p) => !positions[p.versionId],
+            ),
+            ...Object.values(positions),
+          ],
+        }}
+        onPositionSaved={rememberPosition}
+        version={version}
+        onVersion={(id) => {
+          const url = new URL(location.href),
+            library = url.searchParams.get("library");
+          url.search = new URLSearchParams({
+            version: id,
+            ...(library ? { library } : {}),
+          }).toString();
+          history.replaceState(null, "", url);
+          setVersionId(id);
+        }}
+      />
+    </>
   );
 }
 function ReaderDocument({
