@@ -50,13 +50,11 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=8s --start-period=40s CMD ["node","ops/probe.mjs"]
 CMD ["node","server.js"]
 
-FROM base AS files
+# Reuse the identical rootless worker dependencies instead of copying a second
+# production node_modules tree; only the PDF tools/probe/entrypoint differ.
+FROM mail AS files
+USER root
 RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
-COPY --from=build --chown=node:node /app/dist/worker ./dist/worker
-COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY ops/files-probe.mjs ./ops/files-probe.mjs
 RUN mkdir -p /data/atlas-files && chown node:node /data/atlas-files
 ARG ATLAS_SOURCE_COMMIT=local

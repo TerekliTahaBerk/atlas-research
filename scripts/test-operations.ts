@@ -683,8 +683,11 @@ try {
     "120",
   ]);
   docker("cp", join(snapshot, "files") + "/.", `${restoreHelper}:/synthetic`);
+  docker("exec", restoreHelper, "chown", "-R", "1000:1000", "/synthetic");
   const restoredHash = docker(
     "exec",
+    "--user",
+    "1000",
     restoreHelper,
     "node",
     "-e",
@@ -694,6 +697,8 @@ try {
   const restoredManifest = JSON.parse(
     docker(
       "exec",
+      "--user",
+      "1000",
       restoreHelper,
       "node",
       "-e",
