@@ -1,6 +1,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import template from "../../docs/pilot/measurements.empty.json";
+const empty = { observed: false, numerator: 0, denominator: 0 };
+const template = {
+  version: 1,
+  evidence: "observed",
+  participants: 0,
+  teams: 0,
+  supportAssigned: false,
+  activationWindowComplete: false,
+  returnWindowComplete: false,
+  M1: empty,
+  M2: empty,
+  M3: empty,
+  M4: empty,
+  M5: empty,
+  M6: empty,
+  M7: {
+    observed: false,
+    papers: 0,
+    questions: 0,
+    locators: empty,
+    claims: empty,
+    abstentions: empty,
+    leaks: 0,
+  },
+};
 import { summarizePilot } from "../../src/lib/pilot-metrics";
 import { proxy } from "../../src/proxy";
 import { NextRequest } from "next/server";
