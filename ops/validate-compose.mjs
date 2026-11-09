@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import assert from "node:assert/strict";
 const folder = mkdtempSync(join(tmpdir(), "atlas-compose-"));
 try {
   const source = readFileSync("compose.coolify.yaml", "utf8");
@@ -22,7 +23,32 @@ try {
     APP_ORIGIN: "https://atlas.example.invalid",
     SMTP_HOST: "smtp.example.invalid",
     MAIL_FROM: "atlas@example.invalid",
+    ATLAS_INITIAL_USER_ACK: "owner-requested-first-identity",
+    ATLAS_INITIAL_EMAIL: "fixture@example.invalid",
+    ATLAS_INITIAL_PASSWORD: "synthetic-initial-secret",
+    SMTP_PASSWORD: "synthetic-smtp-secret",
   };
+  // Reproduce Coolify 4.6's unconditional global env_file injection. No daemon.
+  const envFile = join(folder, "injected.env");
+  writeFileSync(
+    envFile,
+    Object.entries(variables)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n") + "\n",
+    { mode: 0o600 },
+  );
+  const overlay = join(folder, "injection.json");
+  writeFileSync(
+    overlay,
+    JSON.stringify({
+      services: Object.fromEntries(
+        ["postgres", "bootstrap", "migrate", "web", "mail"].map((name) => [
+          name,
+          { env_file: [envFile] },
+        ]),
+      ),
+    }),
+  );
   const args = [
     "--project-directory",
     process.cwd(),
@@ -30,8 +56,11 @@ try {
     "atlas-validation",
     "--file",
     file,
+    "--file",
+    overlay,
     "config",
-    "--quiet",
+    "--format",
+    "json",
   ];
   let result = spawnSync("docker-compose", args, {
     env: { PATH: process.env.PATH, ...variables },
@@ -43,8 +72,50 @@ try {
       encoding: "utf8",
     });
   if (result.status !== 0) throw new Error("Compose configuration rejected");
+  const services = JSON.parse(result.stdout).services;
+  const secrets = Object.fromEntries(
+    Object.entries(variables).filter(
+      ([k]) =>
+        k.startsWith("SERVICE_HEX_") ||
+        ["SMTP_PASSWORD", "ATLAS_INITIAL_PASSWORD"].includes(k),
+    ),
+  );
+  const allowed = {
+    postgres: ["SERVICE_HEX_64_ATLASPOSTGRES"],
+    bootstrap: [
+      "SERVICE_HEX_64_ATLASPOSTGRES",
+      "SERVICE_HEX_64_ATLASMIGRATOR",
+      "SERVICE_HEX_64_ATLASAUTH",
+      "SERVICE_HEX_64_ATLASRUNTIME",
+      "SERVICE_HEX_64_ATLASQUEUE",
+      "SERVICE_HEX_64_ATLASBACKUP",
+    ],
+    migrate: ["SERVICE_HEX_64_ATLASMIGRATOR", "ATLAS_INITIAL_PASSWORD"],
+    web: [
+      "SERVICE_HEX_64_ATLASAUTH",
+      "SERVICE_HEX_64_ATLASRUNTIME",
+      "SERVICE_HEX_64_ATLASQUEUE",
+      "SERVICE_HEX_64_ATLASSESSION",
+    ],
+    mail: [
+      "SERVICE_HEX_64_ATLASRUNTIME",
+      "SERVICE_HEX_64_ATLASQUEUE",
+      "SERVICE_HEX_64_ATLASSESSION",
+      "SMTP_PASSWORD",
+    ],
+  };
+  for (const [name, service] of Object.entries(services)) {
+    const text = JSON.stringify(service.environment);
+    for (const [key, value] of Object.entries(secrets))
+      if (!allowed[name].includes(key))
+        assert.ok(!text.includes(value), "Cross-process credential injection");
+    for (const key of Object.keys(secrets).filter((k) =>
+      k.startsWith("SERVICE_HEX_"),
+    ))
+      assert.equal(service.environment[key], "");
+  }
   console.log(
-    "PASS: Compose config; only documented Coolify health exclusions normalized; no real environment or daemon changes.",
+    "PASS: Compose config and credential separation under simulated Coolify global env_file injection; no real environment or daemon changes.",
   );
 } catch {
   console.error("FAIL: Compose config validation");

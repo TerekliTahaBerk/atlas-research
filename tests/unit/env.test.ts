@@ -1,7 +1,53 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { parseEnv } from "../../src/server/env";
+import { parseEnv, assertProductionEnvIsolation } from "../../src/server/env";
+
+test("production processes reject leaked privileged credentials without logging values", () => {
+  const secret = randomBytes(32).toString("hex");
+  for (const role of ["web", "mail"] as const) {
+    for (const key of [
+      "SERVICE_HEX_64_ATLASMIGRATOR",
+      "POSTGRES_PASSWORD",
+      "MIGRATION_DATABASE_URL",
+      "ATLAS_BACKUP_PASSWORD",
+      "ATLAS_INITIAL_PASSWORD",
+    ]) {
+      assert.throws(
+        () =>
+          assertProductionEnvIsolation(
+            { NODE_ENV: "production", [key]: secret },
+            role,
+          ),
+        (error) => error instanceof Error && !error.message.includes(secret),
+      );
+      assert.doesNotThrow(() =>
+        assertProductionEnvIsolation(
+          { NODE_ENV: "production", [key]: "" },
+          role,
+        ),
+      );
+    }
+  }
+  assert.throws(() =>
+    assertProductionEnvIsolation(
+      { NODE_ENV: "production", SMTP_PASSWORD: secret },
+      "web",
+    ),
+  );
+  assert.throws(() =>
+    assertProductionEnvIsolation(
+      { NODE_ENV: "production", AUTH_DATABASE_URL: secret },
+      "mail",
+    ),
+  );
+  assert.doesNotThrow(() =>
+    assertProductionEnvIsolation(
+      { NODE_ENV: "production", SMTP_PASSWORD: secret },
+      "mail",
+    ),
+  );
+});
 
 test("configuration fails closed without printing supplied secrets", () => {
   const secret = randomBytes(24).toString("hex");

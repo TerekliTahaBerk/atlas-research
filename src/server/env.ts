@@ -1,5 +1,27 @@
 import { z } from "zod";
 
+export function assertProductionEnvIsolation(
+  input: Record<string, string | undefined>,
+  role: "web" | "mail",
+) {
+  if (input.NODE_ENV !== "production") return;
+  const forbidden = Object.entries(input).some(
+    ([key, value]) =>
+      value &&
+      (/^(SERVICE_HEX_|ATLAS_INITIAL_|ATLAS_.*_PASSWORD$)/.test(key) ||
+        [
+          "POSTGRES_PASSWORD",
+          "ADMIN_DATABASE_URL",
+          "MIGRATION_DATABASE_URL",
+          "ATLAS_ISOLATION_EMPTY",
+        ].includes(key) ||
+        (role === "web" && ["SMTP_USER", "SMTP_PASSWORD"].includes(key)) ||
+        (role === "mail" && key === "AUTH_DATABASE_URL")),
+  );
+  if (forbidden)
+    throw new Error("Privileged credential in application environment");
+}
+
 const schema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -40,6 +62,7 @@ const schema = z.object({
 });
 
 export function parseEnv(input: Record<string, string | undefined>) {
+  assertProductionEnvIsolation(input, "web");
   const result = schema.safeParse(input);
   if (!result.success) {
     // Never serialize the supplied values or Zod errors into logs/responses.
@@ -65,6 +88,7 @@ export type ServerEnv = ReturnType<typeof parseEnv>;
 export const getEnv = () => parseEnv(process.env);
 const workerSchema = schema.omit({ APP_ORIGIN: true, AUTH_DATABASE_URL: true });
 export function getWorkerEnv() {
+  assertProductionEnvIsolation(process.env, "mail");
   const result = workerSchema.safeParse(process.env);
   if (!result.success) throw new Error("Invalid mail worker configuration");
   if (
