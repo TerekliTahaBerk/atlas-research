@@ -1,11 +1,11 @@
 "use client";
 import { PopoverMenu } from "./ui";
+import { TaskCreateDialog, TaskFields } from "./task-form";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { ArtifactCard, Member, TaskData } from "@/lib/collaboration-types";
-import { taskStatuses, statusName } from "@/lib/collaboration-types";
+import type { ArtifactCard, Member } from "@/lib/collaboration-types";
 import { Icon, InlineError, Modal, useResource } from "./ui";
 export const collabApi = (w: string, p: string) =>
   `/api/collaboration/${w}/${p}`;
@@ -85,98 +85,17 @@ export function LinkPicker({
     </label>
   );
 }
-export function TaskFields({
-  value,
-  onChange,
-  members,
-  disabled = false,
-}: {
-  value: Omit<TaskData, "id" | "revision" | "archivedAt" | "updatedAt">;
-  onChange: (v: typeof value) => void;
-  members: Member[];
-  disabled?: boolean;
-}) {
-  return (
-    <fieldset disabled={disabled} className="task-fields">
-      <label>
-        Task title
-        <input
-          required
-          maxLength={300}
-          value={value.title}
-          onChange={(e) => onChange({ ...value, title: e.target.value })}
-        />
-      </label>
-      <label>
-        Description
-        <textarea
-          rows={5}
-          maxLength={20000}
-          value={value.description}
-          onChange={(e) => onChange({ ...value, description: e.target.value })}
-        />
-      </label>
-      <div className="field-grid">
-        <label>
-          Status
-          <select
-            aria-label="Status"
-            value={value.status}
-            onChange={(e) => onChange({ ...value, status: e.target.value })}
-          >
-            {taskStatuses.map((s) => (
-              <option key={s} value={s}>
-                {statusName(s)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Priority
-          <select
-            aria-label="Priority"
-            value={value.priority}
-            onChange={(e) => onChange({ ...value, priority: e.target.value })}
-          >
-            {["low", "medium", "high", "urgent"].map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Assignee
-          <select
-            aria-label="Assignee"
-            value={value.assigneeId ?? ""}
-            onChange={(e) =>
-              onChange({ ...value, assigneeId: e.target.value || null })
-            }
-          >
-            <option value="">Unassigned</option>
-            {members
-              .filter((m) => m.active && m.role !== "viewer")
-              .map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.name} · {m.role}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label>
-          Due date
-          <input
-            type="date"
-            value={value.dueDate ?? ""}
-            onChange={(e) =>
-              onChange({ ...value, dueDate: e.target.value || null })
-            }
-          />
-        </label>
-      </div>
-    </fieldset>
+export { TaskFields } from "./task-form";
+export function CreateArtifactDialog(
+  props: Parameters<typeof ArtifactDialog>[0],
+) {
+  return props.kind === "task" ? (
+    <TaskCreateDialog {...props} />
+  ) : (
+    <ArtifactDialog {...props} />
   );
 }
-export function CreateArtifactDialog({
+function ArtifactDialog({
   w,
   p,
   kind,

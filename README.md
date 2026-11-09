@@ -16,6 +16,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Documents experience:** searchable project writing, focused source/math editing, acknowledged recovery/history and current-revision Markdown export. See the [Documents delivery record](docs/implementation/DOCUMENTS_EXPERIENCE.md).
 
+**Tasks experience:** title-only capture, persistent Board order, inline List editing, combined filters and source-linked task details with recipient Inbox. See the [Tasks delivery record](docs/implementation/TASKS_EXPERIENCE.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

@@ -16,7 +16,7 @@ import {
   type DocNode,
 } from "../../lib/document-model";
 import type { ArtifactCard, CitationView } from "../../lib/collaboration-types";
-import type { Prisma } from "../../generated/prisma/client";
+import { Prisma } from "../../generated/prisma/client";
 const json = (n: DocNode) => n as unknown as Prisma.InputJsonValue;
 const title = z.string().trim().min(1).max(300);
 const revision = z.number().int().min(1);
@@ -69,6 +69,63 @@ export const taskInput = z
 export const taskEditInput = taskInput
   .omit({ requestId: true, links: true })
   .extend({ revision })
+  .strict();
+export const taskChangeInput = z
+  .object({
+    action: z.literal("edit"),
+    requestId: z.uuid(),
+    revision,
+    changes: z
+      .object({
+        title: title.optional(),
+        description: z.string().max(20000).optional(),
+        status: z
+          .enum(["backlog", "in_progress", "in_review", "done"])
+          .optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+        assigneeId: z.string().min(1).max(200).nullable().optional(),
+        dueDate: z.iso.date().nullable().optional(),
+        links: ids.optional(),
+        archived: z.boolean().optional(),
+      })
+      .strict()
+      .refine((v) => Object.keys(v).length > 0),
+  })
+  .strict();
+export const taskMoveInput = z
+  .object({
+    action: z.literal("move"),
+    requestId: z.uuid(),
+    revision,
+    status: z.enum(["backlog", "in_progress", "in_review", "done"]),
+    beforeId: z.uuid().nullable().default(null),
+    afterId: z.uuid().optional(),
+  })
+  .strict();
+export const taskListInput = z
+  .object({
+    q: z.string().trim().max(200).default(""),
+    view: z.enum(["board", "list"]).default("board"),
+    status: z
+      .enum(["", "backlog", "in_progress", "in_review", "done"])
+      .default(""),
+    assignee: z.string().max(200).default(""),
+    priority: z.enum(["", "low", "medium", "high", "urgent"]).default(""),
+    due: z
+      .enum(["", "today", "tomorrow", "overdue", "upcoming", "none"])
+      .default(""),
+    today: z.iso.date(),
+    completed: z.boolean().default(true),
+    archived: z.boolean().default(false),
+    sort: z
+      .enum(["position", "updated", "title", "due", "priority"])
+      .default("position"),
+    page: z.number().int().min(0).max(100000).default(0),
+    columns: z
+      .string()
+      .regex(/^\d+,\d+,\d+,\d+$/)
+      .default("0,0,0,0"),
+  })
   .strict();
 export const discussionInput = z
   .object({
@@ -818,24 +875,310 @@ export function listTasks(
   a: Identity,
   w: string,
   p: string,
-  archived = false,
+  options: boolean | z.infer<typeof taskListInput> = false,
 ) {
-  return research(db, a, w, p, false, async (tx, s) => ({
-    items: await tx.task.findMany({
-      where: {
-        workspaceId: w,
-        projectId: p,
-        archivedAt: archived ? { not: null } : null,
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 300,
-    }),
-    canEdit:
+  return research(db, a, w, p, false, async (tx, s) => {
+    const canEdit =
       ["owner", "admin", "editor"].includes(s.projectRole) &&
       !s.project.archivedAt &&
-      !s.workspace.archivedAt,
-    canManage: ["owner", "admin"].includes(s.projectRole),
-  }));
+      !s.workspace.archivedAt;
+    if (typeof options === "boolean")
+      return {
+        items: await tx.task.findMany({
+          where: {
+            workspaceId: w,
+            projectId: p,
+            archivedAt: options ? { not: null } : null,
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 300,
+        }),
+        canEdit,
+        canManage: ["owner", "admin"].includes(s.projectRole),
+      };
+    const f = options,
+      pattern = "%" + f.q.replace(/[\\%_]/g, (m) => "\\" + m) + "%",
+      clauses = [
+        Prisma.sql`"workspaceId"=${w}::uuid`,
+        Prisma.sql`"projectId"=${p}::uuid`,
+        f.archived
+          ? Prisma.sql`"archivedAt" IS NOT NULL`
+          : Prisma.sql`"archivedAt" IS NULL`,
+      ];
+    if (f.q)
+      clauses.push(
+        Prisma.sql`(title ILIKE ${pattern} OR description ILIKE ${pattern})`,
+      );
+    if (f.status) clauses.push(Prisma.sql`status=${f.status}`);
+    if (f.assignee)
+      clauses.push(
+        f.assignee === "none"
+          ? Prisma.sql`"assigneeId" IS NULL`
+          : Prisma.sql`"assigneeId"=${f.assignee === "mine" ? a.id : f.assignee}`,
+      );
+    if (f.priority) clauses.push(Prisma.sql`priority=${f.priority}`);
+    if (!f.completed) clauses.push(Prisma.sql`status<>'done'`);
+    const after = (n: number) => {
+      const [y, m, d] = f.today.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    if (f.due === "none") clauses.push(Prisma.sql`"dueDate" IS NULL`);
+    else if (f.due) {
+      clauses.push(Prisma.sql`status<>'done'`);
+      if (f.due === "overdue") clauses.push(Prisma.sql`"dueDate"<${f.today}`);
+      else if (f.due === "upcoming")
+        clauses.push(
+          Prisma.sql`"dueDate">=${f.today} AND "dueDate"<=${after(7)}`,
+        );
+      else
+        clauses.push(
+          Prisma.sql`"dueDate"=${f.due === "today" ? f.today : after(1)}`,
+        );
+    }
+    const where = Prisma.join(clauses, " AND "),
+      counts = Object.fromEntries(
+        ["backlog", "in_progress", "in_review", "done"].map((k) => [k, 0]),
+      );
+    for (const row of await tx.$queryRaw<{ status: string; count: number }[]>(
+      Prisma.sql`SELECT status,count(*)::int AS count FROM app.tasks WHERE ${where} GROUP BY status`,
+    ))
+      counts[row.status] = row.count;
+    const order =
+      f.sort === "priority"
+        ? Prisma.sql`CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,position,id`
+        : f.sort === "due"
+          ? Prisma.sql`"dueDate" ASC NULLS LAST,position,id`
+          : f.sort === "title"
+            ? Prisma.sql`title,id`
+            : f.sort === "updated"
+              ? Prisma.sql`"updatedAt" DESC,id`
+              : Prisma.sql`position,id`;
+    const pages = f.columns.split(",").map((n) => Math.min(100000, Number(n))),
+      pageSize = f.view === "board" ? 30 : 50;
+    const groups =
+      f.view === "board"
+        ? await Promise.all(
+            Object.keys(counts).map((status, i) =>
+              tx.$queryRaw<{ id: string }[]>(
+                Prisma.sql`SELECT id FROM app.tasks WHERE ${where} AND status=${status} ORDER BY ${order} LIMIT ${pageSize} OFFSET ${pages[i] * pageSize}`,
+              ),
+            ),
+          )
+        : [
+            await tx.$queryRaw<{ id: string }[]>(
+              Prisma.sql`SELECT id FROM app.tasks WHERE ${where} ORDER BY ${order} LIMIT ${pageSize} OFFSET ${f.page * pageSize}`,
+            ),
+          ];
+    const taskIds = groups.flat().map((r) => r.id),
+      rows = await tx.task.findMany({
+        where: { workspaceId: w, projectId: p, id: { in: taskIds } },
+      }),
+      edges = await tx.artifactLink.findMany({
+        where: {
+          workspaceId: w,
+          projectId: p,
+          OR: [{ fromId: { in: taskIds } }, { toId: { in: taskIds } }],
+        },
+      }),
+      others = [...new Set(edges.flatMap((e) => [e.fromId, e.toId]))],
+      kinds = await tx.artifact.findMany({
+        where: { workspaceId: w, projectId: p, id: { in: others } },
+        select: { id: true, kind: true },
+      });
+    return {
+      items: taskIds.flatMap((id) => {
+        const t = rows.find((t) => t.id === id);
+        if (!t) return [];
+        const linked = [
+          ...new Set(
+            edges
+              .filter((e) => e.fromId === id || e.toId === id)
+              .map((e) => (e.fromId === id ? e.toId : e.fromId)),
+          ),
+        ];
+        return [
+          {
+            ...t,
+            linkCount: linked.length,
+            linkKinds: [
+              ...new Set(
+                linked.flatMap(
+                  (id) => kinds.find((k) => k.id === id)?.kind ?? [],
+                ),
+              ),
+            ],
+          },
+        ];
+      }),
+      counts,
+      total: Object.values(counts).reduce((a, b) => a + b, 0),
+      pageSize,
+      canEdit,
+      canManage: canEdit && ["owner", "admin"].includes(s.projectRole),
+    };
+  });
+}
+async function taskPosition(
+  tx: Tx,
+  w: string,
+  p: string,
+  status: string,
+  beforeId: string | null,
+  exclude: string,
+): Promise<number> {
+  const where = {
+    workspaceId: w,
+    projectId: p,
+    status,
+    archivedAt: null,
+    id: { not: exclude },
+  };
+  const anchor = beforeId
+    ? await tx.task.findFirst({ where: { ...where, id: beforeId } })
+    : null;
+  if (beforeId && !anchor) unavailable();
+  const previous = await tx.task.findFirst({
+    where: {
+      ...where,
+      ...(anchor ? { position: { lt: anchor.position } } : {}),
+    },
+    orderBy: [{ position: "desc" }, { id: "desc" }],
+  });
+  if (!anchor) return (previous?.position ?? 0) + 1024;
+  const lo = previous?.position ?? anchor.position - 2048,
+    position = (lo + anchor.position) / 2;
+  if (
+    Number.isFinite(position) &&
+    position > lo &&
+    position < anchor.position &&
+    anchor.position - lo > 0.000001
+  )
+    return position;
+  // Rare fractional exhaustion: preserve relative order, timestamps and revisions while spacing the column.
+  await tx.$executeRaw`WITH ordered AS (SELECT id,row_number() OVER(ORDER BY position,id)*1024 AS n FROM app.tasks WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND status=${status} AND "archivedAt" IS NULL AND id<>${exclude}::uuid) UPDATE app.tasks t SET position=o.n FROM ordered o WHERE t.id=o.id`;
+  return taskPosition(tx, w, p, status, beforeId, exclude);
+}
+async function taskAfter(
+  tx: Tx,
+  w: string,
+  p: string,
+  status: string,
+  afterId: string,
+  exclude: string,
+) {
+  const anchor = await tx.task.findFirst({
+    where: {
+      id: afterId,
+      workspaceId: w,
+      projectId: p,
+      status,
+      archivedAt: null,
+    },
+  });
+  if (!anchor || anchor.id === exclude) unavailable();
+  const next = await tx.task.findFirst({
+    where: {
+      workspaceId: w,
+      projectId: p,
+      status,
+      archivedAt: null,
+      id: { not: exclude },
+      position: { gt: anchor.position },
+    },
+    orderBy: [{ position: "asc" }, { id: "asc" }],
+  });
+  return next?.id ?? null;
+}
+export function changeTask(
+  db: Database,
+  a: Identity,
+  w: string,
+  p: string,
+  id: string,
+  input: z.infer<typeof taskChangeInput> | z.infer<typeof taskMoveInput>,
+) {
+  return research(db, a, w, p, true, async (tx, s) => {
+    const t = await tx.task.findFirst({
+      where: { id, workspaceId: w, projectId: p },
+    });
+    if (!t) unavailable();
+    const hash = createHash("sha256")
+        .update(JSON.stringify(input))
+        .digest("hex"),
+      old = await tx.taskWrite.findUnique({
+        where: { taskId_requestId: { taskId: id, requestId: input.requestId } },
+      });
+    if (old) {
+      if (old.actorId !== a.id || old.hash !== hash) conflict();
+      return t;
+    }
+    if (t.revision !== input.revision) conflict();
+    let data: Prisma.TaskUpdateInput = {};
+    let links: string[] = [];
+    if (input.action === "move") {
+      if (t.archivedAt) throw new AppError("ARCHIVED", 409);
+      data = {
+        status: input.status,
+        position: await taskPosition(
+          tx,
+          w,
+          p,
+          input.status,
+          input.afterId
+            ? await taskAfter(tx, w, p, input.status, input.afterId, id)
+            : input.beforeId,
+          id,
+        ),
+      };
+    } else {
+      const { archived, links: targets, ...fields } = input.changes;
+      if (
+        t.archivedAt &&
+        !(archived === false && Object.keys(input.changes).length === 1)
+      )
+        throw new AppError("ARCHIVED", 409);
+      if (archived !== undefined) {
+        requireRole(s.projectRole, ["owner", "admin"]);
+        data.archivedAt = archived ? new Date() : null;
+      }
+      if (
+        fields.assigneeId &&
+        !(await eligible(tx, w, p, fields.assigneeId, true))
+      )
+        throw new AppError("INVALID_INPUT");
+      Object.assign(data, fields);
+      links = targets ?? [];
+      if (fields.status && fields.status !== t.status)
+        data.position = await taskPosition(tx, w, p, fields.status, null, id);
+    }
+    await link(tx, w, p, id, links);
+    const next = await tx.task.update({
+      where: { id, revision: input.revision },
+      data: { ...data, revision: { increment: 1 } },
+    });
+    if (next.assigneeId && next.assigneeId !== t.assigneeId)
+      await notify(
+        tx,
+        w,
+        p,
+        id,
+        next.assigneeId,
+        "assignment",
+        `task:${id}:${next.revision}`,
+      );
+    await tx.taskWrite.create({
+      data: {
+        taskId: id,
+        requestId: input.requestId,
+        workspaceId: w,
+        projectId: p,
+        actorId: a.id,
+        hash,
+        revision: next.revision,
+      },
+    });
+    return next;
+  });
 }
 export function createTask(
   db: Database,
@@ -865,6 +1208,7 @@ export function createTask(
         projectId: p,
         createdBy: a.id,
         ...data,
+        position: await taskPosition(tx, w, p, data.status, null, requestId),
       },
     });
     await link(tx, w, p, task.id, links);
@@ -926,7 +1270,13 @@ export function editTask(
     void _;
     const next = await tx.task.update({
       where: { id },
-      data: { ...data, revision: { increment: 1 } },
+      data: {
+        ...data,
+        ...(data.status !== t.status
+          ? { position: await taskPosition(tx, w, p, data.status, null, id) }
+          : {}),
+        revision: { increment: 1 },
+      },
     });
     if (next.assigneeId && next.assigneeId !== t.assigneeId)
       await notify(
@@ -1147,8 +1497,26 @@ export function artifactOptions(
   a: Identity,
   w: string,
   p: string,
+  query?: string,
+  selected: string[] = [],
 ) {
   return research(db, a, w, p, false, async (tx) => {
+    if (query !== undefined) {
+      const like = "%" + query.replace(/[\\%_]/g, (m) => "\\" + m) + "%";
+      const found = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM (
+        SELECT id,"createdAt" FROM app.documents WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
+        UNION ALL SELECT id,"createdAt" FROM app.sources WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
+        UNION ALL SELECT id,"createdAt" FROM app.tasks WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
+        UNION ALL SELECT id,"createdAt" FROM app.discussions WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND title ILIKE ${like}
+        UNION ALL SELECT n.id,n."createdAt" FROM app.annotations n JOIN app.sources s ON s.id=n."sourceId" WHERE n."workspaceId"=${w}::uuid AND n."projectId"=${p}::uuid AND n."deletedAt" IS NULL AND (n.body ILIKE ${like} OR n.quote ILIKE ${like} OR s.title ILIKE ${like})
+      ) x ORDER BY "createdAt" DESC,id LIMIT 50`;
+      const cards = await Promise.all(
+        [...new Set([...selected, ...found.map((r) => r.id)])].map((id) =>
+          card(tx, w, p, id),
+        ),
+      );
+      return cards.filter((c): c is ArtifactCard => !!c);
+    }
     const rows = await tx.artifact.findMany({
       where: { workspaceId: w, projectId: p },
       orderBy: { createdAt: "desc" },
