@@ -51,7 +51,8 @@ export async function uploadPdf(
         .slice(0, 200) || filename;
   } catch {}
   const intent = await research(db, actor, w, p, true, async (tx) => {
-    await sourceRow(tx, w, p, s);
+    if ((await sourceRow(tx, w, p, s)).archivedAt)
+      throw new AppError("ARCHIVED", 409);
     const existing = await tx.uploadIntent.findUnique({
       where: { id: uploadId },
     });
@@ -160,6 +161,7 @@ export async function uploadPdf(
           where: { workspaceId: w, projectId: p, sourceId: s },
           orderBy: { ordinal: "desc" },
         });
+      if (source.archivedAt) throw new AppError("ARCHIVED", 409);
       const same = await tx.fileObject.findFirst({
         where: {
           id: { in: prior.flatMap((v) => (v.fileId ? [v.fileId] : [])) },
