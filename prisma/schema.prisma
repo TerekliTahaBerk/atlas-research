@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["identity"]
+  schemas  = ["identity", "app"]
 }
 
 model User {
@@ -18,8 +18,54 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  ownedPersonal Workspace? @relation("PersonalOwner")
+  createdSpaces Workspace[] @relation("WorkspaceCreator")
+  memberships WorkspaceMember[]
   @@map("users")
   @@schema("identity")
+}
+
+model MailOutbox {
+  id String @id @db.Uuid
+  payload String?
+  state String @default("pending")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([state, nextAttemptAt])
+  @@map("mail_outbox")
+  @@schema("identity")
+}
+
+model Workspace {
+  id String @id @db.Uuid
+  kind String
+  name String
+  personalOwnerId String? @unique
+  personalOwner User? @relation("PersonalOwner", fields: [personalOwnerId], references: [id], onDelete: Restrict)
+  createdBy String
+  creator User @relation("WorkspaceCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  archivedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members WorkspaceMember[]
+  @@map("workspaces")
+  @@schema("app")
+}
+
+model WorkspaceMember {
+  workspaceId String @db.Uuid
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  @@id([workspaceId, userId])
+  @@map("workspace_members")
+  @@schema("app")
 }
 
 model Session {
