@@ -1,6 +1,6 @@
 # Faz 04 — Kaynaklı AI ve incelenen öneriler
 
-Durum: kullanıcı Faz 04 uygulaması ve mevcut Coolify’a dağıtımı yetkilendirdi. Mevcut anahtarını kendisi Coolify’a ekleyecek; bütçe seçilmedi ve ücretli model çağrıları açıkça yasaklandı. Uygulama kapalı çağrı kapısıyla hazırlanıyor; gerçek model eval/G04 OPEN. [Teslim kaydı](../PHASE_04_HANDOFF.md), [ADR](../decisions/0006-grounded-ai.md).
+Durum: kullanıcı Faz 04 uygulaması ve mevcut Coolify’a dağıtımı yetkilendirdi. Mevcut anahtarını kendisi Coolify’a ekleyecek; bütçe seçilmedi ve ücretli model çağrıları açıkça yasaklandı. Uygulama PR #37 ile merge edildi ve `91a78f9` olarak mevcut Coolify Atlas uygulamasına kapalı çağrı kapısıyla dağıtıldı; gerçek model eval/G04 OPEN. [Teslim kaydı](../PHASE_04_HANDOFF.md), [ADR](../decisions/0006-grounded-ai.md).
 
 ## Amaç
 
