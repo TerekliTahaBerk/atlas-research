@@ -444,7 +444,7 @@ function ResearchBody({
                       />
                       {selected.length
                         ? `${selected.length} selected`
-                        : `${library.data.items.length} papers${library.data.hasMore ? " · more on next page" : ""}`}
+                        : `${library.data.items.length} ${library.data.items.length === 1 ? "paper" : "papers"}${library.data.hasMore ? " · more on next page" : ""}`}
                     </label>
                     {!!selected.length && (
                       <>
@@ -467,7 +467,7 @@ function ResearchBody({
                                   },
                                 );
                                 setBulkMessage(
-                                  `${result.count} papers added to collection`,
+                                  `${result.count} ${result.count === 1 ? "paper" : "papers"} added to collection`,
                                 );
                                 setSelected([]);
                                 library.reload();
@@ -512,7 +512,9 @@ function ResearchBody({
                   </div>
                 )}
                 <p className="sr-only">
-                  {library.data.items.length} sources on this page
+                  {library.data.items.length}{" "}
+                  {library.data.items.length === 1 ? "source" : "sources"} on
+                  this page
                 </p>
                 {library.data.items.length === 0 ? (
                   <Empty
