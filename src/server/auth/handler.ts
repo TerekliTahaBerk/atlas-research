@@ -10,6 +10,7 @@ export function createAuthHandler(auth: Auth, env: ServerEnv) {
         if (request.headers.get("origin") !== env.APP_ORIGIN || request.headers.get("sec-fetch-site") === "cross-site") throw new AppError("INVALID_INPUT", 403);
         if (!request.headers.get("content-type")?.startsWith("application/json")) throw new AppError("INVALID_INPUT", 415);
         const body = await readLimitedBody(request);
+        if(env.MAIL_DELIVERY==="disabled"&&["/api/auth/sign-up/email","/api/auth/request-password-reset","/api/auth/send-verification-email"].includes(new URL(request.url).pathname))throw new AppError("MAIL_DISABLED",503);
         const headers = new Headers(request.headers);
         // The production proxy must overwrite x-real-ip; missing IP shares one restrictive bucket.
         if (!headers.has("x-real-ip")) headers.set("x-real-ip", "0.0.0.0");

@@ -3,7 +3,8 @@ import { Suspense, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, safeReturn } from "@/lib/api";
-import { InlineError, Loading, ThemeControl } from "./ui";
+import { Failure, InlineError, Loading, ThemeControl, useResource } from "./ui";
+import type { Capabilities } from "@/lib/capabilities";
 type Mode = "sign-in" | "sign-up" | "reset" | "reset-new" | "verify";
 export function AuthForm({ mode }: { mode: Mode }) {
   return (
@@ -13,6 +14,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
   );
 }
 function AuthFormInner({ mode }: { mode: Mode }) {
+  const needsMail = ["sign-up", "reset", "verify"].includes(mode),
+    capabilities = useResource<Capabilities>(
+      needsMail ? "/api/capabilities" : null,
+    );
   const search = useSearchParams(),
     next = safeReturn(search.get("next"));
   const [busy, setBusy] = useState(false),
@@ -104,7 +109,23 @@ function AuthFormInner({ mode }: { mode: Mode }) {
             ? "A personal research space, with room to work together. Any email address is welcome."
             : "Continue your research in Atlas."}
         </p>
-        {notice ? (
+        {needsMail && !capabilities.data ? (
+          capabilities.error ? (
+            <Failure error={capabilities.error} retry={capabilities.reload} />
+          ) : (
+            <Loading />
+          )
+        ) : needsMail && capabilities.data?.emailDelivery === "disabled" ? (
+          <div className="notice" role="status">
+            <h2>Email delivery is currently unavailable</h2>
+            <p>
+              New registration, verification emails and password recovery are
+              unavailable in this installation. Contact your workspace
+              administrator.
+            </p>
+            <Link href="/sign-in">Back to sign in</Link>
+          </div>
+        ) : notice ? (
           <div role="status" className="notice">
             <p>{notice}</p>
             <Link

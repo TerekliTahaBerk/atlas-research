@@ -42,3 +42,5 @@ Deploy with Docker on Coolify. Use self-hosted PostgreSQL as the application dat
 - `python3 scripts/verify_phase00.py --historical` preserves the original Phase 00 checks against its frozen Git tree. Its no-app rule is not a Phase 01 gate.
 
 The repository remains public. Never commit private research data, credentials or proprietary design assets.
+
+The owner-selected live preview uses a temporary Coolify HTTPS address with email delivery disabled and S3 deferred. New registration/password recovery/email invitations are explicitly unavailable in that profile; verification is never bypassed. Full G01 remains open.

@@ -17,7 +17,7 @@ Exact runtime: Node 24.21.0, npm 11.19.0, Next/eslint-config-next 16.4.5, React/
 | Command / acceptance evidence | Result |
 | --- | --- |
 | `npm ci --loglevel=error --fetch-retries=1 --fetch-timeout=30000` | PASS; zero known audit vulnerabilities |
-| `npm run verify` | PASS; type/lint, 4 unit, 6 real PostgreSQL integration, production build, real Chromium/SMTP flows |
+| `npm run verify` | PASS; type/lint, 5 unit, 7 real PostgreSQL integration, production build, real Chromium/SMTP flows |
 | `npm run format:check`, `git diff --check` | PASS on the verified application slice; repeat for final candidate |
 | `npm run verify:compose` | PASS; documented Coolify-only health keys normalized; no daemon mutation |
 | Docker web/mail/migrator builds | PASS locally, rootless ARM64; no build DB/secret |
@@ -33,7 +33,7 @@ G01 evidence mapping:
 | Non-university accounts, verification/login, unique W0 | Real controlled SMTP + PostgreSQL/browser accounts | Two controlled externally delivered accounts |
 | A creates P1, B accepts once and sees project | Browser journey + wrong/expired/replayed/issuer-revoked integration | Real deployed invitation/mail |
 | A01–A13 applicable access | Teams A/C, D governance-only, V viewer, B revocation; runtime SQL, pool, FK, final-owner races | Deployed negative smoke; later-module cases remain out of phase |
-| Image/role/schema/readiness/restart | Local Docker and 6 DB integration tests | Observe remote architecture, health, actual caps and Atlas-only restart |
+| Image/role/schema/readiness/restart | Local Docker and 7 DB integration tests | Observe remote architecture, health, actual caps and Atlas-only restart |
 | Synthetic restore and rollback | Fresh cluster with preserved ownership/RLS; file SHA-256; same-schema metadata image switch | Independent destination roundtrip and Coolify image rollback |
 | Responsive accessible shell | 48 captures at 390/768/1024/1440 in both themes; keyboard/Escape/focus, actual-token contrast, 320px reflow, real retry/loading | Assistive technology/manual zoom assessment remains open |
 | Paid Actions/runner requirement absent | No workflow, no production runner; local release gate | Preserve during deployment |
@@ -43,3 +43,5 @@ Known limits: SMTP at-least-once can duplicate after a crash; auth and encrypted
 Coolify target was confirmed read-only in the user's open Chrome. There were no shared variables at yula.co/environment/team scopes and zero S3 destinations. A new Atlas Research draft application was created and pinned to the candidate; it is not deployed. No existing server/proxy/other-project setting was changed. Domain, operational SMTP and independent backup must be resolved before promotion; never insert fake success/configuration. No new paid service is authorized.
 
 Next phase is only prepared: after G01 actually passes, Phase 02 can begin from its separate spec with source/version/citation identity and the same authorization tests. No discovery, PDF, editor, tasks, discussions, AI, embeddings, LaTeX or Python execution has been implemented.
+
+Owner steering: use a temporary Coolify HTTPS address, send no email for now and do not use S3 for now. The live preview therefore sets MAIL_DELIVERY=disabled. HTTP registration/reset/resend and new invitation mail are denied explicitly; existing verified users keep normal sign-in/authorization. The worker never enqueues/dispatches mail in this mode and only expires stale encrypted payloads. Public capability data lets the UI show unavailable actions honestly. No verification bypass or demo authentication is introduced. External-mail and independent-backup G01 criteria remain deferred/open by this choice. Controlled SMTP/local recovery tests remain separate evidence.

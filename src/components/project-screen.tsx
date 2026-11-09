@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import type { Capabilities } from "@/lib/capabilities";
 import { Failure, Icon, InlineError, Loading, Modal, useResource } from "./ui";
 import {
   projectPath,
@@ -65,6 +66,9 @@ function ProjectBody({
   onChanged: () => void;
 }) {
   const url = `/api/projects/${p}?workspaceId=${w}`,
+    capabilities = useResource<Capabilities>(
+      section === "members" ? "/api/capabilities" : null,
+    ),
     detail = useResource<Detail>(url),
     members = useResource<Members>(
       section === "members"
@@ -256,12 +260,22 @@ function ProjectBody({
               <p>Workspace roles do not grant access to this project.</p>
             </div>
             {manage && !archived && workspace.kind === "shared" && (
-              <button className="primary" onClick={() => setModal("invite")}>
+              <button
+                className="primary"
+                disabled={capabilities.data?.emailDelivery !== "smtp"}
+                onClick={() => setModal("invite")}
+              >
                 <Icon name="plus" />
                 Invite member
               </button>
             )}
           </div>
+          {manage && capabilities.data?.emailDelivery === "disabled" && (
+            <p role="status">
+              Email invitations are currently unavailable. Existing member
+              access can still be managed.
+            </p>
+          )}
           <ul className="member-list">
             {members.data?.members.map((m) => (
               <li key={m.userId}>

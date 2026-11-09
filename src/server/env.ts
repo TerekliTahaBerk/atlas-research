@@ -21,7 +21,11 @@ const schema = z.object({
     .refine(
       (v) => v.startsWith("postgresql://") || v.startsWith("postgres://"),
     ),
-  SMTP_HOST: z.string().min(1).default("127.0.0.1"),
+  MAIL_DELIVERY: z.enum(["smtp", "disabled"]).default("smtp"),
+  SMTP_HOST: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.string().min(1).default("127.0.0.1"),
+  ),
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
   SMTP_SECURE: z
     .enum(["true", "false"])
@@ -29,7 +33,10 @@ const schema = z.object({
     .transform((v) => v === "true"),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
-  MAIL_FROM: z.email().default("atlas@example.invalid"),
+  MAIL_FROM: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.email().default("atlas@example.invalid"),
+  ),
 });
 
 export function parseEnv(input: Record<string, string | undefined>) {
@@ -46,6 +53,7 @@ export function parseEnv(input: Record<string, string | undefined>) {
   }
   if (
     env.NODE_ENV === "production" &&
+    env.MAIL_DELIVERY === "smtp" &&
     (!input.SMTP_HOST || !input.MAIL_FROM || env.MAIL_FROM.endsWith(".invalid"))
   ) {
     throw new Error("Production SMTP_HOST and real MAIL_FROM are required");
@@ -61,6 +69,7 @@ export function getWorkerEnv() {
   if (!result.success) throw new Error("Invalid mail worker configuration");
   if (
     result.data.NODE_ENV === "production" &&
+    result.data.MAIL_DELIVERY === "smtp" &&
     (!process.env.SMTP_HOST ||
       !process.env.MAIL_FROM ||
       result.data.MAIL_FROM.endsWith(".invalid"))

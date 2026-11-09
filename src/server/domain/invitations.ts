@@ -12,7 +12,8 @@ function hash(token: string) {
   if (!/^[a-f0-9]{64}$/.test(token)) throw new AppError("UNAVAILABLE", 404);
   return createHash("sha256").update(token).digest("hex");
 }
-export function createInvitation(db: Database, actor: Identity, mail: MailQueue, origin: string, w: string, p: string, raw: z.input<typeof invitationInput>) {
+export async function createInvitation(db: Database, actor: Identity, mail: MailQueue, origin: string, w: string, p: string, raw: z.input<typeof invitationInput>) {
+  if(!mail.deliveryEnabled)throw new AppError("MAIL_DISABLED",503);
   const input = invitationInput.parse(raw);
   return inProject(db, actor, w, p, true, async (tx, scope) => {
     requireRole(scope.projectRole, input.role === "admin" ? ["owner"] : ["owner", "admin"]);

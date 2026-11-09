@@ -8,6 +8,7 @@ COPY prisma ./prisma
 RUN npm ci --loglevel=error
 
 FROM deps AS build
+ENV NODE_OPTIONS=--max-old-space-size=1024
 COPY . .
 RUN npm run typecheck && npm run lint && npm test && npm run build
 

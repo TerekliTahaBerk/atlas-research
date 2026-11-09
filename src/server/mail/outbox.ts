@@ -29,13 +29,16 @@ export function createMailQueue(env: MailEnv) {
     return JSON.parse(Buffer.concat([cipher.update(data.subarray(28)), cipher.final()]).toString("utf8"));
   }
   return {
+    deliveryEnabled:env.MAIL_DELIVERY==="smtp",
     async heartbeat(){await pool.query('INSERT INTO ops.service_heartbeat(service,revision,"checkedAt") VALUES (\'mail\',$1,now()) ON CONFLICT(service) DO UPDATE SET revision=excluded.revision,"checkedAt"=excluded."checkedAt"',[SCHEMA_REVISION]);},
     async enqueue(mail: Mail, ttlSeconds = 3600) {
+      if(env.MAIL_DELIVERY!=="smtp")throw new Error("Mail delivery disabled");
       await pool.query('INSERT INTO ops.mail_outbox(id,payload,"expiresAt") VALUES ($1,$2,now()+$3*interval \'1 second\')', [randomUUID(), encrypt(mail), ttlSeconds]);
     },
     encrypt,
     async flush(limit = 20,shouldStop?:()=>boolean) {
       await pool.query('UPDATE ops.mail_outbox SET state=\'expired\',payload=NULL WHERE "expiresAt"<=now() AND payload IS NOT NULL');
+      if(env.MAIL_DELIVERY!=="smtp")return;
       for (let n = 0; n < limit; n++) {
         if(shouldStop?.())break;
         const rows = await pool.query<{ id: string; payload: string; attempts: number }>(`UPDATE ops.mail_outbox SET state='running',"leaseUntil"=now()+interval '30 seconds',attempts=attempts+1

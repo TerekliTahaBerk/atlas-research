@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 export class AppError extends Error {
-  constructor(public code: "UNAVAILABLE" | "INVALID_INPUT" | "CONFLICT" | "UNAUTHENTICATED" | "REAUTH_REQUIRED" | "OWNER_REQUIRED" | "ARCHIVED" | "RATE_LIMITED", public status = 400) {
+  constructor(public code: "UNAVAILABLE" | "INVALID_INPUT" | "CONFLICT" | "UNAUTHENTICATED" | "REAUTH_REQUIRED" | "OWNER_REQUIRED" | "ARCHIVED" | "RATE_LIMITED" | "MAIL_DISABLED", public status = 400) {
     super(code);
   }
 }

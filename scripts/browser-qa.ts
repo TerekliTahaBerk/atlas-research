@@ -29,27 +29,45 @@ process.env.APP_ORIGIN = origin;
 process.env.SMTP_PORT = String(smtp.port);
 const mail = createMailQueue(getEnv()),
   folder = mkdtempSync(join(tmpdir(), "atlas-browser-qa-"));
-const server = spawn(
-  process.execPath,
-  [
-    resolve("node_modules/next/dist/bin/next"),
-    "start",
-    "--hostname",
-    "127.0.0.1",
-    "--port",
-    String(port),
-  ],
-  { env: process.env, stdio: ["ignore", "ignore", "pipe"] },
-);
-server.stderr?.on("data", (chunk) => {
-  for (const line of String(chunk).split("\n")) {
-    try {
-      const event = JSON.parse(line);
-      if (event.event === "request_failed")
-        console.log({ event: event.event, kind: event.kind, code: event.code });
-    } catch {}
-  }
-});
+function startServer(delivery: "smtp" | "disabled" = "smtp") {
+  const server = spawn(
+    process.execPath,
+    [
+      resolve("node_modules/next/dist/bin/next"),
+      "start",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      String(port),
+    ],
+    {
+      env: { ...process.env, MAIL_DELIVERY: delivery },
+      stdio: ["ignore", "ignore", "pipe"],
+    },
+  );
+  server.stderr?.on("data", (chunk) => {
+    for (const line of String(chunk).split("\n")) {
+      try {
+        const event = JSON.parse(line);
+        if (event.event === "request_failed")
+          console.log({
+            event: event.event,
+            kind: event.kind,
+            code: event.code,
+          });
+      } catch {}
+    }
+  });
+  return server;
+}
+let server = startServer();
+async function stopServer() {
+  if (server.exitCode !== null) return;
+  await new Promise<void>((r) => {
+    server.once("exit", () => r());
+    server.kill("SIGTERM");
+  });
+}
 const browser = await chromium.launch({ headless: true });
 const errors: string[] = [];
 function observe(page: Page) {
@@ -431,9 +449,85 @@ try {
     .getByRole("heading", { name: "Hello, Researcher", exact: true })
     .waitFor();
   await pc.unroute("**/api/projects");
+  stage = "disabled mail deployment profile";
+  await stopServer();
+  server = startServer("disabled");
+  for (let i = 0; i < 100; i++) {
+    try {
+      if ((await fetch(origin + "/health/live")).ok) break;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  for (const path of ["/sign-up", "/reset", "/verify"]) {
+    await pa.goto(origin + path);
+    await pa
+      .getByRole("heading", {
+        name: "Email delivery is currently unavailable",
+        exact: true,
+      })
+      .waitFor();
+    assert.equal(await pa.locator("form").count(), 0);
+  }
+  assert.equal(
+    (
+      await a.request.post(origin + "/api/auth/sign-up/email", {
+        headers: { origin },
+        data: {
+          name: "Disabled browser",
+          email: "disabled-browser@example.invalid",
+          password: randomBytes(24).toString("hex"),
+        },
+      })
+    ).status(),
+    503,
+  );
+  await pa.goto(origin + "/sign-in");
+  await pa.getByLabel("Email", { exact: true }).fill(ua.email);
+  await pa.getByLabel("Password", { exact: true }).fill(ua.password);
+  await pa.getByRole("button", { name: "Sign in", exact: true }).click();
+  await pa.waitForURL("**/home");
+  await pa.goto(projectUrl + "/members");
+  await pa
+    .getByRole("heading", { name: "Project members", exact: true })
+    .waitFor();
+  assert.equal(
+    await pa
+      .getByRole("button", { name: "Invite member", exact: true })
+      .isEnabled(),
+    false,
+  );
+  const scope = new URL(projectUrl).pathname.split("/");
+  assert.equal(
+    (
+      await a.request.patch(
+        `${origin}/api/projects/${scope[4]}?workspaceId=${scope[2]}`,
+        {
+          headers: { origin },
+          data: {
+            action: "invite",
+            email: "disabled-invite@example.invalid",
+            role: "viewer",
+          },
+        },
+      )
+    ).status(),
+    503,
+  );
+  await pa.setViewportSize({ width: 390, height: 900 });
+  await pa.goto(origin + "/sign-up");
+  await pa
+    .getByRole("heading", {
+      name: "Email delivery is currently unavailable",
+      exact: true,
+    })
+    .waitFor();
+  await pa.screenshot({
+    path: join(folder, "mail-disabled-390-dark.png"),
+    fullPage: true,
+  });
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: real registration/verification/sign-in, empty accounts, workspace/project creation, invite acceptance, viewer and team isolation, live revocation, keyboard drawer/focus return, reduced motion, recoverable network error; 48 screenshots across four widths/two themes.",
+    "PASS: real registration/verification/sign-in, empty accounts, workspace/project creation, invite acceptance, viewer and team isolation, live revocation, keyboard drawer/focus return, reduced motion, recoverable network error, disabled-mail UI and HTTP denial; 48 screenshots across four widths/two themes.",
   );
   console.log(`Synthetic screenshot evidence: ${folder}`);
 } catch (error) {
@@ -452,8 +546,7 @@ try {
 } finally {
   clearInterval(timer);
   await browser.close();
-  server.kill("SIGTERM");
-  await new Promise<void>((r) => server.once("exit", () => r()));
+  await stopServer();
   await mail.close();
   await smtp.close();
 }
