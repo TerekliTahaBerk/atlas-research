@@ -12,6 +12,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Library experience:** project Library and Discover are unified, with complete organization, filtering, bulk actions and source details. See the [Library delivery record](docs/implementation/LIBRARY_EXPERIENCE.md) for behavior, data preservation and verification boundaries.
 
+**PDF Reader experience:** continuous private PDF reading, search, anchored highlights/notes, quoted document/task connections and per-version reading positions. See the [Reader delivery record](docs/implementation/READER_EXPERIENCE.md) for verification, design decisions and remaining limits.
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

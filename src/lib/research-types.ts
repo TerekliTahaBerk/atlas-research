@@ -42,6 +42,13 @@ export type Reading = {
   zoom: number;
   position: number;
 };
+export type ReaderPosition = {
+  versionId: string;
+  page: number;
+  zoom: number;
+  zoomMode: string;
+  position: number;
+};
 export type ResearchAnnotation = {
   id: string;
   sourceId: string;
@@ -63,6 +70,7 @@ export type ResearchDetail = {
   files: ResearchFile[];
   annotations: ResearchAnnotation[];
   reading: Reading | null;
+  positions: ReaderPosition[];
   collections: ResearchCollection[];
   collectionIds: string[];
   role: string;

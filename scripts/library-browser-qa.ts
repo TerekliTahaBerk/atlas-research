@@ -265,6 +265,7 @@ try {
     .waitFor();
   const version = new URL(page.url()).searchParams.get("version");
   await page.getByLabel("PDF page", { exact: true }).fill("2");
+  await page.getByLabel("PDF page", { exact: true }).press("Enter");
   await page
     .getByRole("status")
     .filter({ hasText: "Reading position saved" })

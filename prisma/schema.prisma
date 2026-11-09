@@ -353,6 +353,21 @@ model ReadingState {
   @@map("reading_states")
   @@schema("app")
 }
+model ReadingPosition {
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  sourceId String @db.Uuid
+  versionId String @db.Uuid
+  userId String
+  page Int @default(1)
+  zoom Float @default(1)
+  zoomMode String @default("manual")
+  position Float @default(0)
+  updatedAt DateTime @updatedAt
+  @@id([versionId, userId])
+  @@map("reading_positions")
+  @@schema("app")
+}
 model FileJob {
   id String @id @db.Uuid
   workspaceId String @db.Uuid

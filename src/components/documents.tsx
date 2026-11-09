@@ -534,7 +534,7 @@ function DocumentWriting({
       id: string;
     } | null>(null),
     [actionError, setActionError] = useState<unknown>(),
-    insertRef = useRef<((id: string) => void) | null>(null),
+    insertRef = useRef<((id: string, quote?: string) => void) | null>(null),
     [restoring, setRestoring] = useState(false);
   const used = citationIds(state.draft.body).flatMap(
     (id) => citations.find((c) => c.id === id) ?? [],
@@ -723,12 +723,16 @@ function DocumentWriting({
           p={p}
           endpoint={endpoint}
           onClose={closePicker}
-          onInsert={(all) => {
+          onInsert={(all, includeQuote) => {
             const added = all.find(
               (c) => !citations.some((old) => old.id === c.id),
             );
             flushSync(() => setCitations(all));
-            if (added) insertRef.current?.(added.id);
+            if (added)
+              insertRef.current?.(
+                added.id,
+                includeQuote ? added.quote : undefined,
+              );
             closePicker();
           }}
         />
@@ -872,13 +876,14 @@ function CitationPicker({
   p: string;
   endpoint: string;
   onClose: () => void;
-  onInsert: (all: CitationView[]) => void;
+  onInsert: (all: CitationView[], includeQuote: boolean) => void;
 }) {
   const query = useSearchParams();
   const [q, setQ] = useState(""),
     [source, setSource] = useState(query.get("citeSource") ?? ""),
     [version, setVersion] = useState(query.get("citeVersion") ?? ""),
     [annotation, setAnnotation] = useState(query.get("citeAnnotation") ?? ""),
+    [includeQuote, setIncludeQuote] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
   const library = useResource<ResearchLibrary>(
@@ -900,7 +905,7 @@ function CitationPicker({
               ...(version ? { versionId: version } : {}),
               ...(annotation ? { annotationId: annotation } : {}),
             });
-            onInsert(all);
+            onInsert(all, includeQuote);
           } catch (e) {
             setError(e);
           } finally {
@@ -977,6 +982,17 @@ function CitationPicker({
             </label>
           </>
         )}
+        {annotation &&
+          detail.data?.annotations.find((a) => a.id === annotation)?.quote && (
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={includeQuote}
+                onChange={(e) => setIncludeQuote(e.target.checked)}
+              />
+              Include selected quotation
+            </label>
+          )}
         <InlineError error={error ?? library.error ?? detail.error} />
         <button className="primary" disabled={!source || busy || !detail.data}>
           Insert citation

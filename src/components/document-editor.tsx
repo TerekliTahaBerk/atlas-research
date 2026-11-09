@@ -26,7 +26,7 @@ export function RichEditor({
   editable: boolean;
   onChange?: (n: DocNode) => void;
   citations: CitationView[];
-  insertRef?: React.RefObject<((id: string) => void) | null>;
+  insertRef?: React.RefObject<((id: string, quote?: string) => void) | null>;
 }) {
   const refs = useRef(citations);
   useLayoutEffect(() => {
@@ -129,7 +129,32 @@ export function RichEditor({
   }, [editor, editable]);
   useEffect(() => {
     if (insertRef)
-      insertRef.current = (id) => {
+      insertRef.current = (id, quote) => {
+        if (quote && editor) {
+          editor
+            .chain()
+            .focus()
+            .insertContentAt(editor.state.doc.content.size, [
+              {
+                type: "blockquote",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: quote }],
+                  },
+                ],
+              },
+              {
+                type: "paragraph",
+                content: [
+                  { type: "citation", attrs: { id } },
+                  { type: "text", text: " " },
+                ],
+              },
+            ])
+            .run();
+          return;
+        }
         if (!editor) return;
         const content = [
           { type: "citation", attrs: { id } },

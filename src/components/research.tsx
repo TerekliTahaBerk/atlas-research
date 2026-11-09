@@ -23,6 +23,8 @@ export function ResearchScreen({
     mode === "reader" && sourceId
       ? `/api/research/${w}/${p}/sources/${sourceId}`
       : null,
+    false,
+    true,
   );
   return (
     <WorkspaceShell
@@ -35,19 +37,21 @@ export function ResearchScreen({
     >
       {({ me }) =>
         mode === "reader" ? (
-          detail.error ? (
-            <Failure error={detail.error} retry={detail.reload} />
-          ) : detail.data ? (
+          detail.data ? (
             <div className="research-surface reader-surface">
               <PdfReader
+                key={`${me.user.id}/${w}/${p}/${sourceId}`}
                 w={w}
                 p={p}
                 detail={detail.data}
                 userId={me.user.id}
                 canEdit={detail.data.canEdit}
                 reload={detail.reload}
+                readError={detail.error}
               />
             </div>
+          ) : detail.error ? (
+            <Failure error={detail.error} retry={detail.reload} />
           ) : (
             <Loading />
           )
