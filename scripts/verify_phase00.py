@@ -6,10 +6,27 @@ import hashlib
 import json
 import re
 import sys
+import subprocess
+import tarfile
+import tempfile
+import io
 from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+if "--historical" in sys.argv:
+    # Preserve the original no-application gate against its actual immutable Phase 00 tree.
+    # Never reinterpret the Phase 00 gate as an application gate after implementation starts.
+    baseline = "5e429353d2a4deef2161a706031b61d233a59e31"
+    archive = subprocess.check_output(["git", "archive", baseline], cwd=ROOT)
+    with tempfile.TemporaryDirectory(prefix="atlas-phase00-") as directory:
+        with tarfile.open(fileobj=io.BytesIO(archive)) as snapshot:
+            snapshot.extractall(directory, filter="data")
+        print(f"Historical Phase 00 tree: {baseline}", flush=True)
+        result = subprocess.run([sys.executable, str(Path(directory) / "scripts/verify_phase00.py")], cwd=directory)
+        sys.exit(result.returncode)
+
 failures = []
 checks = []
 
