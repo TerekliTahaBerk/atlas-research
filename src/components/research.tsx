@@ -11,6 +11,7 @@ import type {
   ResearchDetail,
   DiscoveryItem,
 } from "@/lib/research-types";
+import { ResearchActions } from "./collaboration-shared";
 import { WorkspaceShell } from "./workspace-shell";
 import {
   Failure,
@@ -1227,6 +1228,14 @@ function SourceDetails({
   return (
     <div className="source-detail-grid">
       <section className="source-summary">
+        <ResearchActions
+          w={w}
+          p={p}
+          id={s.id}
+          origin={{ sourceId: s.id }}
+          canEdit={canEdit}
+        />
+
         <div className="actions">
           {latest && (
             <Link

@@ -71,9 +71,11 @@ CREATE POLICY notification_update ON app.notifications FOR UPDATE TO atlas_runti
 CREATE POLICY notification_create ON app.notifications FOR INSERT TO atlas_runtime WITH CHECK(app.can_write_research("workspaceId","projectId") AND app.eligible_member("workspaceId","projectId","recipientId",false));
 -- Membership lifecycle clears assignments atomically, including workspace-wide revocation.
 GRANT SELECT,UPDATE ON app.tasks TO atlas_policy;
+GRANT INSERT ON app.audit_events TO atlas_policy;
 GRANT CREATE ON SCHEMA app TO atlas_policy;
 CREATE FUNCTION app.clear_ineligible_assignments() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 BEGIN
+ INSERT INTO app.audit_events(id,"workspaceId","projectId","actorId",event,"targetId","createdAt") SELECT gen_random_uuid(),"workspaceId","projectId",app.actor_id(),'task_assignment_cleared',id::text,now() FROM app.tasks WHERE "workspaceId"=NEW."workspaceId" AND "assigneeId"=NEW."userId" AND NOT app.eligible_member("workspaceId","projectId","assigneeId",true);
  UPDATE app.tasks SET "assigneeId"=NULL,revision=revision+1,"updatedAt"=now() WHERE "workspaceId"=NEW."workspaceId" AND "assigneeId"=NEW."userId" AND NOT app.eligible_member("workspaceId","projectId","assigneeId",true);
  RETURN NEW;
 END $$;

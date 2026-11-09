@@ -33,3 +33,7 @@ Job state queued/running/succeeded/failed/cancelled; deneme sayısı, lease/hear
 Beta için bildirim/görev/thread güncellemesi normal refetch ve görünür sayfada önerilen 15 saniyelik polling ile başlar; sekme odaklandığında refetch olur. Yazma optimistic revision ile korunur. Bu süre güvenlik garantisi değildir; her server isteği güncel yetki kontrolündedir.
 
 SSE aynı monolit üzerinde yalnız değişim bildirimi için ileride adaydır; reconnect/cursor/authorization/proxy buffer ve bağlantı bütçesi ölçülmeden eklenmez. WebSocket/co-editing altyapısı ve özel realtime servisi beta önkoşulu değildir. Polling yeterli değilse Faz 03/05 ölçümü ADR'yi günceller; sessizce kalıcı collaboration iddiası eklenmez.
+
+## Phase 03 implementation
+
+The existing 20-second focus/refetch polling is reused for tasks, topics and Inbox. Notification insertion is an atomic same-database change, so no new dispatcher/queue/realtime infrastructure is warranted. Document saves use revision/request receipts, not CRDT. See [ADR 0005](0005-documents-and-collaboration.md). Email and S3 stay disabled.

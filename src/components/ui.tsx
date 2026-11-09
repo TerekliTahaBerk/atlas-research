@@ -15,6 +15,8 @@ export function Icon({
   name,
 }: {
   name:
+    | "inbox"
+    | "discussion"
     | "home"
     | "folder"
     | "plus"
@@ -48,6 +50,9 @@ export function Icon({
     | "close";
 }) {
   const paths = {
+    inbox: "M4 3h16l2 12v6H2v-6Zm-2 12h6l2 3h4l2-3h6",
+    discussion:
+      "M21 15a2 2 0 0 1-2 2H7l-5 4V5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2ZM6 7h11M6 11h8",
     home: "m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z",
     folder: "M3 7V5h6l2 2h10v13H3Z",
     plus: "M12 5v14M5 12h14",
@@ -210,11 +215,13 @@ export function Modal({
   children,
   onClose,
   drawer = false,
+  dismissible = true,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   drawer?: boolean;
+  dismissible?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
     id = useId();
@@ -233,6 +240,9 @@ export function Modal({
       aria-labelledby={id}
       className={drawer ? "drawer" : "modal"}
       onClose={onClose}
+      onCancel={(event) => {
+        if (!dismissible) event.preventDefault();
+      }}
       onKeyDown={(event) => {
         if (event.key !== "Tab") return;
         const items = [
@@ -253,13 +263,15 @@ export function Modal({
     >
       <div className="dialog-heading">
         <h2 id={id}>{title}</h2>
-        <button
-          aria-label="Close dialog"
-          className="icon-button"
-          onClick={() => ref.current?.close()}
-        >
-          <Icon name="close" />
-        </button>
+        {dismissible && (
+          <button
+            aria-label="Close dialog"
+            className="icon-button"
+            onClick={() => ref.current?.close()}
+          >
+            <Icon name="close" />
+          </button>
+        )}
       </div>
       {children}
     </dialog>

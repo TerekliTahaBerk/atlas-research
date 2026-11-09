@@ -31,3 +31,7 @@ Beta tüm etkileşimlerde [DESIGN_SYSTEM](design/DESIGN_SYSTEM.md) klavye/focus 
 ## Gelecek ekranları ve prototip araçları
 
 Manuscript/LaTeX, Experiments/notebook, Semantic Map, Knowledge graph, kurum SSO/yönetimi, gelişmiş DM ve ödeme/pricing beta ürün navigasyonuna alınmaz. Temel matematik editörü S10'dadır. Kaynak arama S06'da, basit bağlantılar S04/S09–S12'dedir; graph ekranı gerektirmez. Design system, Mobile screens ve Tweaks prototip inceleme araçlarıdır. Sonraki sürüm sırası [ROADMAP](ROADMAP.md) tarafından belirlenir.
+
+## Implemented Phase 03 routes
+
+S10: `/w/:w/p/:p/docs` and `/docs/:id`; S11: `/tasks` and `/tasks/:id`; S12: `/discussions` and `/discussions/:id`; S13: `/inbox`. S17 document export is authorized Markdown on the document API. PDF citation locators reuse `/sources/:id/read?version=:v&page=:n&annotation=:a`. These extend the existing shell; historical suggested routes above are not duplicate endpoints.

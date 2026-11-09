@@ -1,6 +1,6 @@
 # Kavramsal veri modeli
 
-Bu belge fiziksel şema veya migration değildir. Yalnız ilgili fazda gereken tablolar uygulanacak. Kimlik/erişim [AUTHORIZATION](AUTHORIZATION.md), atıf detayları [AI_AND_SOURCE_CONTRACT](AI_AND_SOURCE_CONTRACT.md) tarafından belirlenir.
+Faz 03 güncellemesi: kavramsal modelin Document/DocumentVersion/Citation/Task/Discussion/Message/Notification/ArtifactLink alt kümesi additive 006 şemasında uygulanmıştır; fiziksel alanlar `prisma/schema.prisma` ve migration’da, kayıt/retention sınırları [ADR 0005](decisions/0005-documents-and-collaboration.md) içindedir. Aşağıdaki geniş model Faz 00 planıdır. Yalnız ilgili fazda gereken tablolar uygulanacak. Kimlik/erişim [AUTHORIZATION](AUTHORIZATION.md), atıf detayları [AI_AND_SOURCE_CONTRACT](AI_AND_SOURCE_CONTRACT.md) tarafından belirlenir.
 
 ## ERD
 

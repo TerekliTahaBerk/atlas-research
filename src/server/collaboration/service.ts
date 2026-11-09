@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Database } from "../db/client";
 import type { Identity } from "../auth/identity";
 import { asIdentity } from "../db/transaction";
-import { inProject, requireRole, type Tx } from "../domain/access";
+import { audit, inProject, requireRole, type Tx } from "../domain/access";
 import { research } from "../research/library";
 import { AppError } from "../errors";
 import {
@@ -368,7 +368,10 @@ export function listDocuments(
       orderBy: { updatedAt: "desc" },
       take: 200,
     }),
-    canEdit: ["owner", "admin", "editor"].includes(s.projectRole),
+    canEdit:
+      ["owner", "admin", "editor"].includes(s.projectRole) &&
+      !s.project.archivedAt &&
+      !s.workspace.archivedAt,
     canManage: ["owner", "admin"].includes(s.projectRole),
   }));
 }
@@ -1061,6 +1064,14 @@ export function editMessage(
     )
       unavailable();
     if (m.revision !== input.revision) conflict();
+    await audit(
+      tx,
+      a,
+      w,
+      p,
+      m.authorId === a.id ? "message_edited" : "message_moderated",
+      id,
+    );
     return tx.message.update({
       where: { id },
       data: {

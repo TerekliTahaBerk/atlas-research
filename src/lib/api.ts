@@ -61,6 +61,8 @@ export function message(error: unknown) {
     UPLOAD_FAILED:
       "The PDF could not be saved. Your source details are safe; try the upload again.",
   };
+  if (code === "UNSAVED_CHANGES")
+    return "Save or recover your writing before signing out. Your draft is still here.";
   if (research[code]) return research[code];
   if (code === "MAIL_DISABLED")
     return "Email delivery is currently unavailable. Please contact your workspace administrator.";
@@ -77,7 +79,8 @@ export function message(error: unknown) {
   return "This action could not be completed. Check your input and access, then try again.";
 }
 export function safeReturn(value: string | null) {
-  return value && /^\/(home|onboarding|settings|w|invite)(\/|\?|$)/.test(value)
+  return value &&
+    /^\/(home|onboarding|settings|w|invite|inbox)(\/|\?|$)/.test(value)
     ? value
     : "/home";
 }
