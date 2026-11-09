@@ -14,6 +14,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **PDF Reader experience:** continuous private PDF reading, search, anchored highlights/notes, quoted document/task connections and per-version reading positions. See the [Reader delivery record](docs/implementation/READER_EXPERIENCE.md) for verification, design decisions and remaining limits.
 
+**Documents experience:** searchable project writing, focused source/math editing, acknowledged recovery/history and current-revision Markdown export. See the [Documents delivery record](docs/implementation/DOCUMENTS_EXPERIENCE.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

@@ -3,6 +3,7 @@ import { PopoverMenu } from "./ui";
 import { BubbleMenu } from "@tiptap/react/menus";
 import katex from "katex";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { sinkListItem, liftListItem } from "@tiptap/pm/schema-list";
 import { Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Mathematics from "@tiptap/extension-mathematics";
@@ -12,6 +13,11 @@ import { safeHref } from "@/lib/document-model";
 import type { CitationView } from "@/lib/collaboration-types";
 import { Modal, Icon } from "./ui";
 import "katex/dist/katex.min.css";
+export type EditorControls = {
+  focus: () => void;
+  heading: (index: number) => void;
+  selection: () => string;
+};
 const selectionMenuOptions = { placement: "top" as const, offset: 8 };
 export function RichEditor({
   initial,
@@ -20,18 +26,28 @@ export function RichEditor({
   citations,
   insertRef,
   onCitation,
+  onCitationSelect,
+  onResearch,
+  editorRef,
 }: {
   onCitation?: () => void;
+  onCitationSelect?: (id: string) => void;
+  onResearch?: (kind: "task" | "discussion", text: string) => void;
+  editorRef?: React.RefObject<EditorControls | null>;
   initial: DocNode;
   editable: boolean;
   onChange?: (n: DocNode) => void;
   citations: CitationView[];
   insertRef?: React.RefObject<((id: string, quote?: string) => void) | null>;
 }) {
+  const citationClick = useRef(onCitationSelect),
+    renderers = useRef(new Set<() => void>());
   const refs = useRef(citations);
   useLayoutEffect(() => {
     refs.current = citations;
-  }, [citations]);
+    citationClick.current = onCitationSelect;
+    renderers.current.forEach((render) => render());
+  }, [citations, onCitationSelect]);
   const change = useRef(onChange);
   useEffect(() => {
     change.current = onChange;
@@ -92,29 +108,63 @@ export function RichEditor({
         },
         addNodeView() {
           return ({ node }) => {
-            const c = refs.current.find((c) => c.id === node.attrs.id),
-              dom = document.createElement("a");
+            const dom = document.createElement("a");
+            let currentNode = node,
+              c: CitationView | undefined;
             dom.className = "document-citation";
-            dom.dataset.atlasCitation = node.attrs.id;
             dom.contentEditable = "false";
-            dom.href = c?.href ?? "#";
-            dom.title = c
-              ? `${c.title}${c.page ? " · p. " + c.page : ""}${c.archived ? " · archived/removed" : ""}`
-              : "Unavailable reference";
-            dom.textContent = c
-              ? `${c.authors[0]?.split(",")[0] ?? "Source"}, ${c.year ?? "n.d."}${c.page ? ", p. " + c.page : ""}`
-              : "Unavailable reference";
+            const refresh = () => {
+              c = refs.current.find((c) => c.id === currentNode.attrs.id);
+              dom.dataset.atlasCitation = currentNode.attrs.id;
+              dom.href = c?.href ?? "#";
+              dom.title = c
+                ? `${c.title}${c.page ? " · p. " + c.page : ""}${c.archived ? " · archived target" : ""}`
+                : "Unavailable reference";
+              dom.textContent = c
+                ? `${c.authors[0]?.split(",")[0] ?? "Source"}, ${c.year ?? "n.d."}${c.page ? ", p. " + c.page : ""}`
+                : "Unavailable reference";
+              dom.setAttribute(
+                "aria-label",
+                dom.textContent + " — source details",
+              );
+            };
+            refresh();
+            renderers.current.add(refresh);
             dom.addEventListener("click", (event) => {
               if (!c) {
                 event.preventDefault();
+                return;
+              }
+              if (citationClick.current && !event.metaKey && !event.ctrlKey) {
+                event.preventDefault();
+                citationClick.current(c.id);
               }
             });
-            return { dom };
+            return {
+              dom,
+              update(next) {
+                if (next.type.name !== "citation") return false;
+                currentNode = next;
+                refresh();
+                return true;
+              },
+              destroy() {
+                renderers.current.delete(refresh);
+              },
+            };
           };
         },
       }),
     ],
     editorProps: {
+      handleKeyDown(view, event) {
+        if (event.key !== "Tab") return false;
+        return (
+          event.shiftKey
+            ? liftListItem(view.state.schema.nodes.listItem)
+            : sinkListItem(view.state.schema.nodes.listItem)
+        )(view.state, view.dispatch);
+      },
       attributes: {
         class: "atlas-prose",
         role: "textbox",
@@ -134,7 +184,7 @@ export function RichEditor({
           editor
             .chain()
             .focus()
-            .insertContentAt(editor.state.doc.content.size, [
+            .insertContentAt(editor.state.selection.to, [
               {
                 type: "blockquote",
                 content: [
@@ -164,17 +214,53 @@ export function RichEditor({
           editor
             .chain()
             .focus()
-            .insertContentAt(editor.state.doc.content.size, {
+            .insertContentAt(editor.state.selection.to, {
               type: "paragraph",
               content,
             })
             .run();
-        else editor.chain().focus().insertContent(content).run();
+        else
+          editor
+            .chain()
+            .focus()
+            .insertContentAt(editor.state.selection.to, content)
+            .run();
       };
     return () => {
       if (insertRef) insertRef.current = null;
     };
   }, [editor, insertRef]);
+  useEffect(() => {
+    if (!editorRef || !editor) return;
+    editorRef.current = {
+      focus: () => {
+        if (!editor.isDestroyed) editor.commands.focus();
+      },
+      selection: () =>
+        editor.state.doc
+          .textBetween(
+            editor.state.selection.from,
+            editor.state.selection.to,
+            "\n",
+          )
+          .slice(0, 6000),
+      heading: (index) => {
+        let n = 0;
+        editor.state.doc.descendants((node, pos) => {
+          if (node.type.name === "heading" && n++ === index)
+            editor
+              .chain()
+              .focus()
+              .setTextSelection(pos + 1)
+              .scrollIntoView()
+              .run();
+        });
+      },
+    };
+    return () => {
+      editorRef.current = null;
+    };
+  }, [editor, editorRef]);
   if (!editor) return <p className="muted">Opening editor…</p>;
   const returnToWriting = () =>
     requestAnimationFrame(() => {
@@ -206,6 +292,20 @@ export function RichEditor({
       )}
     </button>
   );
+  let mathError = "";
+  if (math?.latex.trim())
+    try {
+      katex.renderToString(math.latex, {
+        displayMode: math.kind === "blockMath",
+        trust: false,
+        throwOnError: true,
+        maxExpand: 100,
+        maxSize: 20,
+      });
+    } catch {
+      mathError =
+        "This expression could not be rendered. Check the syntax; your input is kept.";
+    }
   return (
     <>
       {editable && (
@@ -283,6 +383,24 @@ export function RichEditor({
                 () => editor.chain().focus().toggleCodeBlock().run(),
                 editor.isActive("codeBlock"),
               )}
+              {tool("Divider", () =>
+                editor.chain().focus().setHorizontalRule().run(),
+              )}
+              {tool(
+                "Underline",
+                () => editor.chain().focus().toggleUnderline().run(),
+                editor.isActive("underline"),
+              )}
+              {tool(
+                "Strikethrough",
+                () => editor.chain().focus().toggleStrike().run(),
+                editor.isActive("strike"),
+              )}
+              {tool(
+                "Inline code",
+                () => editor.chain().focus().toggleCode().run(),
+                editor.isActive("code"),
+              )}
               {tool("Link", () =>
                 setLink(editor.getAttributes("link").href ?? ""),
               )}
@@ -346,6 +464,24 @@ export function RichEditor({
             () => editor.chain().focus().toggleBlockquote().run(),
             editor.isActive("blockquote"),
           )}
+          {onResearch && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() =>
+                onResearch(
+                  "task",
+                  editor.state.doc.textBetween(
+                    editor.state.selection.from,
+                    editor.state.selection.to,
+                    "\n",
+                  ),
+                )
+              }
+            >
+              Create task
+            </button>
+          )}
           {onCitation && (
             <button
               type="button"
@@ -370,7 +506,7 @@ export function RichEditor({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (!math.latex.trim()) return;
+              if (!math.latex.trim() || mathError) return;
               const chain = editor.chain().focus();
               if (math.pos !== undefined) {
                 chain.setNodeSelection(math.pos);
@@ -412,17 +548,21 @@ export function RichEditor({
               />
             </label>
             <div className="math-examples">
-              {["p < 0.05", "\\frac{a}{b}", "\\sum_{i=1}^{n} x_i"].map(
-                (expression) => (
-                  <button
-                    key={expression}
-                    type="button"
-                    onClick={() => setMath({ ...math, latex: expression })}
-                  >
-                    {expression}
-                  </button>
-                ),
-              )}
+              {[
+                "p < 0.05",
+                "\\frac{a}{b}",
+                "\\sum_{i=1}^{n} x_i",
+                "\\int_0^1 x^2 \\mathrm{d}x",
+                "\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}",
+              ].map((expression) => (
+                <button
+                  key={expression}
+                  type="button"
+                  onClick={() => setMath({ ...math, latex: expression })}
+                >
+                  {expression}
+                </button>
+              ))}
             </div>
             <MathPreview
               latex={math.latex}
@@ -431,7 +571,11 @@ export function RichEditor({
             <p className="muted">
               Click any equation in your writing to edit it.
             </p>
-            <button className="primary">
+            {mathError && <p role="alert">{mathError}</p>}
+            <button
+              className="primary"
+              disabled={!!mathError || !math.latex.trim()}
+            >
               {math.pos === undefined
                 ? "Insert expression"
                 : "Update expression"}
@@ -483,7 +627,15 @@ export function RichEditor({
             <p className="muted">
               Select text first. Clear the URL to remove its link.
             </p>
-            <button className="primary">Apply link</button>
+            {link && !safeHref(link) && (
+              <p role="alert">
+                Use a complete https, http or mailto address. Your input is
+                kept.
+              </p>
+            )}
+            <button className="primary" disabled={!!link && !safeHref(link)}>
+              Apply link
+            </button>
           </form>
         </Modal>
       )}

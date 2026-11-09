@@ -63,18 +63,29 @@ export function AiCompanion({
       setSeed(data);
       setConversation("");
       setOpen(true);
+      window.dispatchEvent(new Event("atlas-ai-opened"));
       try {
         sessionStorage.setItem(key, JSON.stringify({ open: true, id: "" }));
       } catch {}
     };
+    const closeForWriting = () => {
+      setOpen(false);
+      try {
+        const old = JSON.parse(sessionStorage.getItem(key) ?? "{}");
+        sessionStorage.setItem(key, JSON.stringify({ ...old, open: false }));
+      } catch {}
+    };
+    window.addEventListener("atlas-document-tools-open", closeForWriting);
     window.addEventListener("atlas-ai-open", launch);
     return () => {
       media.removeEventListener("change", sync);
       window.removeEventListener("atlas-ai-open", launch);
+      window.removeEventListener("atlas-document-tools-open", closeForWriting);
     };
   }, [key, w, p]);
   function changeOpen(value: boolean) {
     setOpen(value);
+    if (value) window.dispatchEvent(new Event("atlas-ai-opened"));
     try {
       sessionStorage.setItem(
         key,

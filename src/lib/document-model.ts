@@ -166,7 +166,7 @@ export function plainDocument(n: DocNode): string {
     (["inlineMath", "blockMath"].includes(n.type)
       ? String(n.attrs?.latex)
       : n.type === "citation"
-        ? `[citation ${n.attrs?.id}]`
+        ? "[reference]"
         : (n.content ?? [])
             .map(plainDocument)
             .join(
@@ -191,6 +191,7 @@ export function documentMarkdown(
         if (m.type === "bold") t = `**${t}**`;
         if (m.type === "italic") t = `*${t}*`;
         if (m.type === "strike") t = `~~${t}~~`;
+        if (m.type === "underline") t = `<u>${t}</u>`;
         if (m.type === "code")
           t = "`" + (n.text ?? "").replaceAll("`", "\\`") + "`";
         if (m.type === "link")

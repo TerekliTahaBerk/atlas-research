@@ -402,11 +402,10 @@ try {
   await dialog
     .getByRole("link", { name: "Open and cite", exact: true })
     .click();
-  dialog = page.getByRole("dialog", { name: "Add source citation" });
-  await dialog
+  await page
     .getByRole("button", { name: "Insert citation", exact: true })
     .click();
-  await dialog.waitFor({ state: "hidden" });
+  await page.getByLabel("Find a source").waitFor({ state: "hidden" });
   await page
     .locator('[aria-label="Document body"] blockquote')
     .filter({ hasText: /[Pp].*[Hh]acking/ })
@@ -427,6 +426,9 @@ try {
   assert.equal(written.citations[0].annotationId, annotation.id);
   stage = "citation returns to exact highlight, linked task";
   await page.locator(".document-citation").first().click();
+  await page
+    .getByRole("link", { name: "Read PDF location", exact: true })
+    .click();
   await page.waitForURL("**/read?*");
   await page
     .locator(`[data-annotation="${annotation.id}"].active`)
