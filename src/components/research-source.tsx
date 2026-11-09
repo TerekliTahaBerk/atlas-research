@@ -1,4 +1,5 @@
 "use client";
+import { WorkVisit } from "./work-visit";
 import {
   useState,
   useEffect,
@@ -752,6 +753,7 @@ export function SourceDetails({
     latest = versions[0];
   return (
     <div className="source-detail-grid">
+      <WorkVisit w={w} p={p} id={s.id} kind="source" />
       <section className="source-summary">
         <ResearchActions
           w={w}

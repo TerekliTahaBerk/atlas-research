@@ -28,11 +28,12 @@ export function createProject(db: Database, actor: Identity, workspaceId: string
 export function readProject(db: Database, actor: Identity, w: string, p: string) {
   return inProject(db, actor, w, p, false, async (_tx, scope) => ({ project: scope.project, workspace: scope.workspace, role: scope.projectRole }));
 }
-export function updateProject(db: Database, actor: Identity, w: string, p: string, change: { name?: string; description?: string; archived?: boolean; deletion?: "request" | "restore" }) {
+export function updateProject(db: Database, actor: Identity, w: string, p: string, change: { expectedUpdatedAt?: string; name?: string; description?: string; archived?: boolean; deletion?: "request" | "restore" }) {
   return inProject(db, actor, w, p, true, async (tx, scope) => {
     requireRole(scope.projectRole, change.deletion ? ["owner"] : ["owner", "admin"]);
     if (scope.workspace.archivedAt) throw new AppError("ARCHIVED", 409);
     if ((change.name !== undefined || change.description !== undefined) && (scope.project.archivedAt || scope.project.deletedAt)) throw new AppError("ARCHIVED", 409);
+    if (change.expectedUpdatedAt && scope.project.updatedAt.toISOString() !== change.expectedUpdatedAt) throw new AppError("REVISION_CONFLICT", 409);
     if (change.deletion) fresh(actor);
     await audit(tx, actor, w, p, change.deletion ? `project_deletion_${change.deletion}` : "project_updated");
     if (change.deletion === "request") await tx.invitation.updateMany({ where: { workspaceId: w, projectId: p, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });

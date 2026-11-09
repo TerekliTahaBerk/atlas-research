@@ -6,7 +6,7 @@ import { createInvitation,invitationInput,revokeInvitation } from "@/server/doma
 import { getMailQueue } from "@/server/auth";
 import { getEnv } from "@/server/env";
 const schema=z.discriminatedUnion("action",[
-  z.object({action:z.literal("update"),name:z.string().trim().min(1).max(100).optional(),description:z.string().max(500).optional(),archived:z.boolean().optional(),deletion:z.enum(["request","restore"]).optional()}).strict(),
+  z.object({action:z.literal("update"),expectedUpdatedAt:z.iso.datetime().optional(),name:z.string().trim().min(1).max(100).optional(),description:z.string().max(500).optional(),archived:z.boolean().optional(),deletion:z.enum(["request","restore"]).optional()}).strict(),
   z.object({action:z.literal("role"),userId:z.string().min(1).max(128),role:z.enum(["admin","editor","viewer"])}).strict(),
   z.object({action:z.enum(["revoke","transfer"]),userId:z.string().min(1).max(128)}).strict(),
   invitationInput.extend({action:z.literal("invite")}).strict(),

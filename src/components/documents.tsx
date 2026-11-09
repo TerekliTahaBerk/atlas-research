@@ -1,4 +1,5 @@
 "use client";
+import { WorkVisit } from "./work-visit";
 import { PopoverMenu } from "./ui";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -410,15 +411,18 @@ function DocumentPage({
     return <Failure error={data.error} retry={data.reload} />;
   if (!data.data) return <Loading />;
   return (
-    <DocumentWriting
-      w={w}
-      p={p}
-      endpoint={endpoint}
-      detail={data.data}
-      reload={data.reload}
-      userId={userId}
-      readError={data.error}
-    />
+    <>
+      <WorkVisit w={w} p={p} id={id} kind="document" />
+      <DocumentWriting
+        w={w}
+        p={p}
+        endpoint={endpoint}
+        detail={data.data}
+        reload={data.reload}
+        userId={userId}
+        readError={data.error}
+      />
+    </>
   );
 }
 function DocumentTitle({
