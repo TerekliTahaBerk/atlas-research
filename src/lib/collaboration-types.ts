@@ -77,12 +77,17 @@ export const statusName = (s: string) =>
     done: "Done",
   })[s] ?? s;
 export type DiscussionData = {
+  revision?: number;
+  archivedAt?: string | null;
   id: string;
   title: string;
   createdBy: string;
   updatedAt: string;
 };
 export type MessageData = {
+  links?: ArtifactCard[];
+  orderStamp?: string;
+  mentions?: string[];
   id: string;
   authorId: string;
   artifactIds: string[];

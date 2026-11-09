@@ -1,4 +1,5 @@
 "use client";
+import { DiscussionCreateDialog } from "./discussion-form";
 import { PopoverMenu } from "./ui";
 import { TaskCreateDialog, TaskFields } from "./task-form";
 import { useState, type FormEvent } from "react";
@@ -89,6 +90,7 @@ export { TaskFields } from "./task-form";
 export function CreateArtifactDialog(
   props: Parameters<typeof ArtifactDialog>[0],
 ) {
+  if (props.kind === "discussion") return <DiscussionCreateDialog {...props} />;
   return props.kind === "task" ? (
     <TaskCreateDialog {...props} />
   ) : (
