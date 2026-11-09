@@ -1,6 +1,6 @@
 # Phase 05 preparation and hardening
 
-Status: in progress. The owner explicitly selected **preparation and hardening**, with no pilot participants or support/incident owner assigned. This is not a closed-beta launch or G05 PASS. Paid AI calls, email and S3 remain disabled. Existing Atlas Coolify settings and unrelated infrastructure must remain intact.
+Status: preparation implementation is squash merged in [PR #39](https://github.com/TerekliTahaBerk/atlas-research/pull/39) and deployed as `73ec5e7`; scoped live rollback verification is in progress. The owner explicitly selected **preparation and hardening**, with no pilot participants or support/incident owner assigned. This is not a closed-beta launch or G05 PASS. Paid AI calls, email and S3 remain disabled. Existing Atlas Coolify settings and unrelated infrastructure must remain intact.
 
 ## Changes
 
@@ -20,8 +20,8 @@ Only observed results will be recorded here. Local synthetic evidence does not c
 | Responsive/accessibility and CSP browser checks | PASS, focused Chromium: 320/390/768/1024/1440 CSS px × light/dark help guide, no horizontal overflow, safe diagnostics, nonce freshness/framework/theme script binding and blocked inline event handler. Existing source→math writing→task→discussion→Inbox browser regression also passed. Manual screen reader/native zoom and complete screen/state matrix remain NOT RUN. |
 | Ten concurrent synthetic sessions / HTTP load / isolation | PASS locally: 10 sessions in two teams; 50 detail reads, 50 acknowledged saves + reloads, 11 cross-team/revoked negative checks; read p95 81 ms, save p95 94 ms, zero lost acknowledged edits. Node 24.21.0 arm64, 10 host CPUs, 32 GiB RAM, local unconstrained web process and disposable PostgreSQL 18.6. Not live server capacity or pilot evidence. |
 | Current-image local encrypted DB+files recovery | PASS with candidate `6f71c06` web/mail/migrator images: encrypted backup → fresh cluster/files volume, file hashes readable as UID 1000, versions/citations/tasks/threads/private AI previews and two-team denial preserved. Local recovery/metadata rollback interval 5,498 ms; tiny synthetic set, not independent-target RPO/RTO. |
-| Existing Coolify deployment / HTTPS headers | Not yet observed |
-| Actual container image identities / PostgreSQL limits | Baseline `91a78f9` runtime image IDs and matching web/mail/files/migrator labels observed via Atlas-only docker inspect. PostgreSQL RepoDigest matches pinned `f1ea2a…`; actual cgroup memory.max=1073741824 and cpu.max=`100000 100000` (1 GiB / 1 CPU). Final release image audit pending. |
+| Existing Coolify deployment / HTTPS headers | PASS: deployment `ncyc5plu64fpjxmmuuyz4nru` (17:05:28 UTC / 20:05:28 Europe/Istanbul) reports Success; readiness `73ec5e71d6181806e3813c506eeff27069353ea9`, schema 007. Two HTTPS responses had different CSP nonces, matching script attributes, no production JS unsafe-eval, HSTS max-age=31536000 and DENY framing. Live guide/diagnostics rendered. |
+| Actual container image identities / PostgreSQL limits | Baseline `91a78f9` runtime image IDs and matching web/mail/files/migrator labels observed via Atlas-only docker inspect. PostgreSQL RepoDigest matches pinned `f1ea2a…`; actual cgroup memory.max=1073741824 and cpu.max=`100000 100000` (1 GiB / 1 CPU). First Phase 05 release audit also passed; exact IDs below. Final post-rollback audit pending. |
 | Live compatible 007 image rollback | Not yet observed |
 | Real pilot / support assignment / G01–G05 acceptance | OPEN; participants and owner unassigned, prior gates incomplete |
 | Real model / G04 | NOT RUN; paid calls prohibited, budget undecided |
@@ -45,3 +45,23 @@ The complete four-target **local** image build did not finish: Docker's local st
 Recovery dataset: two synthetic teams, two PDFs/sources/annotations, two cited documents with history, two linked tasks/discussions and two author-private AI evidence previews; no real model outputs. All writers were fenced for the snapshot. Fresh-cluster role/RLS restore, AES-GCM roundtrip, runtime-UID file hashes, database/web restarts, DB-outage live/ready behavior and same-schema metadata-image switch/rollback passed. No independent host, external SMTP or arbitrary older-code compatibility is claimed.
 
 Reproduction: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run test:integration`, `npm run test:beta:browser`, `npm run test:collaboration:browser`, `npm run verify:compose`, `npm run pilot:metrics -- docs/pilot/measurements.empty.json`; the operational drill needs locally built web/mail/migrator images and runs with `npm run test:operations`. Browser plugin unavailable; Playwright used with disposable loopback PostgreSQL/SMTP and synthetic data. No paid model request or real participant contact occurred. Screenshots remain outside the public repository.
+
+## First live hardened release and rollback pair
+
+Existing yula.co / Atlas resource only; source `main` pinned to `73ec5e71d6181806e3813c506eeff27069353ea9`. All four targets built successfully in Coolify, including the layer-sharing files worker. This live build success does not rewrite the separate local storage failure. No schema migration was added; all processes expect `202611090007_grounded_ai`.
+
+Observed runtime image IDs for release A (`73ec5e7`); each application image carried that exact source label and `Config.User=node`:
+
+| Role | Image ID (sha256) |
+| --- | --- |
+| web | `59fb244ed372063c24c24e050c3bed99676eaeb9fd1a90a0740fff5814684679` |
+| mail | `5c815e758079aa1b6a18f56cd1da686ebbb841645a507d61ac79dea9c33b2d42` |
+| files | `b589a91ba20e7a47c5d24cfb5b2ff2379214411be0d7cb270b00519c7b20b86c` |
+| migrate/bootstrap | `41cae5613d33fd43a7be449d9ed3fe3e3808a23be1b8544dfbc4556c2b3812b3` |
+| PostgreSQL | `b8a2015d6ceb378773f3407bca00ab7ac8e8e6d2c0e5f1a9295c40bff5c05f7e` |
+
+PostgreSQL RepoDigest is the pinned `postgres@sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5`. Inspection was filtered to this Atlas resource; no environment values, database rows or unrelated containers were dumped.
+
+The following documentation-only revision is release B for a **same-code, same-schema** live image switch/rollback rehearsal. Both A and B retain nonce CSP/HSTS, disabled paid calls/email/S3, credential isolation and identical data contracts. Reverting to pre-hardening images would remove security headers and is deliberately not used. The planned sequence is A → B → A → B, with readiness, image/source labels and controlled PDF/document persistence observed at each relevant step. No database restore or volume replacement is involved. This tests the operational rollback path; it cannot certify arbitrary earlier application/schema compatibility. Actual outcomes are recorded in a final observation follow-up.
+
+HTTPS audit used curl with normal system trust. The local Python installation lacked an issuer CA; its failed verification was not bypassed and neither client nor server trust settings were changed.
