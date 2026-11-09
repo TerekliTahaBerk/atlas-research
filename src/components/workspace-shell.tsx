@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { ResearchLibrary } from "@/lib/research-types";
 import {
   Failure,
@@ -76,7 +76,19 @@ export function WorkspaceShell({
   };
   async function signOut() {
     try {
+      if (
+        !window.dispatchEvent(
+          new Event("atlas-before-signout", { cancelable: true }),
+        )
+      ) {
+        setSignOutError(new ApiError(409, "UNSAVED_CHANGES"));
+        return;
+      }
       await api("/api/auth/sign-out", {});
+      try {
+        for (const key of Object.keys(sessionStorage))
+          if (key.startsWith("atlas-draft-v1:")) sessionStorage.removeItem(key);
+      } catch {}
       location.assign(location.origin + "/sign-in");
     } catch (error) {
       setSignOutError(error);
@@ -101,17 +113,26 @@ export function WorkspaceShell({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [base, router]);
-  const active = path.endsWith("/discover")
-    ? "discover"
-    : path.includes("/sources")
-      ? "library"
-      : path.endsWith("/members")
-        ? "members"
-        : current
-          ? "overview"
-          : path === "/home" || path === "/onboarding"
-            ? "home"
-            : "settings";
+  const active =
+    path === "/inbox"
+      ? "inbox"
+      : path.includes("/docs")
+        ? "documents"
+        : path.includes("/tasks")
+          ? "tasks"
+          : path.includes("/discussions")
+            ? "discussions"
+            : path.endsWith("/discover")
+              ? "discover"
+              : path.includes("/sources")
+                ? "library"
+                : path.endsWith("/members")
+                  ? "members"
+                  : current
+                    ? "overview"
+                    : path === "/home" || path === "/onboarding"
+                      ? "home"
+                      : "settings";
   const nav = (
     <>
       <div className="sidebar-heading">
@@ -167,6 +188,14 @@ export function WorkspaceShell({
           <Icon name="home" />
           Home
         </Link>
+        <Link
+          className={`nav-item ${active === "inbox" ? "selected" : ""}`}
+          href="/inbox"
+          onClick={() => setDrawer(false)}
+        >
+          <Icon name="inbox" />
+          Inbox
+        </Link>
         {base && (
           <details className="nav-group" open>
             <summary>
@@ -188,6 +217,30 @@ export function WorkspaceShell({
             >
               <Icon name="people" />
               Members
+            </Link>
+            <Link
+              className={`nav-item ${active === "tasks" ? "selected" : ""}`}
+              href={base + "/tasks"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="check" />
+              Tasks
+            </Link>
+            <Link
+              className={`nav-item ${active === "documents" ? "selected" : ""}`}
+              href={base + "/docs"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="note" />
+              Documents
+            </Link>
+            <Link
+              className={`nav-item ${active === "discussions" ? "selected" : ""}`}
+              href={base + "/discussions"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="discussion" />
+              Discussions
             </Link>
           </details>
         )}
@@ -310,7 +363,7 @@ export function WorkspaceShell({
               <Icon name="home" />
               <span>Home</span>
             </Link>
-            {!current && active === "settings" && (
+            {!current && ["settings", "inbox"].includes(active) && (
               <Link href={path} aria-current="page">
                 <Icon name="settings" />
                 <span>{title}</span>
@@ -318,15 +371,41 @@ export function WorkspaceShell({
             )}
             {current && (
               <>
-                {["overview", "members"].includes(active) ? (
+                {[
+                  "overview",
+                  "members",
+                  "documents",
+                  "tasks",
+                  "discussions",
+                ].includes(active) ? (
                   <Link
                     href={
                       projectPath(current) +
-                      (active === "members" ? "/members" : "")
+                      (active === "members"
+                        ? "/members"
+                        : active === "documents"
+                          ? "/docs"
+                          : active === "tasks"
+                            ? "/tasks"
+                            : active === "discussions"
+                              ? "/discussions"
+                              : "")
                     }
                     aria-current="page"
                   >
-                    <Icon name={active === "members" ? "people" : "grid"} />
+                    <Icon
+                      name={
+                        active === "members"
+                          ? "people"
+                          : active === "documents"
+                            ? "note"
+                            : active === "tasks"
+                              ? "check"
+                              : active === "discussions"
+                                ? "discussion"
+                                : "grid"
+                      }
+                    />
                     <span>{title}</span>
                   </Link>
                 ) : (

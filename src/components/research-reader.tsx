@@ -1,4 +1,5 @@
 "use client";
+import { ResearchActions } from "./collaboration-shared";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { PDFDocumentProxy, RenderTask, TextLayer } from "pdfjs-dist";
@@ -28,13 +29,17 @@ export function PdfReader(props: Props) {
       versions[0]?.id
     );
   });
-  const version = versions.find((v) => v.id === versionId) ?? versions[0];
+  const version = versions.find((v) => v.id === versionId);
   if (!version)
     return (
       <section className="research-empty">
-        <h1>No PDF yet</h1>
+        <h1>
+          {versions.length ? "Requested PDF version unavailable" : "No PDF yet"}
+        </h1>
         <p>
-          The bibliographic record is saved. Add a PDF from the source details.
+          {versions.length
+            ? "This exact version cannot be opened. Choose a version from the source details; this link will not switch files automatically."
+            : "The bibliographic record is saved. Add a PDF from the source details."}
         </p>
         <Link
           href={`/w/${props.w}/p/${props.p}/sources/${props.detail.source.id}`}
@@ -417,6 +422,20 @@ function ReaderDocument({
             <AnnotationCard
               key={`${a.id}/${a.revision}`}
               annotation={a}
+              connected={
+                <ResearchActions
+                  compact
+                  w={w}
+                  p={p}
+                  id={a.id}
+                  origin={{
+                    sourceId: detail.source.id,
+                    versionId: version.id,
+                    annotationId: a.id,
+                  }}
+                  canEdit={canEdit}
+                />
+              }
               active={active === a.id}
               canEdit={
                 canEdit &&
@@ -730,12 +749,14 @@ function ReaderDocument({
 }
 function AnnotationCard({
   annotation: a,
+  connected,
   active,
   canEdit,
   jump,
   update,
 }: {
   annotation: ResearchAnnotation;
+  connected: React.ReactNode;
   active: boolean;
   canEdit: boolean;
   jump: () => void;
@@ -781,6 +802,7 @@ function AnnotationCard({
       ) : (
         <p>{a.body}</p>
       )}
+      {connected}
       {canEdit && !editing && (
         <div className="annotation-actions">
           <button onClick={() => setEditing(true)}>Edit note</button>

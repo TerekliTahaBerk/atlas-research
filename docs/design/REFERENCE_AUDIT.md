@@ -1,5 +1,20 @@
 # Güncel referans denetimi
 
+## Faz 03 uygulaması — 9 Kasım 2026
+
+Aynı `fb98b5ca…` Atlas HTML snapshot’ının Document/Tasks ekranları yerel runtime’da render edilerek incelendi. Yeni yazı/görev/tartışma yüzeyleri mevcut shell üzerine eklendi; aşağıdaki Faz 02 düzeltmesi korunur.
+
+| Nokta | Referans | Faz 03 sonucu / kasıtlı fark |
+| --- | --- | --- |
+| Kabuk | 240 px sidebar / 48 px üst bar | Aynı geometri ve açık/sıcak/mavi token’lar; yalnız çalışan Documents/Tasks/Discussions/Inbox eklendi. |
+| Doküman | max 740 px, 40 px iç boşluk; 32 px başlık, 15.5/1.65 yazı | Aynı alan/tipografi. Yeni yüzeylerde eski genel content padding’i sıfırlandı; dar başlık büyüyen textarea ile sarılır. |
+| Yazı eylemleri | Seçim toolbar’ı ve kaynak chip’leri | Çalışan kompakt toolbar, gerçek math/citation, kayıt durumu/history/export. Sahte suggesting/presence/AI/refs.bib-sync yok. Klavye focus göstergesi kasıtlı ek. |
+| Görev | Kompakt Board/List satırı, dört durum, ince kartlar | Aynı dört durum ve sade kart dili; filtreler gerçek, select klavye yoludur. Sorumlu/durum yazıları kırpılmadan; 390 px tek sütun. |
+| Tartışma | Kaynak kartları; eski Channels nav + thread + AI daralması D01 | Tek proje konusu/mesaj alanı; ilgili araştırma açılır yüzeyde. Yerel kanal rail’i veya AI placeholder yok. |
+| Dar ekran | Sidebar overlay / ana içerik okunabilir | 390×900 doküman/tartışma incelendi; sarılan başlık, ulaşılabilir composer, ana sayfa yatay taşması yok. Tam ekran×tema matrisi beta öncesinde. |
+
+Kısa production Chromium yolculuğu gerçek sunucu yanıtlarıyla; save error/retry, iki sekme karşılaştırması, history, görev/atama, mesaj/Inbox ve orijinal PDF locator dahil doğrulanır. Kanıt ve son komut sonuçları [Faz 03 handoff](../PHASE_03_HANDOFF.md) içindedir. Bu kayıt bütün ürün için piksel eşitliği iddiası değildir.
+
 ## Uygulama hizalama düzeltmesi — 9 Kasım 2026
 
 Kullanıcının yeniden verdiği `/Downloads/Atlas.dc.html` dosyası 447,208 byte ve SHA-256 `fb98b5ca09dc1bf7fdb49aec20ad47ba2c49f0ca0ac61a7cd4822a30b90db53d`; önceki Faz 02 kaynağıyla aynıdır. Sapma kaynak sürümünden değil, uygulama yerleşiminden geliyordu. [PR #34](https://github.com/TerekliTahaBerk/atlas-research/pull/34) bu görünümü düzeltir. Aşağıdaki eski bölümler Faz 00 denetiminin tarihsel kaydıdır.

@@ -1,6 +1,6 @@
 # Beta review backlog
 
-Owner decision, 9 November 2026: deliver the usable Phase 02 journey now. Comprehensive G01/G02 reviews are deferred to **before the Phase 05 closed beta**, and do not block Phase 02. A PR merge is integration, not proof of full live acceptance. Previous PASS/FAIL/NOT RUN evidence remains historical evidence. Real access leaks, data loss and blocking failures must still be fixed immediately.
+Owner decision, 9 November 2026: deliver the usable Phase 02 journey now. Comprehensive G01/G02/G03 reviews are deferred to **before the Phase 05 closed beta**, and do not block Phase 02/03. A PR merge is integration, not proof of full live acceptance. Previous PASS/FAIL/NOT RUN evidence remains historical evidence. Real access leaks, data loss and blocking failures must still be fixed immediately.
 
 | Review | Current evidence / open work | Due |
 | --- | --- | --- |
@@ -14,6 +14,16 @@ Owner decision, 9 November 2026: deliver the usable Phase 02 journey now. Compre
 | Broad Phase 02 security/load/recovery | Job revocation races, quotas under concurrency, malicious PDF corpus, long range streams, storage reconciliation, retention/purge and DB+files restore/rollback. | Before closed beta |
 | Broad UI/accessibility/browser review | Screen reader, native zoom, full screen×theme×viewport matrix, other browser engines and large PDFs. Short desktop/narrow journey remains a Phase 02 delivery check. | Before closed beta |
 
-Phase 02 still requires typecheck/lint/build, one real source→private PDF→highlight/note→reload journey, duplicate handling, export inspection and a short anonymous/unrelated-project file denial check. Tests are repeated only after relevant changes/failures. No Phase 03 features, SMTP, S3, paid service or unrelated infrastructure change is authorized.
+Phase 02 still requires typecheck/lint/build, one real source→private PDF→highlight/note→reload journey, duplicate handling, export inspection and a short anonymous/unrelated-project file denial check. Tests are repeated only after relevant changes/failures. The subsequent Phase 03 instruction authorizes documents/tasks/discussions/Inbox and deployment to the same Atlas app; SMTP, S3, paid services and unrelated infrastructure remain outside scope.
 
 Phase 02 short delivery evidence is now in [PHASE_02_HANDOFF](PHASE_02_HANDOFF.md): local real-paper browser journey plus live source/PDF/highlight/note/re-login/export, anonymous/wrong-project denial and same-image redeployment persistence. These checks do not close the broad reviews above. Include interrupted/ambiguous DB-finalize reconciliation and retry in the storage failure review; no crash/restore matrix was run in this phase.
+
+## Phase 03 additions — owner-authorized product delivery
+
+- Broad A01–A13 expansion for every new entry/table, concurrent revocation/assignment/notification races and long edit sessions/load. Focused local PostgreSQL checks are separate evidence, not the full live matrix.
+- Adversarial editor JSON/HTML/Markdown/LaTeX corpus, clipboard links, code-fence/math escaping, large documents and renderer budgets; full screen-reader/keyboard/zoom and all browser/theme/viewport combinations.
+- Draft recovery across browser crashes/storage quota/shared computers, slow/ambiguous save responses, history/receipt retention and large-project pagination beyond current bounded list limits.
+- Independent encrypted DB+private-files restore and compatible image rollback preserving citation/source-version/document-version/link integrity. Schema 006 requires compatible web/mail/files images; pre-006 images are not verified rollback candidates.
+- Live controlled multi-user isolation/revocation and notification redaction remain broader pre-beta work; a short live writing→task→discussion smoke does not close them.
+
+The Phase 03 delivery check is the short final journey and critical changed behavior described in [PHASE_03](phases/PHASE_03.md). Previous results are not rewritten.
