@@ -16,7 +16,9 @@ export function assertProductionEnvIsolation(
           "ATLAS_ISOLATION_EMPTY",
         ].includes(key) ||
         (role === "web" && ["SMTP_USER", "SMTP_PASSWORD"].includes(key)) ||
-        (role === "mail" && key === "AUTH_DATABASE_URL")),
+        (role === "mail" &&
+          ["AUTH_DATABASE_URL", "OPENAI_API_KEY"].includes(key)) ||
+        key === "ATLAS_AI_TEST_ORIGIN"),
   );
   if (forbidden)
     throw new Error("Privileged credential in application environment");

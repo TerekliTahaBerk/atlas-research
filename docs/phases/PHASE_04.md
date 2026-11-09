@@ -1,6 +1,6 @@
 # Faz 04 — Kaynaklı AI ve incelenen öneriler
 
-Durum: plan; hiçbir model çağrısı/embedding yapılmadı.
+Durum: kullanıcı Faz 04 uygulaması ve mevcut Coolify’a dağıtımı yetkilendirdi. Mevcut anahtarını kendisi Coolify’a ekleyecek; bütçe seçilmedi ve ücretli model çağrıları açıkça yasaklandı. Uygulama kapalı çağrı kapısıyla hazırlanıyor; gerçek model eval/G04 OPEN. [Teslim kaydı](../PHASE_04_HANDOFF.md), [ADR](../decisions/0006-grounded-ai.md).
 
 ## Amaç
 
@@ -16,7 +16,7 @@ Otonom tool/ajan, otomatik doküman yazımı, başka workspace retrieval, yetki 
 
 ## Önkoşullar
 
-G03 PASS, [AI_AND_SOURCE_CONTRACT](../AI_AND_SOURCE_CONTRACT.md) ve D01–D06 açıklarının ilgili UI kısmı çözülmüş. Gerçek provider/model/maliyet/bölge/veri koşulları resmi kaynaklarla bu fazda değerlendirilir; workspace dış paylaşım politikası ve kullanıcı onayı, yasal erişimli eval kaynakları, bütçe ve credential güvenliği hazır olmadan çağrı açılmaz.
+G03 kapsamlı kabulü önceki kullanıcı kararıyla beta öncesine ertelendi; Faz 04 geliştirmesine yeni talimat verildi. Bu erteleme G03 PASS anlamına gelmez. [AI_AND_SOURCE_CONTRACT](../AI_AND_SOURCE_CONTRACT.md) ve D01–D06 açıklarının ilgili UI kısmı çözülmüş. Gerçek provider/model/maliyet/bölge/veri koşulları resmi kaynaklarla bu fazda değerlendirilir; workspace dış paylaşım politikası ve kullanıcı onayı, yasal erişimli eval kaynakları, bütçe ve credential güvenliği hazır olmadan çağrı açılmaz.
 
 ## Görevler ve PR dilimleri
 

@@ -2682,3 +2682,245 @@ textarea.document-title {
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* Phase 04: the reference's 392px contextual rail, a sheet below 1200px. */
+.main-pane {
+  position: relative;
+}
+.ai-toggle {
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 8px;
+  color: var(--secondary);
+}
+.ai-panel {
+  position: absolute;
+  right: 0;
+  top: 48px;
+  bottom: 0;
+  width: 392px;
+  border-left: 1px solid var(--border);
+  background: var(--canvas, var(--bg));
+  display: flex;
+  flex-direction: column;
+  z-index: 15;
+  overflow: hidden;
+}
+.ai-heading {
+  height: 48px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ai-heading strong {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.ai-content {
+  padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 13px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.ai-content p {
+  margin: 0;
+  line-height: 1.55;
+}
+.ai-content label {
+  font-size: 12px;
+}
+.ai-content .actions {
+  flex-wrap: wrap;
+}
+.ai-content select,
+.ai-content textarea,
+.ai-content input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+}
+.ai-content small {
+  display: block;
+  line-height: 1.5;
+  color: var(--secondary);
+}
+.ai-content summary {
+  cursor: pointer;
+  line-height: 1.5;
+  padding: 5px 0;
+  overflow-wrap: anywhere;
+}
+.ai-scope {
+  font-weight: 600;
+  outline: none;
+}
+.ai-scope small {
+  font-weight: 400;
+}
+.ai-usage {
+  font-size: 12px;
+  color: var(--secondary);
+  line-height: 1.6;
+}
+.ai-sources {
+  border: 0;
+  padding: 8px 0;
+  margin: 0;
+  max-height: 240px;
+  overflow: auto;
+}
+.ai-sources .check-row {
+  align-items: flex-start;
+  font-weight: 400;
+}
+.ai-sources span {
+  overflow-wrap: anywhere;
+}
+.ai-content .notice {
+  font-size: 12px;
+  padding: 10px;
+  overflow-wrap: anywhere;
+}
+.ai-evidence details {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 0;
+}
+.ai-content blockquote {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 2px solid var(--border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  max-height: 200px;
+  overflow: auto;
+}
+.ai-hash {
+  word-break: break-all;
+  font-size: 10px;
+}
+.ai-citation {
+  display: block;
+  color: var(--accent);
+  font-size: 12px;
+  margin: 8px 0;
+}
+.ai-policy,
+.ai-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 8px;
+}
+.ai-exchange {
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-exchange h3 {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ai-segment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-segment p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-review {
+  font-size: 11px !important;
+  color: var(--secondary);
+}
+.ai-question {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ai-diff section {
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+.ai-diff pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 45vh;
+  overflow: auto;
+  font: inherit;
+  font-size: 12px;
+}
+@media (min-width: 1200px) {
+  .main-pane:has(> .ai-panel) {
+    padding-right: 392px;
+  }
+  .main-pane:has(> .ai-panel) .reader-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .main-pane:has(> .ai-panel) .reader-notes,
+  .main-pane:has(> .ai-panel) .source-inspector {
+    display: none;
+  }
+  .main-pane:has(> .ai-panel) .source-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .ai-toggle span {
+    display: none;
+  }
+  .ai-content {
+    padding: 4px;
+    gap: 14px;
+  }
+  .ai-diff {
+    grid-template-columns: 1fr;
+  }
+}
+.ai-content .check-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.ai-content .check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  margin: 2px 0 0;
+  flex: 0 0 16px;
+}
+.ai-content .check-row span {
+  min-width: 0;
+}
+#atlas-ai-toggle {
+  flex-shrink: 0;
+}

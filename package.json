@@ -28,7 +28,9 @@
     "postinstall": "prisma generate",
     "mail:worker": "node dist/worker/mail/run.js",
     "test:collaboration": "node --import tsx scripts/test-integration.ts --collaboration",
-    "test:collaboration:browser": "node --import tsx scripts/test-integration.ts --collaboration-browser"
+    "test:collaboration:browser": "node --import tsx scripts/test-integration.ts --collaboration-browser",
+    "test:ai": "node --import tsx scripts/test-integration.ts --ai",
+    "test:ai:browser": "node --import tsx scripts/test-integration.ts --ai-browser"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

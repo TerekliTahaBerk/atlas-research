@@ -1,6 +1,11 @@
 "use client";
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+const AiCompanion = dynamic(
+  () => import("./ai-companion").then((m) => m.AiCompanion),
+  { ssr: false },
+);
 import { usePathname, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { ResearchLibrary } from "@/lib/research-types";
@@ -87,7 +92,8 @@ export function WorkspaceShell({
       await api("/api/auth/sign-out", {});
       try {
         for (const key of Object.keys(sessionStorage))
-          if (key.startsWith("atlas-draft-v1:")) sessionStorage.removeItem(key);
+          if (key.startsWith("atlas-draft-v1:") || key.startsWith("atlas-ai-"))
+            sessionStorage.removeItem(key);
       } catch {}
       location.assign(location.origin + "/sign-in");
     } catch (error) {
@@ -461,6 +467,7 @@ export function WorkspaceShell({
             <Icon name="plus" />
           </button>
           <div id="atlas-toolbar-actions" className="toolbar-actions" />
+          {current && <div id="atlas-ai-toggle" />}
         </header>
         <main id="main" tabIndex={-1} className="content">
           {error ? (
@@ -484,6 +491,15 @@ export function WorkspaceShell({
             })
           )}
         </main>
+        {current && me.data && (
+          <AiCompanion
+            key={me.data.user.id + ":" + current.id}
+            w={current.workspaceId}
+            p={current.id}
+            userId={me.data.user.id}
+            projectName={current.name}
+          />
+        )}
       </div>
       {drawer && (
         <Modal drawer title="Navigation" onClose={() => setDrawer(false)}>

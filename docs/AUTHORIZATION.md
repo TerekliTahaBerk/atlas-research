@@ -1,5 +1,7 @@
 # Kimlik ve yetkilendirme sözleşmesi
 
+Faz 04 uygulama kaydı: AI history/snapshot/run/review/proposal tabloları owner-user + güncel proje erişimiyle FORCE RLS altındadır; workspace owner başkasının konuşmasını okuyamaz. Workspace policy yalnız owner tarafından değiştirilebilir. Usage helper yalnız aggregate sayım/maliyet açar. Rezervasyon/dispatch/result/delivery ve doc apply ayrı yetki/scope kontrolleridir. İncelenip uygulanan doküman metni/atıfları proje içeriği olur; private soru/geçmiş paylaşılmaz. Yerel sentetik kontroller canlı A01–A13 veya G04 PASS sayılmaz; [ADR 0006](decisions/0006-grounded-ai.md).
+
 Normatif kaynak budur; diğer belgelerdeki rol özetleri bu kuralları genişletemez. Karar [ADR 0003](decisions/0003-tenancy-and-authorization.md). Varsayılan deny. Rastgele/UUID ID, gizli URL veya UI'da gizlenen düğme yetki değildir.
 
 ## Workspace ve proje rolleri

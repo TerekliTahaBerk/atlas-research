@@ -1,5 +1,7 @@
 # Kavramsal veri modeli
 
+Faz 04: additive 007, SourcePage/SourceChunk, AiPolicy/AiConversation/AiContext/AiEvidence/AiRun/AiReview/AiProposal ve Citation page/offset alanlarını ekler. Kavramsal AIMessage, fiziksel modelde soru context’i ve run sonucuna ayrılır. Page/chunk project içeriğidir; conversation/context/evidence/run/review/proposal yalnız sahibi tarafından ve güncel proje erişimiyle okunur. Ayrıntılar [ADR 0006](decisions/0006-grounded-ai.md); gerçek model kabulü OPEN, çağrı kapısı kapalıdır.
+
 Faz 03 güncellemesi: kavramsal modelin Document/DocumentVersion/Citation/Task/Discussion/Message/Notification/ArtifactLink alt kümesi additive 006 şemasında uygulanmıştır; fiziksel alanlar `prisma/schema.prisma` ve migration’da, kayıt/retention sınırları [ADR 0005](decisions/0005-documents-and-collaboration.md) içindedir. Aşağıdaki geniş model Faz 00 planıdır. Yalnız ilgili fazda gereken tablolar uygulanacak. Kimlik/erişim [AUTHORIZATION](AUTHORIZATION.md), atıf detayları [AI_AND_SOURCE_CONTRACT](AI_AND_SOURCE_CONTRACT.md) tarafından belirlenir.
 
 ## ERD

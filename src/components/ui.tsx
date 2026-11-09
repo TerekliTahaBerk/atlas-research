@@ -15,6 +15,7 @@ export function Icon({
   name,
 }: {
   name:
+    | "sparkles"
     | "inbox"
     | "discussion"
     | "home"
@@ -50,6 +51,8 @@ export function Icon({
     | "close";
 }) {
   const paths = {
+    sparkles:
+      "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4",
     inbox: "M4 3h16l2 12v6H2v-6Zm-2 12h6l2 3h4l2-3h6",
     discussion:
       "M21 15a2 2 0 0 1-2 2H7l-5 4V5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2ZM6 7h11M6 11h8",

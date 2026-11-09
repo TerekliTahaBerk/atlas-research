@@ -41,6 +41,17 @@ export async function api<T>(
 export function message(error: unknown) {
   const code = error instanceof ApiError ? error.code : "INTERNAL_ERROR";
   const research: Record<string, string> = {
+    AI_DISABLED: "AI calls are disabled. No new provider request was sent.",
+    AI_POLICY_DISABLED:
+      "The workspace owner must enable sharing and set a daily budget first.",
+    AI_LIMITED:
+      "A budget, daily request or concurrency limit was reached. Wait or ask your workspace owner.",
+    AI_CONTEXT_EXPIRED:
+      "This evidence preview expired. Preview the question again before sending.",
+    AI_INVALID_EVIDENCE:
+      "Evidence could not be verified. Prepare the selected PDF or preview again.",
+    AI_PROVIDER_ERROR:
+      "The provider did not return a verified answer. There is no automatic retry.",
     INVALID_DOI: "Enter a DOI such as 10.1234/example or its doi.org link.",
     INVALID_URL: "Enter a valid http or https article link.",
     PROVIDER_BUSY: "Crossref is busy. Wait a moment and search again.",
