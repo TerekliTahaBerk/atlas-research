@@ -1,5 +1,7 @@
 # Faz 01 — Kimlik, workspace, proje ve ilk dağıtım
 
+9 Kasım 2026 sonraki kullanıcı kararı: açık G01 denetimleri [beta öncesine ertelendi](../BETA_REVIEW_BACKLOG.md); Faz 02'yi engellemez. Kısa kontrolleri geçen PR #31'in birleştirilmesi tam canlı kabul anlamına gelmez. Aşağıdaki geçmiş kabul hedefleri ve kanıt durumu değiştirilmez.
+
 Durum: kullanıcı talimatıyla P01-1–4 uygulanıp birleştirildi; P01-5 için yerel doğrulamalar ve yula.co içindeki canlı önizleme hazır. İlk hesap/giriş, readiness, rol ayrımı ve yeniden başlatma doğrulandı. E-posta, bağımsız yedek ve tam canlı kabul ertelenmiş durumda. [Faz 01 handoff](../PHASE_01_HANDOFF.md); G01 açık.
 
 ## Amaç

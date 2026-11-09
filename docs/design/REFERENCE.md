@@ -1,5 +1,7 @@
 # Design reference
 
+Phase 02 update: the owner supplied `Handoff specification (2).zip` on 9 November 2026. Its Atlas.dc.html is 447,208 bytes, SHA-256 `fb98b5ca09dc1bf7fdb49aec20ad47ba2c49f0ca0ac61a7cd4822a30b90db53d`; Atlas Handoff.md is 8,732 bytes, SHA-256 `463968b03fd6cc8de053bb1b6484d7982c76197e66d855c708524bfe6d821e57`. The supplied HTML is the current visual reference for Phase 02. The older prose handoff still conflicts with its blue/sans tokens; actual HTML wins. Unrelated uploads in the ZIP are not product requirements and are not imported. The ZIP/raw assets remain local reference material, not newly authorized public repository assets.
+
 ## Current authoritative reference
 
 The user selected the current Atlas design. The following live prototype was observed in the user's open browser on 9 November 2026:

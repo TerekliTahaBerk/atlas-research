@@ -1,5 +1,7 @@
 # Phase 01 handoff
 
+Subsequent owner decision (9 November 2026): comprehensive G01 reviews are deferred to the [pre-beta backlog](BETA_REVIEW_BACKLOG.md) and do not block Phase 02. Integration/merging PR #31 after short checks is distinct from full live acceptance. Evidence below describes the Phase 01 delivery; deferred live conditions are not converted into PASS by local tests or a merge.
+
 Status: **G01 OPEN**. The owner-selected no-email preview is deployed in **yula.co / production**; full live acceptance remains open. Do not interpret this document as a production completion claim. External changes are limited to new Atlas resources; existing server/other-project settings remain unchanged.
 
 | Slice | Delivery | Evidence |
