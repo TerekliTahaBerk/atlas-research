@@ -182,6 +182,8 @@ export function CreateArtifactDialog({
   kind,
   originId,
   origin,
+  initialText = "",
+  returnQuery,
   onClose,
 }: {
   w: string;
@@ -189,6 +191,8 @@ export function CreateArtifactDialog({
   kind: "document" | "task" | "discussion";
   originId?: string;
   origin?: { sourceId: string; versionId?: string; annotationId?: string };
+  initialText?: string;
+  returnQuery?: string;
   onClose: () => void;
 }) {
   const router = useRouter(),
@@ -203,11 +207,11 @@ export function CreateArtifactDialog({
   const [requestId] = useState(() => crypto.randomUUID()),
     [destination, setDestination] = useState(""),
     [title, setTitle] = useState(""),
-    [body, setBody] = useState(""),
+    [body, setBody] = useState(initialText),
     [links, setLinks] = useState(originId ? [originId] : []),
     [task, setTask] = useState({
       title: "",
-      description: "",
+      description: initialText,
       status: "backlog",
       priority: "medium",
       assigneeId: null as string | null,
@@ -239,7 +243,10 @@ export function CreateArtifactDialog({
           "/" +
           (kind === "document" ? "docs" : part) +
           "/" +
-          r.id,
+          r.id +
+          (kind === "document" && returnQuery
+            ? "?documents=" + encodeURIComponent(returnQuery)
+            : ""),
       );
     } catch (e) {
       setError(e);

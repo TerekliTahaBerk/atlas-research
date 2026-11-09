@@ -42,6 +42,7 @@ export type DocumentDetail = {
     revision: number;
     title: string;
     createdAt: string;
+    createdBy?: string;
   }[];
   links: ArtifactCard[];
   canEdit: boolean;

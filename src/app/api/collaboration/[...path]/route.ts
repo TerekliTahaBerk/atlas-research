@@ -37,7 +37,16 @@ async function handle(
             a,
             w,
             p,
-            url.searchParams.get("archived") === "true",
+            url.searchParams.has("page") ||
+              url.searchParams.has("q") ||
+              url.searchParams.has("sort")
+              ? c.documentListInput.parse({
+                  archived: url.searchParams.get("archived") === "true",
+                  q: url.searchParams.get("q") ?? "",
+                  sort: url.searchParams.get("sort") ?? "updated",
+                  page: Number(url.searchParams.get("page") ?? 0),
+                })
+              : url.searchParams.get("archived") === "true",
           );
         if (method === "POST")
           return c.createDocument(

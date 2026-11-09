@@ -11,6 +11,7 @@ import {
   citationIds,
   documentMarkdown,
   emptyDocument,
+  plainDocument,
   escapeMd,
   type DocNode,
 } from "../../lib/document-model";
@@ -344,36 +345,78 @@ async function checkpoint(
     skipDuplicates: true,
   });
 }
+export const documentListInput = z.object({
+  archived: z.boolean().default(false),
+  q: z.string().trim().max(200).default(""),
+  sort: z.enum(["updated", "title"]).default("updated"),
+  page: z.number().int().min(0).max(100000).default(0),
+});
 export function listDocuments(
   db: Database,
   a: Identity,
   w: string,
   p: string,
-  archived = false,
+  options: boolean | z.infer<typeof documentListInput> = false,
 ) {
-  return research(db, a, w, p, false, async (tx, s) => ({
-    items: await tx.document.findMany({
-      where: {
-        workspaceId: w,
-        projectId: p,
-        archivedAt: archived ? { not: null } : null,
-      },
-      select: {
-        id: true,
-        title: true,
-        revision: true,
-        archivedAt: true,
-        updatedAt: true,
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 200,
-    }),
-    canEdit:
-      ["owner", "admin", "editor"].includes(s.projectRole) &&
-      !s.project.archivedAt &&
-      !s.workspace.archivedAt,
-    canManage: ["owner", "admin"].includes(s.projectRole),
-  }));
+  return research(db, a, w, p, false, async (tx, s) => {
+    const filter =
+      typeof options === "boolean"
+        ? documentListInput.parse({ archived: options })
+        : options;
+    const pageSize = typeof options === "boolean" ? 200 : 30;
+    const pattern = "%" + filter.q.replace(/[\\%_]/g, "\\$&") + "%";
+    const matching = filter.q
+      ? await tx.$queryRaw<{ id: string }[]>`
+      SELECT id FROM app.documents d WHERE d."workspaceId"=${w}::uuid AND d."projectId"=${p}::uuid
+      AND (d.title ILIKE ${pattern} OR (SELECT string_agg(t #>> '{}', ' ') FROM jsonb_path_query(d.body, '$.**.text') t) ILIKE ${pattern})
+    `
+      : null;
+    const where = {
+      workspaceId: w,
+      projectId: p,
+      archivedAt: filter.archived ? { not: null } : null,
+      ...(matching ? { id: { in: matching.map((r) => r.id) } } : {}),
+    };
+    const [items, total] = await Promise.all([
+      tx.document.findMany({
+        where,
+        orderBy:
+          filter.sort === "title"
+            ? [{ title: "asc" }, { id: "asc" }]
+            : [{ updatedAt: "desc" }, { id: "asc" }],
+        skip: filter.page * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          revision: true,
+          archivedAt: true,
+          updatedAt: true,
+        },
+      }),
+      tx.document.count({ where }),
+    ]);
+    return {
+      items: items.map(({ body, ...d }) => ({
+        ...d,
+        preview: plainDocument(body as unknown as DocNode)
+          .replace(/\s+/g, " ")
+          .slice(0, 220),
+      })),
+      total,
+      page: filter.page,
+      pageSize,
+      canEdit:
+        ["owner", "admin", "editor"].includes(s.projectRole) &&
+        !s.project.archivedAt &&
+        !s.workspace.archivedAt,
+      canManage:
+        ["owner", "admin"].includes(s.projectRole) &&
+        !s.project.archivedAt &&
+        !s.workspace.archivedAt,
+    };
+  });
 }
 export function createDocument(
   db: Database,
@@ -455,7 +498,13 @@ export function getDocument(
       citations: await citationViews(tx, w, p, id),
       versions: await tx.documentVersion.findMany({
         where: { documentId: id },
-        select: { id: true, revision: true, title: true, createdAt: true },
+        select: {
+          id: true,
+          revision: true,
+          title: true,
+          createdAt: true,
+          createdBy: true,
+        },
         orderBy: { revision: "desc" },
         take: 100,
       }),
@@ -713,7 +762,15 @@ export function exportDocument(
     return new Response(markdown, {
       headers: {
         "Content-Type": "text/markdown; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="atlas-document.md"',
+        "Content-Disposition": `attachment; filename="${
+          d.title
+            .normalize("NFKD")
+            .replace(/[^a-zA-Z0-9 _-]/g, "")
+            .trim()
+            .replace(/\s+/g, "-")
+            .slice(0, 90) || "atlas-document"
+        }.md"; filename*=UTF-8''${encodeURIComponent(d.title.replace(/[\u0000-\u001f\u007f/\\]/g, "-").slice(0, 120) + ".md").replace(/['()*]/g, (c) => "%" + c.charCodeAt(0).toString(16))}`,
+        "X-Atlas-Revision": String(d.revision),
         "Cache-Control": "private, no-store",
       },
     });
