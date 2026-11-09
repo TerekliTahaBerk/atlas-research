@@ -13,7 +13,7 @@ export function createAuthHandler(auth: Auth, env: ServerEnv) {
         const headers = new Headers(request.headers);
         // The production proxy must overwrite x-real-ip; missing IP shares one restrictive bucket.
         if (!headers.has("x-real-ip")) headers.set("x-real-ip", "0.0.0.0");
-        request = new Request(request, { headers, body });
+        request = new Request(request.url, { method: request.method, headers, body });
       }
       const response = await auth.handler(request);
       response.headers.set("Cache-Control", "private, no-store");

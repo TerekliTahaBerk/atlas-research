@@ -19,6 +19,7 @@ export function errorResponse(error: unknown) {
   const requestId = randomUUID();
   const known = error instanceof AppError ? error : null;
   const code = known?.code ?? "INTERNAL_ERROR";
-  if (!known) console.error(JSON.stringify({ event: "request_failed", requestId, code }));
+  const kind=error instanceof TypeError?"TypeError":error instanceof Error?"Error":"Unknown";
+  if (!known) console.error(JSON.stringify({ event: "request_failed", requestId, code,kind }));
   return Response.json({ error: code, requestId }, { status: known?.status ?? 500, headers: { "Cache-Control": "private, no-store", ...(known?.status===429?{"Retry-After":"60"}:{}) } });
 }
