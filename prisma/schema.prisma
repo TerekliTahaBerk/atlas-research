@@ -491,6 +491,8 @@ model TaskWrite {
 }
 model Discussion {
  id String @id @db.Uuid
+ revision Int @default(1)
+ archivedAt DateTime?
  workspaceId String @db.Uuid
  projectId String @db.Uuid
  title String
@@ -503,6 +505,7 @@ model Discussion {
 }
 model Message {
  id String @id @db.Uuid
+ mentions String[] @default([])
  workspaceId String @db.Uuid
  projectId String @db.Uuid
  discussionId String @db.Uuid

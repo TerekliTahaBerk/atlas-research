@@ -83,18 +83,21 @@ export function AiCompanion({
     window.addEventListener("keydown", keyboard);
     window.addEventListener("atlas-ai-open", launch);
     window.addEventListener("atlas-document-tools-open", writing);
+    window.addEventListener("atlas-research-writing", writing);
     return () => {
       observer.disconnect();
       window.removeEventListener("keydown", keyboard);
       window.removeEventListener("atlas-ai-open", launch);
       window.removeEventListener("atlas-document-tools-open", writing);
+      window.removeEventListener("atlas-research-writing", writing);
     };
   }, [key, w, p]);
   useEffect(() => {
     const update = () => {
-      const main = document
-        .querySelector(".main-pane")
-        ?.getBoundingClientRect();
+      const main = (
+        document.querySelector(".discussion-conversation") ??
+        document.querySelector(".main-pane")
+      )?.getBoundingClientRect();
       if (!main || !surface.current) return;
       const rail = document
         .querySelector(
@@ -133,7 +136,7 @@ export function AiCompanion({
       window.removeEventListener("resize", update);
       window.visualViewport?.removeEventListener("resize", update);
     };
-  }, []);
+  }, [mode]);
   useEffect(() => {
     const resize = () => {
       if (mode === "docked" && innerWidth < 1200) dispatch("focus");

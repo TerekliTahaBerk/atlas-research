@@ -223,6 +223,7 @@ export async function card(
     if (!d) return null;
     title = d.title;
     href = base + "/discussions/" + id;
+    archived = !!d.archivedAt;
   }
   return title ? { id, kind: a.kind, title, href, archived } : null;
 }
@@ -1291,23 +1292,103 @@ export function editTask(
     return next;
   });
 }
+export const discussionListInput = z
+  .object({
+    q: z.string().trim().max(200).default(""),
+    page: z.number().int().min(0).max(100000).default(0),
+    archived: z.boolean().default(false),
+  })
+  .strict();
+export const discussionPageInput = z
+  .object({ before: z.uuid().optional(), after: z.uuid().optional() })
+  .refine((v) => !(v.before && v.after));
+export const discussionEditInput = z
+  .object({
+    revision,
+    title: title.optional(),
+    archived: z.boolean().optional(),
+  })
+  .strict()
+  .refine((v) => v.title !== undefined || v.archived !== undefined);
 export function listDiscussions(
   db: Database,
   a: Identity,
   w: string,
   p: string,
+  options?: z.infer<typeof discussionListInput>,
 ) {
-  return research(db, a, w, p, false, async (tx, s) => ({
-    items: await tx.discussion.findMany({
-      where: { workspaceId: w, projectId: p },
-      orderBy: { updatedAt: "desc" },
-      take: 200,
-    }),
-    canEdit:
-      ["owner", "admin", "editor"].includes(s.projectRole) &&
-      !s.project.archivedAt &&
-      !s.workspace.archivedAt,
-  }));
+  return research(db, a, w, p, false, async (tx, s) => {
+    const where = {
+      workspaceId: w,
+      projectId: p,
+      archivedAt: options?.archived ? { not: null } : null,
+      ...(options?.q
+        ? { title: { contains: options.q, mode: "insensitive" as const } }
+        : {}),
+    };
+    const [items, total] = await Promise.all([
+      tx.discussion.findMany({
+        where,
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        take: options ? 30 : 200,
+        skip: (options?.page ?? 0) * 30,
+      }),
+      tx.discussion.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      pageSize: 30,
+      canEdit:
+        ["owner", "admin", "editor"].includes(s.projectRole) &&
+        !s.project.archivedAt &&
+        !s.workspace.archivedAt,
+    };
+  });
+}
+export function editDiscussion(
+  db: Database,
+  a: Identity,
+  w: string,
+  p: string,
+  id: string,
+  input: z.infer<typeof discussionEditInput>,
+) {
+  return research(db, a, w, p, true, async (tx, s) => {
+    const d = await tx.discussion.findFirst({
+      where: { id, workspaceId: w, projectId: p },
+    });
+    if (!d) unavailable();
+    if (d.revision !== input.revision) conflict();
+    if (
+      input.title !== undefined &&
+      d.createdBy !== a.id &&
+      !["owner", "admin"].includes(s.projectRole)
+    )
+      unavailable();
+    if (input.archived !== undefined)
+      requireRole(s.projectRole, ["owner", "admin"]);
+    await audit(
+      tx,
+      a,
+      w,
+      p,
+      input.archived === undefined
+        ? "discussion_renamed"
+        : "discussion_archived",
+      id,
+    );
+    return tx.discussion.update({
+      where: { id, revision: input.revision },
+      data: {
+        ...(input.title !== undefined ? { title: input.title } : {}),
+        ...(input.archived !== undefined
+          ? { archivedAt: input.archived ? new Date() : null }
+          : {}),
+        revision: { increment: 1 },
+      },
+    });
+  });
 }
 async function send(
   tx: Tx,
@@ -1339,6 +1420,7 @@ async function send(
     where: { id: d, workspaceId: w, projectId: p },
   });
   if (!thread) unavailable();
+  if (thread.archivedAt) throw new AppError("ARCHIVED", 409);
   for (const id of input.mentions)
     if (!(await eligible(tx, w, p, id))) throw new AppError("INVALID_INPUT");
   await link(tx, w, p, d, input.links);
@@ -1362,6 +1444,7 @@ async function send(
       clientId: input.clientId,
       body: input.body,
       artifactIds: [...new Set(input.links)],
+      mentions: [...new Set(input.mentions)],
     },
   });
   await tx.discussion.update({
@@ -1423,25 +1506,89 @@ export function getDiscussion(
   w: string,
   p: string,
   id: string,
+  page?: z.infer<typeof discussionPageInput>,
 ) {
   return research(db, a, w, p, false, async (tx, s) => {
     const discussion = await tx.discussion.findFirst({
       where: { id, workspaceId: w, projectId: p },
     });
     if (!discussion) unavailable();
+    const anchorId = page?.before ?? page?.after;
+    const anchor = anchorId
+      ? await tx.message.findFirst({
+          where: {
+            id: anchorId,
+            discussionId: id,
+            workspaceId: w,
+            projectId: p,
+          },
+        })
+      : null;
+    if (anchorId && !anchor) unavailable();
+    const newer = !!page?.after;
+    const comparison = newer ? Prisma.sql`>` : Prisma.sql`<`,
+      direction = page && !newer ? Prisma.sql`DESC` : Prisma.sql`ASC`;
+    const picked = page
+      ? await tx.$queryRaw<{ id: string; orderStamp: string }[]>(
+          Prisma.sql`SELECT id,to_char("createdAt" AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "orderStamp" FROM app.messages WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "discussionId"=${id}::uuid ${anchor ? Prisma.sql`AND ("createdAt",id) ${comparison} (SELECT "createdAt",id FROM app.messages WHERE id=${anchor.id}::uuid AND "discussionId"=${id}::uuid)` : Prisma.empty} ORDER BY "createdAt" ${direction},id ${direction} LIMIT 51`,
+        )
+      : null;
+    const rows = await tx.message.findMany({
+      where: {
+        workspaceId: w,
+        projectId: p,
+        discussionId: id,
+        ...(picked ? { id: { in: picked.map((r) => r.id) } } : {}),
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      ...(!picked ? { take: 500 } : {}),
+    });
+    const messages = picked
+      ? picked.flatMap((r) => {
+          const m = rows.find((m) => m.id === r.id);
+          return m ? [{ ...m, orderStamp: r.orderStamp }] : [];
+        })
+      : rows;
+    const hasMore = !!page && messages.length > 50;
+    if (page && hasMore) messages.pop();
+    if (page && !newer) messages.reverse();
+    const targets = [...new Set(messages.flatMap((m) => m.artifactIds))];
+    const resolved = page
+      ? await Promise.all(targets.map((target) => card(tx, w, p, target)))
+      : [];
+    const withCards = messages.map((m) => ({
+      ...m,
+      ...(page
+        ? {
+            links: resolved.filter(
+              (c): c is NonNullable<typeof c> =>
+                !!c && m.artifactIds.includes(c.id),
+            ),
+          }
+        : {}),
+    }));
     return {
       discussion,
-      messages: await tx.message.findMany({
-        where: { discussionId: id },
-        orderBy: { createdAt: "asc" },
-        take: 500,
+      messages: withCards,
+      total: await tx.message.count({
+        where: { workspaceId: w, projectId: p, discussionId: id },
       }),
+      hasMoreBefore: page ? !newer && hasMore : false,
+      hasMoreAfter: page ? newer && hasMore : false,
       links: await linked(tx, w, p, id),
       canEdit:
         ["owner", "admin", "editor"].includes(s.projectRole) &&
+        !discussion.archivedAt &&
         !s.project.archivedAt &&
         !s.workspace.archivedAt,
       canManage: ["owner", "admin"].includes(s.projectRole),
+      canRename:
+        !discussion.archivedAt &&
+        (discussion.createdBy === a.id ||
+          ["owner", "admin"].includes(s.projectRole)) &&
+        ["owner", "admin", "editor"].includes(s.projectRole) &&
+        !s.project.archivedAt &&
+        !s.workspace.archivedAt,
     };
   });
 }
@@ -1454,6 +1601,22 @@ export function sendMessage(
   input: z.infer<typeof messageInput>,
 ) {
   return research(db, a, w, p, true, (tx) => send(tx, a, w, p, id, input));
+}
+export function getMessage(
+  db: Database,
+  a: Identity,
+  w: string,
+  p: string,
+  d: string,
+  id: string,
+) {
+  return research(db, a, w, p, false, async (tx) => {
+    const m = await tx.message.findFirst({
+      where: { id, workspaceId: w, projectId: p, discussionId: d },
+    });
+    if (!m) unavailable();
+    return m;
+  });
 }
 export function editMessage(
   db: Database,
@@ -1473,6 +1636,10 @@ export function editMessage(
       (m.authorId !== a.id && !["owner", "admin"].includes(s.projectRole))
     )
       unavailable();
+    const thread = await tx.discussion.findFirst({
+      where: { id: d, workspaceId: w, projectId: p },
+    });
+    if (!thread || thread.archivedAt) throw new AppError("ARCHIVED", 409);
     if (m.revision !== input.revision) conflict();
     await audit(
       tx,
@@ -1507,7 +1674,7 @@ export function artifactOptions(
         SELECT id,"createdAt" FROM app.documents WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
         UNION ALL SELECT id,"createdAt" FROM app.sources WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
         UNION ALL SELECT id,"createdAt" FROM app.tasks WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
-        UNION ALL SELECT id,"createdAt" FROM app.discussions WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND title ILIKE ${like}
+        UNION ALL SELECT id,"createdAt" FROM app.discussions WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid AND "archivedAt" IS NULL AND title ILIKE ${like}
         UNION ALL SELECT n.id,n."createdAt" FROM app.annotations n JOIN app.sources s ON s.id=n."sourceId" WHERE n."workspaceId"=${w}::uuid AND n."projectId"=${p}::uuid AND n."deletedAt" IS NULL AND (n.body ILIKE ${like} OR n.quote ILIKE ${like} OR s.title ILIKE ${like})
       ) x ORDER BY "createdAt" DESC,id LIMIT 50`;
       const cards = await Promise.all(

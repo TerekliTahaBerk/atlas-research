@@ -20,6 +20,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Dynamic AI island:** shared compact/floating/focus/docked conversation surface, authorized research context snapshots and reviewed proposals. See the [implementation and verification boundary](docs/implementation/AI_ISLAND.md).
 
+**Discussions experience:** searchable topics, source-linked messages, retained drafts, recipient Inbox and cursor-paged history. See the [delivery and verification record](docs/implementation/DISCUSSIONS_EXPERIENCE.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

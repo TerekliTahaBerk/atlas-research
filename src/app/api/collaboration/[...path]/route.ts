@@ -142,7 +142,20 @@ async function handle(
     }
     if (part[0] === "discussions") {
       if (part.length === 1) {
-        if (method === "GET") return c.listDiscussions(db, a, w, p);
+        if (method === "GET")
+          return c.listDiscussions(
+            db,
+            a,
+            w,
+            p,
+            url.searchParams.has("page")
+              ? c.discussionListInput.parse({
+                  q: url.searchParams.get("q") ?? "",
+                  page: Number(url.searchParams.get("page")),
+                  archived: url.searchParams.get("archived") === "true",
+                })
+              : undefined,
+          );
         if (method === "POST")
           return c.createDiscussion(
             db,
@@ -153,7 +166,28 @@ async function handle(
           );
       }
       if (part.length === 2 && method === "GET")
-        return c.getDiscussion(db, a, w, p, id);
+        return c.getDiscussion(
+          db,
+          a,
+          w,
+          p,
+          id,
+          url.searchParams.has("window")
+            ? c.discussionPageInput.parse({
+                before: url.searchParams.get("before") ?? undefined,
+                after: url.searchParams.get("after") ?? undefined,
+              })
+            : undefined,
+        );
+      if (part.length === 2 && method === "PATCH")
+        return c.editDiscussion(
+          db,
+          a,
+          w,
+          p,
+          id,
+          await readMutation(request, c.discussionEditInput),
+        );
       if (part.length === 3 && part[2] === "messages" && method === "POST")
         return c.sendMessage(
           db,
@@ -163,6 +197,8 @@ async function handle(
           id,
           await readMutation(request, c.messageInput, 65536),
         );
+      if (part.length === 4 && part[2] === "messages" && method === "GET")
+        return c.getMessage(db, a, w, p, id, uuid(part[3]));
       if (part.length === 4 && part[2] === "messages" && method === "PATCH")
         return c.editMessage(
           db,
