@@ -2,7 +2,7 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Status:** Phase 00 and Phase 01 P01-1–5 are squash merged (PR #31 → `8c9f6d5`). Phase 02 is squash merged (PR #32 → `d186819`) and deployed with real discovery, private PDF reading and persistent annotations; see the [Phase 02 handoff](docs/PHASE_02_HANDOFF.md). The existing Coolify **yula.co** preview keeps email/S3 disabled. Comprehensive G01/G02 acceptance is deferred [before the Phase 05 beta](docs/BETA_REVIEW_BACKLOG.md), not marked complete.
+**Status:** Phase 00 and Phase 01 P01-1–5 are squash merged (PR #31 → `8c9f6d5`). Phase 02 is squash merged (PR #32 → `d186819`) and deployed with real discovery, private PDF reading and persistent annotations; see the [Phase 02 handoff](docs/PHASE_02_HANDOFF.md). The owner-requested visual alignment is tracked in [PR #34](https://github.com/TerekliTahaBerk/atlas-research/pull/34) and the [reference comparison](docs/design/REFERENCE_AUDIT.md). The existing Coolify **yula.co** preview keeps email/S3 disabled. Comprehensive G01/G02 acceptance is deferred [before the Phase 05 beta](docs/BETA_REVIEW_BACKLOG.md), not marked complete.
 
 ## Start here
 
