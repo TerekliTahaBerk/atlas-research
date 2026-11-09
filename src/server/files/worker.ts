@@ -1,8 +1,10 @@
 import pg from "pg";
+import { createHash } from "node:crypto";
+import { indexPages } from "./evidence.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join, resolve } from "node:path";
-import { readdir, stat, unlink } from "node:fs/promises";
+import { readdir, readFile, stat, unlink } from "node:fs/promises";
 import { SCHEMA_REVISION } from "../release.ts";
 const execute = promisify(execFile);
 export function createFileWorker(env: Record<string, string | undefined>) {
@@ -60,7 +62,7 @@ export function createFileWorker(env: Record<string, string | undefined>) {
         async (c) =>
           (
             await c.query(
-              'SELECT f.* FROM app.file_objects f JOIN app.source_versions v ON v."fileId"=f.id AND v."workspaceId"=f."workspaceId" AND v."projectId"=f."projectId" WHERE v.id=$1 AND v."workspaceId"=$2 AND v."projectId"=$3',
+              'SELECT f.*,v."sourceId" AS "sourceId" FROM app.file_objects f JOIN app.source_versions v ON v."fileId"=f.id AND v."workspaceId"=f."workspaceId" AND v."projectId"=f."projectId" WHERE v.id=$1 AND v."workspaceId"=$2 AND v."projectId"=$3',
               [job.versionId, job.workspaceId, job.projectId],
             )
           ).rows[0],
@@ -70,7 +72,15 @@ export function createFileWorker(env: Record<string, string | undefined>) {
       let state = "ready",
         pages = 0,
         characters = 0,
-        safeError: string | null = null;
+        safeError: string | null = null,
+        extractedText = "",
+        extractor = "";
+      if (
+        createHash("sha256")
+          .update(await readFile(path))
+          .digest("hex") !== file.sha256
+      )
+        throw new Error("File checksum mismatch");
       try {
         const info = await execute("pdfinfo", [path], {
           timeout: 5000,
@@ -85,13 +95,23 @@ export function createFileWorker(env: Record<string, string | undefined>) {
         } else {
           const text = await execute(
             "pdftotext",
-            ["-enc", "UTF-8", path, "-"],
+            ["-enc", "UTF-8", "-eol", "unix", path, "-"],
             {
               timeout: 15000,
               maxBuffer: 2 * 1024 * 1024,
               killSignal: "SIGKILL",
             },
           );
+          extractedText = text.stdout;
+          const tool = await execute("pdftotext", ["-v"], {
+            timeout: 2000,
+            maxBuffer: 10000,
+          });
+          const version = /pdftotext version ([^\s]+)/.exec(
+            tool.stderr + " " + tool.stdout,
+          )?.[1];
+          if (!version) throw new Error("Extractor version missing");
+          extractor = "poppler-" + version + ";atlas-text-v1";
           characters = text.stdout.trim().length;
           state = characters ? "ready" : "image_only";
         }
@@ -107,6 +127,20 @@ export function createFileWorker(env: Record<string, string | undefined>) {
             : "PDF_PROCESSING_FAILED";
       }
       await scope(job, async (c) => {
+        if (state === "ready")
+          await indexPages(
+            c,
+            {
+              workspaceId: job.workspaceId,
+              projectId: job.projectId,
+              versionId: job.versionId,
+              sourceId: file.sourceId,
+              fileSha256: file.sha256,
+            },
+            extractedText,
+            pages,
+            extractor,
+          );
         await c.query(
           'UPDATE app.source_versions SET "extractionStatus"=$2,"pageCount"=$3,"textCharacters"=$4,"extractedAt"=now() WHERE id=$1',
           [job.versionId, state, pages || null, characters],
@@ -118,6 +152,13 @@ export function createFileWorker(env: Record<string, string | undefined>) {
       );
     } catch (error) {
       const cancelled = error instanceof Error && error.message === "cancelled";
+      if (!cancelled)
+        await scope(job, (c) =>
+          c.query(
+            "UPDATE app.source_versions SET \"extractionStatus\"='failed' WHERE id=$1",
+            [job.versionId],
+          ),
+        ).catch(() => {});
       await queue.query(
         'UPDATE ops.file_jobs SET state=$2,error=$3,"leaseUntil"=NULL,"nextAttemptAt"=now()+interval \'60 seconds\' WHERE id=$1',
         [

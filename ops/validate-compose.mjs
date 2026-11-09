@@ -27,6 +27,7 @@ try {
     ATLAS_INITIAL_EMAIL: "fixture@example.invalid",
     ATLAS_INITIAL_PASSWORD: "synthetic-initial-secret",
     SMTP_PASSWORD: "synthetic-smtp-secret",
+    OPENAI_API_KEY: "synthetic-openai-isolation-secret",
   };
   // Reproduce Coolify 4.6's unconditional global env_file injection. No daemon.
   const envFile = join(folder, "injected.env");
@@ -77,7 +78,7 @@ try {
     Object.entries(variables).filter(
       ([k]) =>
         k.startsWith("SERVICE_HEX_") ||
-        ["SMTP_PASSWORD", "ATLAS_INITIAL_PASSWORD"].includes(k),
+        ["SMTP_PASSWORD", "ATLAS_INITIAL_PASSWORD", "OPENAI_API_KEY"].includes(k),
     ),
   );
   const allowed = {
@@ -93,6 +94,7 @@ try {
     ],
     migrate: ["SERVICE_HEX_64_ATLASMIGRATOR", "ATLAS_INITIAL_PASSWORD"],
     web: [
+      "OPENAI_API_KEY",
       "SERVICE_HEX_64_ATLASAUTH",
       "SERVICE_HEX_64_ATLASRUNTIME",
       "SERVICE_HEX_64_ATLASQUEUE",

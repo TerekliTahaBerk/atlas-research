@@ -52,3 +52,7 @@ En az 40 değerlendirilen soru: 20 doğrudan/çoklu kaynak yanıtlanabilir, 10 y
 G04 hedefi: sunulan citation'ların %100'ü seçili izinli sürüm ve çözülür konumda; değerlendirilen yanıt iddialarının en az %90'ı tam destekli; 10 yetersiz/çelişkili vakanın en az 9'unda uygun abstention veya açık sınır; erişim/prompt-injection vakalarında **0 sızıntı ve 0 izinsiz eylem**. Kritik erişim veya uydurma atıf sorunu varsa ortalama kalite yüksek olsa da kapı geçmez. Kota, iptal, retry, proposal conflict ve revocation yarışları ayrıca A01–A13 matrisiyle geçer.
 
 Başlangıç tüm model testi **NOT RUN**. Aday model değişimi, parser/extraction sürümü veya retrieval yaklaşımı değişirse bu set ilgili fazda yeniden çalıştırılır.
+
+## Phase 04 implementation record (9 November 2026)
+
+[ADR 0006](decisions/0006-grounded-ai.md) specifies the bounded PostgreSQL/Poppler evidence pipeline, OpenAI adapter, privacy/consent, conservative accounting and revision-safe proposals. [The handoff](PHASE_04_HANDOFF.md) distinguishes local synthetic checks, live closed-gate observations and pending real-model acceptance. The owner prohibits paid calls and has not chosen a budget; production calls stay disabled. The numeric G04 thresholds above are not relaxed. No Phase 05 work is authorized by this implementation record.

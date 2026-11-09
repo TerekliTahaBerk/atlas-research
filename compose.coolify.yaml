@@ -4,6 +4,8 @@
 # Coolify 4.6 injects its whole .env into every service. Explicit expressions
 # override that env_file without the parser's legacy empty-value substitution.
 x-atlas-isolated-env: &atlas-isolated-env
+  OPENAI_API_KEY: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_AI_TEST_ORIGIN: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASPOSTGRES: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASMIGRATOR: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASAUTH: "${ATLAS_ISOLATION_EMPTY:-}"
@@ -91,6 +93,8 @@ services:
     environment:
       <<: *atlas-isolated-env
       APP_ORIGIN: ${APP_ORIGIN:?required}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ATLAS_AI_CALLS_ENABLED: ${ATLAS_AI_CALLS_ENABLED:-false}
       BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION:?required}
       AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTH}@postgres:5432/atlas
       DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas

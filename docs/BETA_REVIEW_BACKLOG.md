@@ -29,3 +29,15 @@ Phase 02 short delivery evidence is now in [PHASE_02_HANDOFF](PHASE_02_HANDOFF.m
 The Phase 03 delivery check is the short final journey and critical changed behavior described in [PHASE_03](phases/PHASE_03.md). Previous results are not rewritten.
 
 Phase 03 short delivery evidence: [handoff](PHASE_03_HANDOFF.md), PR #35 / live `4a013d2`. Local real-PostgreSQL and production Chromium checks passed; live existing-account note→math writing→self-assigned task→topic/reply→Inbox and exact PDF locator/Markdown passed. Neither self-assignment nor local multi-user fixtures close the broader live team/revocation review.
+
+## Phase 04 additions — calls disabled by owner
+
+The owner authorized implementation/deployment, selected an existing key to enter directly in Coolify, has not chosen a daily budget, and prohibited paid model calls. See [Phase 04 handoff](PHASE_04_HANDOFF.md) and [ADR 0006](decisions/0006-grounded-ai.md). Do not treat the local synthetic adapter or a live evidence preview as real AI acceptance.
+
+- G04 real-model evaluation remains OPEN: ≥10 real papers/40 questions/50 locators, all numeric support/abstention/access thresholds unchanged. No real model response or invoice was tested.
+- Before activation: recheck model/pricing/data terms, select a daily workspace cap, obtain paid-test authorization, configure the owner's key privately, enable workspace sharing explicitly and inspect live reservations/settlement with controlled accounts.
+- Extend live A01–A13 revocation at dispatch/result/delivery, policy changes during calls, process interruption/lease recovery, timezone boundaries, concurrency/load, retention/purge and malicious multilingual PDF corpus.
+- Short Chromium rail/sheet testing does not replace all theme, viewport, screen-reader, zoom and engine combinations.
+- Schema 007 rollback requires compatible images; pre-007 rollback has not been validated. Preserve consistent encrypted DB and files.
+
+Phase 05 is not started. Email and independent backup acceptance remain deferred.

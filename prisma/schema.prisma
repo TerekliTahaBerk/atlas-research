@@ -259,6 +259,7 @@ model SourceVersion {
   pageCount Int?
   textCharacters Int?
   extractedAt DateTime?
+  indexRevision String?
   createdAt DateTime @default(now())
   @@unique([workspaceId, projectId, id])
   @@unique([workspaceId, projectId, sourceId, id])
@@ -421,6 +422,9 @@ model Citation {
  sourceId String @db.Uuid
  versionId String @db.Uuid
  annotationId String? @db.Uuid
+ pageId String? @db.Uuid
+ start Int?
+ end Int?
  page Int?
  quote String
  createdAt DateTime @default(now())
@@ -496,5 +500,150 @@ model Notification {
  createdAt DateTime @default(now())
  @@unique([recipientId,eventId])
  @@map("notifications")
+ @@schema("app")
+}
+
+model SourcePage {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ sourceId String @db.Uuid
+ versionId String @db.Uuid
+ page Int
+ text String
+ sha256 String
+ fileSha256 String
+ extractor String
+ createdAt DateTime @default(now())
+ @@unique([workspaceId,projectId,id])
+ @@unique([versionId,page,extractor])
+ @@map("source_pages")
+ @@schema("app")
+}
+model SourceChunk {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ pageId String @db.Uuid
+ start Int
+ end Int
+ text String
+ @@unique([pageId,start])
+ @@map("source_chunks")
+ @@schema("app")
+}
+model AiPolicy {
+ workspaceId String @id @db.Uuid
+ enabled Boolean @default(false)
+ dailyBudgetMicros Int @default(0)
+ revision Int @default(1)
+ termsVersion String @default("")
+ updatedAt DateTime @updatedAt
+ @@map("ai_policies")
+ @@schema("app")
+}
+model AiConversation {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ userId String
+ title String
+ versionIds String[] @db.Uuid
+ createdAt DateTime @default(now())
+ @@unique([workspaceId,projectId,id])
+ @@map("ai_conversations")
+ @@schema("app")
+}
+model AiContext {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ userId String
+ conversationId String @db.Uuid
+ question String
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ @@unique([workspaceId,projectId,id])
+ @@map("ai_contexts")
+ @@schema("app")
+}
+model AiEvidence {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ userId String
+ contextId String @db.Uuid
+ pageId String @db.Uuid
+ sourceId String @db.Uuid
+ versionId String @db.Uuid
+ page Int
+ start Int
+ end Int
+ quote String
+ quoteHash String
+ fileSha256 String
+ extractor String
+ createdAt DateTime @default(now())
+ @@unique([workspaceId,projectId,id])
+ @@map("ai_evidence")
+ @@schema("app")
+}
+model AiRun {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ userId String
+ sessionId String
+ conversationId String @db.Uuid
+ contextId String @unique @db.Uuid
+ requestId String @db.Uuid
+ policyRevision Int
+ state String @default("queued")
+ error String?
+ model String
+ reservedMicros Int
+ chargedMicros Int @default(0)
+ inputTokens Int?
+ outputTokens Int?
+ result Json?
+ dispatchedAt DateTime?
+ expiresAt DateTime
+ completedAt DateTime?
+ createdAt DateTime @default(now())
+ @@unique([conversationId,requestId])
+ @@unique([workspaceId,projectId,id])
+ @@map("ai_runs")
+ @@schema("app")
+}
+model AiProposal {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ userId String
+ runId String @db.Uuid
+ documentId String @db.Uuid
+ revision Int
+ before Json
+ after Json
+ citationPlan Json
+ appliedRevision Int?
+ previousVersionId String? @db.Uuid
+ undoRevision Int?
+ createdAt DateTime @default(now())
+ @@map("ai_proposals")
+ @@schema("app")
+}
+
+model AiReview {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ userId String
+ runId String @db.Uuid
+ segment Int
+ verdict String
+ updatedAt DateTime @updatedAt
+ @@unique([runId,segment])
+ @@map("ai_reviews")
  @@schema("app")
 }

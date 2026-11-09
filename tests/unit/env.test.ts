@@ -12,6 +12,7 @@ test("production processes reject leaked privileged credentials without logging 
       "MIGRATION_DATABASE_URL",
       "ATLAS_BACKUP_PASSWORD",
       "ATLAS_INITIAL_PASSWORD",
+      "ATLAS_AI_TEST_ORIGIN",
     ]) {
       assert.throws(
         () =>
@@ -20,6 +21,18 @@ test("production processes reject leaked privileged credentials without logging 
             role,
           ),
         (error) => error instanceof Error && !error.message.includes(secret),
+      );
+      assert.throws(() =>
+        assertProductionEnvIsolation(
+          { NODE_ENV: "production", OPENAI_API_KEY: secret },
+          "mail",
+        ),
+      );
+      assert.doesNotThrow(() =>
+        assertProductionEnvIsolation(
+          { NODE_ENV: "production", OPENAI_API_KEY: secret },
+          "web",
+        ),
       );
       assert.doesNotThrow(() =>
         assertProductionEnvIsolation(

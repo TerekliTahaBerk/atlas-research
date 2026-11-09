@@ -11,6 +11,9 @@ export type CitationView = {
   sourceId: string;
   versionId: string;
   annotationId: string | null;
+  pageId?: string | null;
+  start?: number | null;
+  end?: number | null;
   page: number | null;
   quote: string;
   title: string;

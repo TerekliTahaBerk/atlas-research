@@ -2,7 +2,9 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Phase 03:** source-linked math documents, acknowledged autosave/recovery/history, tasks, project discussions and recipient Inbox are squash merged in [PR #35](https://github.com/TerekliTahaBerk/atlas-research/pull/35) and deployed as `4a013d2`; [handoff and release evidence](docs/PHASE_03_HANDOFF.md). Email/S3 remain disabled; Phase 04 is not included.
+**Phase 04:** grounded-AI implementation, immutable evidence previews, private conversations, clickable locators, reviewed document proposals and usage reservations are implemented for the existing Coolify app; observed deployment evidence is recorded in the handoff. Calls remain **disabled**: the owner prohibits paid calls and has not selected a budget. Real-model G04 acceptance is OPEN; see the [Phase 04 handoff](docs/PHASE_04_HANDOFF.md) and [provider/accounting decision](docs/decisions/0006-grounded-ai.md). Email/S3 stay off; Phase 05 has not started.
+
+**Phase 03:** source-linked math documents, acknowledged autosave/recovery/history, tasks, project discussions and recipient Inbox are squash merged in [PR #35](https://github.com/TerekliTahaBerk/atlas-research/pull/35) and deployed as `4a013d2`; [handoff and release evidence](docs/PHASE_03_HANDOFF.md). Email/S3 remain disabled.
 
 **Previous release:** Phase 00 and Phase 01 P01-1–5 are squash merged (PR #31 → `8c9f6d5`). Phase 02 is squash merged (PR #32 → `d186819`) and deployed with real discovery, private PDF reading and persistent annotations; see the [Phase 02 handoff](docs/PHASE_02_HANDOFF.md). The owner-requested visual alignment is tracked in [PR #34](https://github.com/TerekliTahaBerk/atlas-research/pull/34) and the [reference comparison](docs/design/REFERENCE_AUDIT.md). The existing Coolify **yula.co** preview keeps email/S3 disabled. Comprehensive G01/G02 acceptance is deferred [before the Phase 05 beta](docs/BETA_REVIEW_BACKLOG.md), not marked complete.
 

@@ -312,6 +312,24 @@ export function ResearchActions({
   );
   return (
     <div className="research-connected">
+      {origin && (
+        <button
+          onClick={() =>
+            window.dispatchEvent(
+              new CustomEvent("atlas-ai-open", {
+                detail: {
+                  w,
+                  p,
+                  sourceId: origin.sourceId,
+                  versionId: origin.versionId,
+                },
+              }),
+            )
+          }
+        >
+          <Icon name="sparkles" /> Ask about this source
+        </button>
+      )}
       {canEdit && (
         <div className="actions">
           {origin && (

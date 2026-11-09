@@ -1,5 +1,7 @@
 # Mimari
 
+Faz 04 uygulaması: mevcut PDF worker immutable sayfa/chunk üretir; Next.js web sürecindeki `after()` tek, süre sınırlı Responses çağrısını yürütür. Ağ boyunca DB kilidi tutulmaz; lease kesintisi ücretli otomatik retry üretmez. Yeni servis/Redis/pgvector yoktur. Kapsam, veri koşulları, özel konuşma RLS’si, bütçe ve proposal akışı [ADR 0006](decisions/0006-grounded-ai.md) içindedir. Kullanıcı ücretli çağrıları yasakladığından canlı global kapı kapalı, G04 OPEN’dır.
+
 Phase 03 implementation: source-linked Tiptap/KaTeX documents, revision receipts/checkpoints, tasks, project topics and permission-aware Inbox use the existing modular monolith/PostgreSQL. No new worker/realtime service is added; see [ADR 0005](decisions/0005-documents-and-collaboration.md) and [handoff](PHASE_03_HANDOFF.md).
 
 Historical foundation evidence: [Phase 01 handoff](PHASE_01_HANDOFF.md). The Phase 00 candidate/version and future-module planning below is historical design context; exact installed pins and actual gates are recorded per implementation slice. The owner-selected Coolify preview is running; G01 remains open for deferred full live acceptance.
