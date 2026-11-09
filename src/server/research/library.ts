@@ -525,6 +525,9 @@ export function getSource(
         where: { sourceId: id, deletedAt: null },
         orderBy: [{ page: "asc" }, { createdAt: "asc" }],
       }),
+      positions: await tx.readingPosition.findMany({
+        where: { workspaceId: w, projectId: p, sourceId: id, userId: actor.id },
+      }),
       reading: await tx.readingState.findUnique({
         where: { sourceId_userId: { sourceId: id, userId: actor.id } },
       }),
@@ -624,9 +627,10 @@ export const readingInput = z
     action: z.literal("reading"),
     versionId: z.uuid().nullable(),
     status: z.enum(["unread", "reading", "done"]),
-    page: z.number().int().min(1).max(500),
+    page: z.number().int().min(1).max(100000),
     zoom: z.number().min(0.5).max(2.5),
     position: z.number().min(0).max(1),
+    zoomMode: z.enum(["manual", "width", "page"]).optional(),
   })
   .strict();
 export function saveReading(
@@ -651,7 +655,29 @@ export function saveReading(
       if (!version || (version.pageCount && input.page > version.pageCount))
         throw new AppError("INVALID_INPUT");
     }
-    const { action: _, ...data } = input;
+    const { action: _, zoomMode, ...data } = input;
+    if (input.versionId) {
+      const position = {
+        page: input.page,
+        zoom: input.zoom,
+        position: input.position,
+        ...(zoomMode ? { zoomMode } : {}),
+      };
+      await tx.readingPosition.upsert({
+        where: {
+          versionId_userId: { versionId: input.versionId, userId: actor.id },
+        },
+        create: {
+          workspaceId: w,
+          projectId: p,
+          sourceId: id,
+          versionId: input.versionId,
+          userId: actor.id,
+          ...position,
+        },
+        update: position,
+      });
+    }
     void _;
     return tx.readingState.upsert({
       where: { sourceId_userId: { sourceId: id, userId: actor.id } },
@@ -694,8 +720,9 @@ export function addCollection(
 }
 export const annotationInput = z
   .object({
+    requestId: z.uuid().optional(),
     kind: z.enum(["highlight", "note"]),
-    page: z.number().int().min(1).max(500),
+    page: z.number().int().min(1).max(100000),
     quote: z.string().max(6000).default(""),
     body: z.string().trim().max(10000).default(""),
     rects: z
@@ -726,7 +753,30 @@ export function addAnnotation(
       (version.pageCount && input.page > version.pageCount)
     )
       throw new AppError("UNAVAILABLE", 404);
-    const id = randomUUID();
+    const { requestId, ...annotation } = input,
+      id = requestId ?? randomUUID();
+    const old = await tx.annotation.findFirst({
+      where: { id, workspaceId: w, projectId: p },
+    });
+    if (old) {
+      if (
+        old.sourceId !== sourceId ||
+        old.versionId !== versionId ||
+        old.authorId !== actor.id ||
+        old.deletedAt
+      )
+        throw new AppError("UNAVAILABLE", 404);
+      if (
+        old.kind !== input.kind ||
+        old.page !== input.page ||
+        old.quote !== input.quote ||
+        old.body !== input.body ||
+        old.color !== input.color ||
+        JSON.stringify(old.rects) !== JSON.stringify(input.rects)
+      )
+        throw new AppError("REVISION_CONFLICT", 409);
+      return old;
+    }
     await tx.artifact.createMany({
       data: [{ id, workspaceId: w, projectId: p, kind: "annotation" }],
     });
@@ -738,7 +788,7 @@ export function addAnnotation(
         sourceId,
         versionId,
         authorId: actor.id,
-        ...input,
+        ...annotation,
         rects: input.rects as Prisma.InputJsonValue,
       },
     });

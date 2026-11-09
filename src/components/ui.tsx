@@ -112,7 +112,11 @@ export function Icon({
     </svg>
   );
 }
-export function useResource<T>(url: string | null, keepPrevious = false) {
+export function useResource<T>(
+  url: string | null,
+  keepPrevious = false,
+  keepOnError = false,
+) {
   const [state, setState] = useState<{
       url: string;
       data?: T;
@@ -133,7 +137,18 @@ export function useResource<T>(url: string | null, keepPrevious = false) {
         if (!controller.signal.aborted) setState({ url, data });
       } catch (error) {
         if (!controller.signal.aborted) {
-          setState({ url, error });
+          setState((previous) => ({
+            url,
+            error,
+            ...(keepOnError &&
+            previous?.url === url &&
+            !(
+              error instanceof ApiError &&
+              [401, 403, 404].includes(error.status)
+            )
+              ? { data: previous.data }
+              : {}),
+          }));
           if (
             !denied &&
             error instanceof ApiError &&
@@ -160,7 +175,7 @@ export function useResource<T>(url: string | null, keepPrevious = false) {
       window.removeEventListener("atlas-access-changed", load);
       window.removeEventListener("atlas-inbox-changed", load);
     };
-  }, [url, revision]);
+  }, [url, revision, keepOnError]);
   return {
     data: state?.url === url || keepPrevious ? state?.data : undefined,
     refreshing: !!url && state?.url !== url,
