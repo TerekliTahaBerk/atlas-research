@@ -534,6 +534,30 @@ function AiPanel({
               )}
             </>
           )}
+          {seededVersion && !ids.includes(seededVersion.id) && (
+            <section className="ai-context-suggestion">
+              <p>
+                Suggested context: {seededVersion.title} · v
+                {seededVersion.ordinal}
+              </p>
+              <button
+                disabled={busy}
+                onClick={() => {
+                  choose("");
+                  setSelected(
+                    [...new Set([...ids, seededVersion.id])].slice(0, 10),
+                  );
+                  setArtifacts(
+                    history.data?.conversation.artifactIds ?? artifactIds,
+                  );
+                  setPreview(undefined);
+                  setConsent(false);
+                }}
+              >
+                Review in a new conversation
+              </button>
+            </section>
+          )}
           <details className="ai-scope-picker" open={!conversation}>
             <summary>Source scope · {ids.length}/10 versions</summary>
             {conversation && (
