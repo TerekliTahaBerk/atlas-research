@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["identity", "app"]
+  schemas  = ["identity", "app", "ops"]
 }
 
 model User {
@@ -39,7 +39,7 @@ model MailOutbox {
   createdAt DateTime @default(now())
   @@index([state, nextAttemptAt])
   @@map("mail_outbox")
-  @@schema("identity")
+  @@schema("ops")
 }
 
 model Workspace {
@@ -57,6 +57,20 @@ model Workspace {
   projects Project[]
   @@map("workspaces")
   @@schema("app")
+}
+
+model SchemaRevision {
+  id Int @id
+  revision String
+  @@map("schema_revision")
+  @@schema("ops")
+}
+model ServiceHeartbeat {
+  service String @id
+  revision String
+  checkedAt DateTime @db.Timestamptz
+  @@map("service_heartbeat")
+  @@schema("ops")
 }
 
 model WorkspaceMember {

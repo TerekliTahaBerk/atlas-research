@@ -9,7 +9,7 @@ import images from "../ops/images.json";
 // Never reads a developer/production DATABASE_URL. All credentials and data are disposable.
 const folder = mkdtempSync(join(tmpdir(), "atlas-integration-"));
 const name = `atlas-test-${randomUUID()}`;
-const passwords = Object.fromEntries(["postgres", "atlas_migrator", "atlas_auth", "atlas_runtime"].map(role => [role, randomBytes(32).toString("hex")]));
+const passwords = Object.fromEntries(["postgres", "atlas_migrator", "atlas_auth", "atlas_runtime", "atlas_queue", "atlas_backup"].map(role => [role, randomBytes(32).toString("hex")]));
 const docker = (...args: string[]) => execFileSync("docker", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 let created = false;
 let admin: pg.Client | undefined;
@@ -26,16 +26,17 @@ try {
     catch { await candidate.end().catch(() => {}); await new Promise(r => setTimeout(r, 250)); }
   }
   if (!admin) throw new Error("Disposable PostgreSQL did not become ready");
-  for (const role of ["atlas_migrator", "atlas_auth", "atlas_runtime"]) {
+  for (const role of ["atlas_migrator", "atlas_auth", "atlas_runtime", "atlas_queue"]) {
     await admin.query(`CREATE ROLE ${role} LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD '${passwords[role]}'`);
   }
+  await admin.query(`CREATE ROLE atlas_backup LOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD '${passwords.atlas_backup}'; ALTER ROLE atlas_backup SET default_transaction_read_only=on`);
   await admin.query("CREATE ROLE atlas_policy NOLOGIN BYPASSRLS; GRANT atlas_policy TO atlas_migrator");
   await admin.query("CREATE ROLE atlas_lifecycle NOLOGIN BYPASSRLS; GRANT atlas_lifecycle TO atlas_migrator");
   await admin.query("REVOKE CREATE ON SCHEMA public FROM PUBLIC; GRANT CREATE ON DATABASE atlas_test TO atlas_migrator; GRANT USAGE,CREATE ON SCHEMA public TO atlas_migrator");
   const env: NodeJS.ProcessEnv = {
     ...process.env, NODE_ENV: "test", APP_ORIGIN: "http://127.0.0.1:3000",
     BETTER_AUTH_SECRET: randomBytes(32).toString("hex"),
-    MIGRATION_DATABASE_URL: url("atlas_migrator"), AUTH_DATABASE_URL: url("atlas_auth"), DATABASE_URL: url("atlas_runtime"),
+    MIGRATION_DATABASE_URL: url("atlas_migrator"), AUTH_DATABASE_URL: url("atlas_auth"), DATABASE_URL: url("atlas_runtime"), QUEUE_DATABASE_URL:url("atlas_queue"),
   };
   const migration = spawnSync(process.execPath, [resolve("node_modules/prisma/build/index.js"), "migrate", "deploy"], { env, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
   if (migration.status !== 0) {
@@ -43,8 +44,7 @@ try {
     for (const password of Object.values(passwords)) detail = detail.replaceAll(password, "[redacted]");
     throw new Error(`Migration failed (${migration.status}): ${detail.slice(0, 1500)}`);
   }
-  await admin.query("GRANT USAGE ON SCHEMA identity TO atlas_auth; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA identity TO atlas_auth");
-  const files = readdirSync("tests/integration").filter(f => f.endsWith(".test.ts")).map(f => `tests/integration/${f}`);
+  const files = readdirSync("tests/integration").filter(f => f.endsWith(".test.ts")).sort().map(f => `tests/integration/${f}`);
   console.log("PostgreSQL 18.6: isolated migration/auth/runtime roles; loopback-only disposable container");
   const browserMode=process.argv.includes("--browser");
   const result = spawnSync(process.execPath, browserMode?["--import","tsx","scripts/browser-qa.ts"]:["--import", "tsx", "--test", "--test-concurrency=1", ...files], { env, stdio: "inherit" });

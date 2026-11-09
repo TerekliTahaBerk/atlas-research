@@ -40,6 +40,8 @@ export async function api<T>(
 }
 export function message(error: unknown) {
   const code = error instanceof ApiError ? error.code : "INTERNAL_ERROR";
+  if (code === "MAIL_DISABLED")
+    return "Email delivery is currently unavailable. Please contact your workspace administrator.";
   if (code === "REAUTH_REQUIRED")
     return "Sign in again before changing ownership or requesting deletion.";
   if (code === "ARCHIVED")

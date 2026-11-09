@@ -1,0 +1,146 @@
+# Git-based Compose Application in the user's yulaco project.
+# Only web receives a Coolify domain (internal port 3000). No host ports.
+# exclude_from_hc is a documented Coolify extension for one-shot services.
+# Coolify 4.6 injects its whole .env into every service. Explicit expressions
+# override that env_file without the parser's legacy empty-value substitution.
+x-atlas-isolated-env: &atlas-isolated-env
+  SERVICE_HEX_64_ATLASPOSTGRES: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASMIGRATOR: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASAUTH: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASRUNTIME: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASQUEUE: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASBACKUP: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASSESSION: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_ISOLATION_EMPTY: "${ATLAS_ISOLATION_EMPTY:-}"
+  POSTGRES_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_MIGRATOR_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_AUTH_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_RUNTIME_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_QUEUE_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_BACKUP_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  ADMIN_DATABASE_URL: "${ATLAS_ISOLATION_EMPTY:-}"
+  MIGRATION_DATABASE_URL: "${ATLAS_ISOLATION_EMPTY:-}"
+  AUTH_DATABASE_URL: "${ATLAS_ISOLATION_EMPTY:-}"
+  DATABASE_URL: "${ATLAS_ISOLATION_EMPTY:-}"
+  QUEUE_DATABASE_URL: "${ATLAS_ISOLATION_EMPTY:-}"
+  BETTER_AUTH_SECRET: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_INITIAL_USER_ACK: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_INITIAL_EMAIL: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_INITIAL_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+  SMTP_USER: "${ATLAS_ISOLATION_EMPTY:-}"
+  SMTP_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
+services:
+  postgres:
+    image: postgres:18.6-bookworm@sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5
+    environment:
+      <<: *atlas-isolated-env
+      POSTGRES_DB: atlas
+      POSTGRES_PASSWORD: ${SERVICE_HEX_64_ATLASPOSTGRES:?required}
+    volumes:
+      - atlas-postgres:/var/lib/postgresql
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d atlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 1g
+    cpus: 1.0
+    restart: unless-stopped
+    stop_grace_period: 30s
+  bootstrap:
+    build: { context: ., target: migrator, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:migrator-${ATLAS_RELEASE:?required}
+    command: [node, ops/provision-db.mjs]
+    environment:
+      <<: *atlas-isolated-env
+      ALLOW_ATLAS_BOOTSTRAP: atlas
+      ADMIN_DATABASE_URL: postgresql://postgres:${SERVICE_HEX_64_ATLASPOSTGRES}@postgres:5432/atlas
+      ATLAS_MIGRATOR_PASSWORD: ${SERVICE_HEX_64_ATLASMIGRATOR:?required}
+      ATLAS_AUTH_PASSWORD: ${SERVICE_HEX_64_ATLASAUTH:?required}
+      ATLAS_RUNTIME_PASSWORD: ${SERVICE_HEX_64_ATLASRUNTIME:?required}
+      ATLAS_QUEUE_PASSWORD: ${SERVICE_HEX_64_ATLASQUEUE:?required}
+      ATLAS_BACKUP_PASSWORD: ${SERVICE_HEX_64_ATLASBACKUP:?required}
+    networks: [backend]
+    depends_on: { postgres: { condition: service_healthy } }
+    exclude_from_hc: true
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  migrate:
+    build: { context: ., target: migrator, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:migrator-${ATLAS_RELEASE}
+    environment:
+      <<: *atlas-isolated-env
+      MIGRATION_DATABASE_URL: postgresql://atlas_migrator:${SERVICE_HEX_64_ATLASMIGRATOR}@postgres:5432/atlas
+      ATLAS_INITIAL_USER_ACK: ${ATLAS_INITIAL_USER_ACK:-}
+      ATLAS_INITIAL_EMAIL: ${ATLAS_INITIAL_EMAIL:-}
+      ATLAS_INITIAL_PASSWORD: ${ATLAS_INITIAL_PASSWORD:-}
+    networks: [backend]
+    depends_on: { bootstrap: { condition: service_completed_successfully } }
+    exclude_from_hc: true
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  web:
+    build: { context: ., target: web, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:web-${ATLAS_RELEASE}
+    environment:
+      <<: *atlas-isolated-env
+      APP_ORIGIN: ${APP_ORIGIN:?required}
+      BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION:?required}
+      AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTH}@postgres:5432/atlas
+      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      ATLAS_RELEASE: ${ATLAS_RELEASE}
+      MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
+      SMTP_HOST: ${SMTP_HOST:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+    expose: ["3000"]
+    networks: [frontend, backend]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    mem_limit: 512m
+    cpus: 1.0
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: [/tmp, "/app/.next/cache:uid=1000,gid=1000,mode=0700"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+  mail:
+    build: { context: ., target: mail, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:mail-${ATLAS_RELEASE}
+    environment:
+      <<: *atlas-isolated-env
+      BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION}
+      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      ATLAS_RELEASE: ${ATLAS_RELEASE}
+      MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+    networks: [backend, egress]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+networks:
+  frontend: {}
+  backend: { internal: true }
+  egress: {}
+volumes:
+  atlas-postgres: {}

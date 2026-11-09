@@ -2,7 +2,7 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Status:** Phase 00 was squash merged in [PR #26](https://github.com/TerekliTahaBerk/atlas-research/pull/26). Phase 01 implementation has started in ordered PR slices. [P01-1](docs/implementation/P01-1.md) records the runtime baseline; G01 remains open until identity, tenancy, UI and the first Coolify deployment are verified.
+**Status:** Phase 00 and Phase 01 P01-1–4 are squash merged. The owner-selected Phase 01 preview is running in Coolify **yula.co**, with a working initial login and verified restart persistence. P01-5 remains in review and **G01 remains open** for deferred email, independent recovery and full live collaboration acceptance. See the [Phase 01 handoff](docs/PHASE_01_HANDOFF.md).
 
 ## Start here
 
@@ -28,16 +28,20 @@ The beta targets individual researchers and small teams of 2–10. Personal acco
 
 ## Infrastructure direction
 
-Deploy with Docker on Coolify. Use self-hosted PostgreSQL as the application database, with Prisma as the planned ORM. Phase 00 selects self-hosted Better Auth, private file volumes with authorized access, PostgreSQL-backed jobs and independent backups. Decisions and alternatives are linked from the architecture document. No hosted database subscription is required; nothing has been provisioned.
+Deploy with Docker on Coolify. Use self-hosted PostgreSQL as the application database, with Prisma as the ORM. Phase 00 selects self-hosted Better Auth, private file volumes with authorized access, PostgreSQL-backed jobs and independent backups. Decisions and alternatives are linked from the architecture document. No hosted database subscription is required. The [operations evidence](docs/implementation/P01-5.md) separates local recovery from the live preview and deferred production acceptance.
 
 ## Repository state
 
 - `main`: canonical integration branch; future Coolify deployment source.
-- `feat/phase-00-foundation`: prepared working branch for Phase 00.
+- `feat/phase-00-foundation`: historical Phase 00 delivery branch (PR #26 merged).
+- `feat/phase-01-5-operations`: current reviewed preview candidate; deployed SHA and open acceptance items are in the handoff.
 - `archive/pre-restart-2026-11-09`: legacy source and every original branch tip.
 - Short-lived `feat/*`, `fix/*`, `chore/*` and `docs/*` branches merge through pull requests.
 - Old code, migrations, dependencies, workflows and reports are absent from the active tree. Git history remains recoverable.
-- `npm ci` installs the pinned toolchain. `npm run verify` runs typecheck, lint, unit tests, disposable PostgreSQL integration and production build. Docker is required for integration tests; they never use your current database URL.
+- `npm ci` installs the pinned toolchain; `npx playwright install chromium` installs the pinned browser. `npm run verify` runs type/lint/unit, disposable PostgreSQL integration, production build and real browser/SMTP flows. Docker is required for integration tests; they never use your current database URL.
+- `npm run verify:release` requires a clean candidate and also builds labelled Docker images and rehearses synthetic restart/restore/rollback. Local evidence is ignored under .atlas-local; live evidence is separate.
 - `python3 scripts/verify_phase00.py --historical` preserves the original Phase 00 checks against its frozen Git tree. Its no-app rule is not a Phase 01 gate.
 
 The repository remains public. Never commit private research data, credentials or proprietary design assets.
+
+The owner-selected live preview uses a temporary Coolify HTTPS address with email delivery disabled and S3 deferred. New registration/password recovery/email invitations are explicitly unavailable. The owner-requested first identity was provisioned once through the migration process; normal identity and access checks remain enforced. Full G01 remains open.
