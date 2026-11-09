@@ -2,7 +2,7 @@
 
 ## Authorized scope
 
-Prepare a clean repository and branch/settings baseline, then stop and hand over the Phase 00 prompt. Do not implement Phase 00, deploy, provision a database or change existing external services.
+Historical scope of the repository-preparation task: prepare a clean repository and branch/settings baseline, then stop and hand over the Phase 00 prompt. That task did not authorize Phase 00, deployment, database provisioning or external-service changes. A subsequent user instruction authorized the documentation-only [Phase 00 work](PHASE_00_HANDOFF.md); this record remains the preparation/recovery history, not the current execution instruction.
 
 ## Legacy checkpoint
 

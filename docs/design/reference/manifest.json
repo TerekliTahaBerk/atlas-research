@@ -1,0 +1,25 @@
+{
+  "source_url": "https://claude.ai/design/p/c0ecedb8-87e2-4ad5-b313-63d75aef1817?file=Atlas.dc.html",
+  "acquired_date": "2026-11-09",
+  "timezone": "Europe/Istanbul",
+  "method": "Authenticated browser: All project files > file > Download; local bytes verified",
+  "publication_authority": "User explicitly approved publishing both files in the current task",
+  "files": [
+    {
+      "path": "Atlas.dc.html",
+      "original_bytes": 447208,
+      "original_sha256": "fb98b5ca09dc1bf7fdb49aec20ad47ba2c49f0ca0ac61a7cd4822a30b90db53d",
+      "published_bytes": 447339,
+      "published_sha256": "e3fd4272c02aef75642d26870615f4232972f07d42586d15d0791d33287418db",
+      "transformation": "Person names and email addresses replaced with demo values; three whitespace-only lines normalized; CSS and behavior unchanged; line count preserved"
+    },
+    {
+      "path": "Atlas Handoff.md",
+      "original_bytes": 8732,
+      "original_sha256": "463968b03fd6cc8de053bb1b6484d7982c76197e66d855c708524bfe6d821e57",
+      "published_bytes": 8732,
+      "published_sha256": "463968b03fd6cc8de053bb1b6484d7982c76197e66d855c708524bfe6d821e57",
+      "transformation": "None; stale handoff retained as reference, not normative product requirements"
+    }
+  ]
+}
