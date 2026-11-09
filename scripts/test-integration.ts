@@ -46,7 +46,8 @@ try {
   await admin.query("GRANT USAGE ON SCHEMA identity TO atlas_auth; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA identity TO atlas_auth");
   const files = readdirSync("tests/integration").filter(f => f.endsWith(".test.ts")).map(f => `tests/integration/${f}`);
   console.log("PostgreSQL 18.6: isolated migration/auth/runtime roles; loopback-only disposable container");
-  const result = spawnSync(process.execPath, ["--import", "tsx", "--test", "--test-concurrency=1", ...files], { env, stdio: "inherit" });
+  const browserMode=process.argv.includes("--browser");
+  const result = spawnSync(process.execPath, browserMode?["--import","tsx","scripts/browser-qa.ts"]:["--import", "tsx", "--test", "--test-concurrency=1", ...files], { env, stdio: "inherit" });
   if (result.status !== 0) process.exitCode = result.status ?? 1;
 } catch (error) {
   // No command arguments, environment, connection URL or raw database error is logged.

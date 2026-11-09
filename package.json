@@ -18,7 +18,9 @@
     "test:integration": "node --import tsx scripts/test-integration.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "verify": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build && npm run test:browser",
+    "test:browser": "node --import tsx scripts/test-integration.ts --browser",
+    "format:check": "prettier --check src/components src/lib scripts/browser-qa.ts",
     "postinstall": "prisma generate",
     "mail:worker": "node dist/worker/mail/run.js"
   },
@@ -35,6 +37,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@playwright/cli": "0.1.23",
     "@types/node": "24.19.2",
     "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
@@ -43,6 +46,8 @@
     "@types/smtp-server": "3.5.13",
     "eslint": "10.14.0",
     "eslint-config-next": "16.4.5",
+    "playwright": "1.65.0",
+    "prettier": "3.9.10",
     "prisma": "7.10.1",
     "smtp-server": "3.21.3",
     "tsx": "4.23.15",
