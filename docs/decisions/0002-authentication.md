@@ -1,6 +1,6 @@
 # ADR 0002 — Self-hosted kimlik ve DB oturumları
 
-Tarih: 2026-11-09. Durum: Faz 00 için seçildi; kurulum ve patch uyumluluk testi yapılmadı.
+Tarih: 2026-11-09. Durum: Faz 00 seçimi P01-1/2 server uygulamasında doğrulandı; [sürüm/kurulum](../implementation/P01-1.md) ve [auth/session/SMTP test kanıtı](../implementation/P01-2.md). UI ve canlı dağıtım ayrı kapılardır.
 
 ## Bağlam ve seçenekler
 

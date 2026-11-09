@@ -29,6 +29,7 @@ try {
   for (const role of ["atlas_migrator", "atlas_auth", "atlas_runtime"]) {
     await admin.query(`CREATE ROLE ${role} LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD '${passwords[role]}'`);
   }
+  await admin.query("CREATE ROLE atlas_policy NOLOGIN BYPASSRLS; GRANT atlas_policy TO atlas_migrator");
   await admin.query("REVOKE CREATE ON SCHEMA public FROM PUBLIC; GRANT CREATE ON DATABASE atlas_test TO atlas_migrator; GRANT USAGE,CREATE ON SCHEMA public TO atlas_migrator");
   const env: NodeJS.ProcessEnv = {
     ...process.env, NODE_ENV: "test", APP_ORIGIN: "http://127.0.0.1:3000",

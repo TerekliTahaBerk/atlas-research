@@ -6,6 +6,12 @@ const schema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   AUTH_DATABASE_URL: z.url().refine(v => v.startsWith("postgresql://") || v.startsWith("postgres://")),
   DATABASE_URL: z.url().refine(v => v.startsWith("postgresql://") || v.startsWith("postgres://")),
+  SMTP_HOST: z.string().min(1).default("127.0.0.1"),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
+  SMTP_SECURE: z.enum(["true", "false"]).default("false").transform(v => v === "true"),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  MAIL_FROM: z.email().default("atlas@example.invalid"),
 });
 
 export function parseEnv(input: Record<string, string | undefined>) {
@@ -17,6 +23,9 @@ export function parseEnv(input: Record<string, string | undefined>) {
   const env = result.data;
   if (env.NODE_ENV === "production" && !env.APP_ORIGIN.startsWith("https://")) {
     throw new Error("Production APP_ORIGIN must use HTTPS");
+  }
+  if (env.NODE_ENV === "production" && (!input.SMTP_HOST || !input.MAIL_FROM || env.MAIL_FROM.endsWith(".invalid"))) {
+    throw new Error("Production SMTP_HOST and real MAIL_FROM are required");
   }
   return env;
 }

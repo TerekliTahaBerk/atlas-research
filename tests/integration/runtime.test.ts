@@ -4,27 +4,25 @@ import { randomBytes } from "node:crypto";
 import { createDatabase } from "../../src/server/db/client";
 import { createAuth } from "../../src/server/auth/create-auth";
 import { getEnv } from "../../src/server/env";
+import { createMailQueue } from "../../src/server/mail/outbox";
+import { startMailServer } from "../helpers/mail";
+import { verifiedUser } from "../helpers/identity";
 
 test("PostgreSQL Prisma transaction and Better Auth session roundtrip", async () => {
-  const env = getEnv();
+  const smtp = await startMailServer();
+  const env = { ...getEnv(), SMTP_PORT: smtp.port };
   const db = createDatabase(env.AUTH_DATABASE_URL);
+  const mail = createMailQueue(env);
   try {
     const rows = await db.$transaction(tx => tx.$queryRaw<Array<{ value: number }>>`SELECT 1::int AS value`);
     assert.equal(rows[0].value, 1);
-    const auth = createAuth(db, env);
-    const email = `researcher-${randomBytes(8).toString("hex")}@example.invalid`;
-    const password = randomBytes(24).toString("hex");
-    const result = await auth.api.signUpEmail({ body: { email, password, name: "Test Researcher" } });
-    assert.equal(result.user.email, email);
-    const signed = await auth.api.signInEmail({ body: { email, password }, asResponse: true });
-    assert.equal(signed.status, 200);
-    const cookies = signed.headers.getSetCookie().map(v => v.split(";")[0]).join("; ");
-    assert.ok(cookies);
-    const session = await auth.api.getSession({ headers: new Headers({ cookie: cookies }) });
-    assert.equal(session?.user.id, result.user.id);
-    await auth.api.signOut({ headers: new Headers({ cookie: cookies }) });
-    assert.equal(await auth.api.getSession({ headers: new Headers({ cookie: cookies }) }), null);
-  } finally { await db.$disconnect(); }
+    const auth = createAuth(db, env, mail);
+    const user = await verifiedUser(auth, mail, smtp);
+    const session = await auth.api.getSession({ headers: user.headers });
+    assert.equal(session?.user.id, user.id);
+    await auth.api.signOut({ headers: user.headers });
+    assert.equal(await auth.api.getSession({ headers: user.headers }), null);
+  } finally { await mail.close(); await smtp.close(); await db.$disconnect(); }
 });
 
 test("rollback is atomic and auth/runtime cannot migrate or cross database privileges", async () => {
