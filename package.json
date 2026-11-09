@@ -26,12 +26,20 @@
     "verify:compose": "node ops/validate-compose.mjs",
     "format:check": "prettier --check src/components src/lib scripts/browser-qa.ts",
     "postinstall": "prisma generate",
-    "mail:worker": "node dist/worker/mail/run.js"
+    "mail:worker": "node dist/worker/mail/run.js",
+    "test:collaboration": "node --import tsx scripts/test-integration.ts --collaboration",
+    "test:collaboration:browser": "node --import tsx scripts/test-integration.ts --collaboration-browser"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
+    "@tiptap/core": "3.33.0",
+    "@tiptap/extension-mathematics": "3.33.0",
+    "@tiptap/pm": "3.33.0",
+    "@tiptap/react": "3.33.0",
+    "@tiptap/starter-kit": "3.33.0",
     "better-auth": "1.7.18",
+    "katex": "0.18.10",
     "next": "16.4.5",
     "nodemailer": "10.4.0",
     "pdfjs-dist": "6.5.438",
@@ -43,6 +51,7 @@
   },
   "devDependencies": {
     "@playwright/cli": "0.1.23",
+    "@types/katex": "0.16.8",
     "@types/node": "24.19.2",
     "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",

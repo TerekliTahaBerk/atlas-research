@@ -369,3 +369,132 @@ model FileJob {
   @@map("file_jobs")
   @@schema("ops")
 }
+
+model Document {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ title String
+ body Json
+ revision Int @default(1)
+ createdBy String
+ archivedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([workspaceId,projectId,id])
+ @@map("documents")
+ @@schema("app")
+}
+model DocumentVersion {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ documentId String @db.Uuid
+ revision Int
+ title String
+ body Json
+ createdBy String
+ createdAt DateTime @default(now())
+ @@unique([documentId,revision])
+ @@map("document_versions")
+ @@schema("app")
+}
+model DocumentWrite {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ documentId String @db.Uuid
+ requestId String @db.Uuid
+ actorId String
+ hash String
+ revision Int
+ createdAt DateTime @default(now())
+ @@unique([documentId,requestId])
+ @@map("document_writes")
+ @@schema("app")
+}
+model Citation {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ documentId String @db.Uuid
+ sourceId String @db.Uuid
+ versionId String @db.Uuid
+ annotationId String? @db.Uuid
+ page Int?
+ quote String
+ createdAt DateTime @default(now())
+ @@unique([workspaceId,projectId,id])
+ @@map("citations")
+ @@schema("app")
+}
+model ArtifactLink {
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ fromId String @db.Uuid
+ toId String @db.Uuid
+ @@id([fromId,toId])
+ @@map("artifact_links")
+ @@schema("app")
+}
+model Task {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ title String
+ description String @default("")
+ status String @default("backlog")
+ priority String @default("medium")
+ assigneeId String?
+ dueDate String?
+ revision Int @default(1)
+ archivedAt DateTime?
+ createdBy String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([workspaceId,projectId,id])
+ @@map("tasks")
+ @@schema("app")
+}
+model Discussion {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ title String
+ createdBy String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([workspaceId,projectId,id])
+ @@map("discussions")
+ @@schema("app")
+}
+model Message {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ discussionId String @db.Uuid
+ authorId String
+ clientId String @db.Uuid
+ artifactIds String[] @db.Uuid
+ body String
+ revision Int @default(1)
+ editedAt DateTime?
+ createdAt DateTime @default(now())
+ @@unique([discussionId,authorId,clientId])
+ @@map("messages")
+ @@schema("app")
+}
+model Notification {
+ id String @id @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ recipientId String
+ targetId String @db.Uuid
+ event String
+ eventId String
+ readAt DateTime?
+ createdAt DateTime @default(now())
+ @@unique([recipientId,eventId])
+ @@map("notifications")
+ @@schema("app")
+}

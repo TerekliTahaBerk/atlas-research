@@ -12,7 +12,7 @@ export function research<T>(
   w: string,
   p: string,
   write: boolean,
-  fn: (tx: Tx, scope: { projectRole: string }) => Promise<T>,
+  fn: (tx: Tx, scope: { projectRole: string; project: { archivedAt: Date | null; deletedAt: Date | null }; workspace: { archivedAt: Date | null } }) => Promise<T>,
 ) {
   return inProject(db, actor, w, p, write, async (tx, scope) => {
     if (write) {
