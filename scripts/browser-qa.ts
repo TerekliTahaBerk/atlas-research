@@ -70,11 +70,20 @@ async function stopServer() {
 }
 const browser = await chromium.launch({ headless: true });
 const errors: string[] = [];
+let profileRestartAt = 0;
 function observe(page: Page) {
   page.on("pageerror", (error) => errors.push(error.name));
   page.on("console", (message) => {
     if (!["warning", "error"].includes(message.type())) return;
     const value = message.text();
+    if (
+      value.startsWith("Failed to load resource:") &&
+      Date.now() - profileRestartAt < 10_000 &&
+      /net::ERR_(CONNECTION_REFUSED|CONNECTION_RESET|EMPTY_RESPONSE)/.test(
+        value,
+      )
+    )
+      return;
     if (
       value.startsWith("Failed to load resource:") &&
       (/\b(401|403|404|429)\b/.test(value) || value.includes("net::ERR_FAILED"))
@@ -450,6 +459,7 @@ try {
     .waitFor();
   await pc.unroute("**/api/projects");
   stage = "disabled mail deployment profile";
+  profileRestartAt = Date.now();
   await stopServer();
   server = startServer("disabled");
   for (let i = 0; i < 100; i++) {
