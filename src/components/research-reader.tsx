@@ -1,4 +1,5 @@
 "use client";
+import { PopoverMenu } from "./ui";
 import { ResearchActions } from "./collaboration-shared";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -305,6 +306,7 @@ function ReaderDocument({
       ...(annotation ? { annotation } : {}),
     }).toString();
     history.replaceState(null, "", url);
+    window.dispatchEvent(new Event("atlas-location-changed"));
     if (scroll.current) scroll.current.scrollTop = 0;
   }
   function selectText() {
@@ -397,6 +399,19 @@ function ReaderDocument({
       setSearching(false);
     }
   }
+  useEffect(() => {
+    text.current
+      ?.querySelectorAll("span")
+      .forEach((span) =>
+        span.classList.toggle(
+          "pdf-search-match",
+          !!query.trim() &&
+            (span.textContent ?? "")
+              .toLocaleLowerCase()
+              .includes(query.trim().toLocaleLowerCase()),
+        ),
+      );
+  }, [query, rendered]);
   const notes = (
     <>
       <div className="reader-notes-header">
@@ -454,8 +469,10 @@ function ReaderDocument({
                     "PATCH",
                   );
                   reload();
+                  return true;
                 } catch (error) {
                   setError(error);
+                  return false;
                 }
               }}
             />
@@ -667,6 +684,47 @@ function ReaderDocument({
               </>
             )}
           </div>
+          {canEdit && selection && (
+            <div
+              className="pdf-selection-actions"
+              role="toolbar"
+              aria-label="Selected PDF text"
+            >
+              <button
+                disabled={busy}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => void add("highlight")}
+              >
+                <Icon name="bookmark" /> Highlight
+              </button>
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setComposing(true);
+                  if (innerWidth < 1200) setNotesOpen(true);
+                  else setPanelOpen(true);
+                  requestAnimationFrame(() => {
+                    const field = document.querySelector<HTMLTextAreaElement>(
+                      "dialog .annotation-compose textarea, .reader-notes .annotation-compose textarea",
+                    );
+                    field?.scrollIntoView({ block: "nearest" });
+                    field?.focus();
+                  });
+                }}
+              >
+                Comment
+              </button>
+              <button
+                aria-label="Dismiss text selection"
+                onClick={() => {
+                  setSelection(null);
+                  getSelection()?.removeAllRanges();
+                }}
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+          )}
           <footer className="pdf-pagebar">
             <Link
               className="icon-button"
@@ -706,9 +764,10 @@ function ReaderDocument({
                 <Icon name="chevron" />
               </button>
             </div>
-            <details className="reader-file-menu">
-              <summary className="icon-button" aria-label="PDF options">
+            <PopoverMenu className="reader-file-menu">
+              <summary className="toolbar-button" aria-label="PDF options">
                 <Icon name="options" />
+                <span>PDF · v{version.ordinal}</span>
               </summary>
               <div>
                 <label>
@@ -734,7 +793,7 @@ function ReaderDocument({
                 </a>
                 <Link href={sourceUrl}>Source details</Link>
               </div>
-            </details>
+            </PopoverMenu>
           </footer>
         </div>
         <aside className="reader-notes">{notes}</aside>
@@ -760,7 +819,7 @@ function AnnotationCard({
   active: boolean;
   canEdit: boolean;
   jump: () => void;
-  update: (value: { body?: string; deleted?: boolean }) => Promise<void>;
+  update: (value: { body?: string; deleted?: boolean }) => Promise<boolean>;
 }) {
   const [editing, setEditing] = useState(false),
     [body, setBody] = useState(a.body),
@@ -779,9 +838,9 @@ function AnnotationCard({
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
-            await update({ body });
+            const saved = await update({ body });
             setBusy(false);
-            setEditing(false);
+            if (saved) setEditing(false);
           }}
         >
           <label>

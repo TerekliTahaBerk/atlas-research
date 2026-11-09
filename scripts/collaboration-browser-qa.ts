@@ -158,13 +158,18 @@ page.setDefaultTimeout(15000);
 page.setDefaultNavigationTimeout(20000);
 let stage = "start";
 const errors: string[] = [];
-page.on("pageerror", (e) => errors.push(e.name));
+page.on("pageerror", (e) => {
+  errors.push(e.name);
+  console.error("Browser exception: " + e.stack);
+});
 page.on("console", (e) => {
   if (
     e.type() === "error" &&
     !/Failed to load resource|net::ERR_FAILED/.test(e.text())
-  )
+  ) {
     errors.push("console-error");
+    console.error("Browser console: " + e.text());
+  }
 });
 async function login(target: Page, who = owner) {
   await target.goto(origin + "/sign-in");
@@ -201,6 +206,106 @@ try {
   );
   await login(page);
   assert.equal(await page.title(), "Atlas Research");
+  stage = "real Crossref discovery → saved library selection";
+  console.log("Stage: " + stage);
+  await page.goto(origin + path + "/discover");
+  await page
+    .getByLabel("Search academic papers")
+    .fill("10.1371/journal.pbio.1002106");
+  await page
+    .getByRole("button", { name: "Search papers", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Save to library", exact: true })
+    .first()
+    .waitFor({ timeout: 30000 });
+  await page
+    .getByRole("button", { name: "Save to library", exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole("link", { name: "Open saved source", exact: true })
+    .first()
+    .waitFor();
+  await page.goto(origin + path + "/sources");
+  await page.getByLabel("Sort sources").selectOption("title");
+  await page
+    .getByRole("button", { name: "Create collection", exact: true })
+    .click();
+  await page
+    .getByLabel("Collection name", { exact: true })
+    .fill("Evidence review");
+  await page
+    .getByRole("button", { name: "Create collection", exact: true })
+    .last()
+    .click();
+  await page.getByLabel("Select all visible sources").check();
+  await page
+    .getByLabel("Add selected to collection")
+    .selectOption({ label: "Evidence review" });
+  await page
+    .getByRole("status")
+    .filter({ hasText: /papers added to collection/ })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Evidence review", exact: true })
+    .click();
+  await page.locator(".paper-row").first().waitFor();
+  assert.equal(await page.locator(".paper-row").count(), 3);
+  await page.getByLabel("Select " + source.title, { exact: true }).check();
+  const selectedExport = await context.request.get(
+    (origin +
+      (await page
+        .getByRole("link", { name: "BibTeX", exact: true })
+        .getAttribute("href"))) as string,
+  );
+  const selectedText = await selectedExport.text();
+  assert.ok(
+    selectedText.includes(source.title) &&
+      !selectedText.includes(metadataOnly.title),
+  );
+  const collectionId = await page
+    .getByLabel("Add selected to collection")
+    .getByRole("option", { name: "Evidence review", exact: true })
+    .getAttribute("value");
+  assert.ok(collectionId);
+  const invalidBulk = await context.request.post(
+    origin + `/api/research/${w}/${p}/sources/collect`,
+    {
+      headers: { origin },
+      data: { ids: [source.id, randomUUID()], collectionId },
+    },
+  );
+  assert.equal(invalidBulk.status(), 404);
+  const sourceAfterBulk = await (
+    await context.request.get(
+      origin + `/api/research/${w}/${p}/sources/${source.id}`,
+    )
+  ).json();
+  assert.equal(sourceAfterBulk.source.revision, 2);
+  await context.request.post(
+    origin + `/api/research/${w}/${p}/sources/collect`,
+    { headers: { origin }, data: { ids: [source.id], collectionId } },
+  );
+  assert.equal(
+    (
+      await (
+        await context.request.get(
+          origin + `/api/research/${w}/${p}/sources/${source.id}`,
+        )
+      ).json()
+    ).source.revision,
+    2,
+  );
+  assert.equal(
+    (
+      await context.request.get(
+        origin + `/api/research/${w}/${p}/export?format=bib&ids=bad`,
+      )
+    ).status(),
+    400,
+  );
+  await page.screenshot({ path: join(folder, "library-desktop.png") });
   stage = "PDF note → source-linked document";
   console.log("Stage: " + stage);
   await page.goto(
@@ -210,7 +315,35 @@ try {
   );
   await page.locator(".pdf-paper canvas").first().waitFor({ timeout: 15000 });
   await page
+    .getByRole("button", { name: "Add page note", exact: true })
+    .click();
+  await page
+    .getByLabel("Annotation note", { exact: true })
+    .fill("A new observation saved through the reader.");
+  await page
+    .getByRole("button", { name: "Save page note", exact: true })
+    .click();
+  await page
     .locator(".annotation-card")
+    .getByText("A new observation saved through the reader.", { exact: true })
+    .waitFor();
+  await page.locator(".textLayer").evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  });
+  await page.locator(".pdf-scroll").dispatchEvent("mouseup");
+  await page
+    .getByRole("toolbar", { name: "Selected PDF text" })
+    .getByRole("button", { name: "Highlight", exact: true })
+    .click();
+  await page.locator(".pdf-highlight").first().waitFor();
+  await page.screenshot({ path: join(folder, "reader-desktop.png") });
+  await page
+    .locator(".annotation-card")
+    .filter({ hasText: note.body })
     .getByRole("button", { name: "Write from this" })
     .click();
   await page
@@ -227,11 +360,24 @@ try {
   stage = "text/math/autosave";
   console.log("Stage: " + stage);
   await append(page, "A controlled research argument.");
+  await page
+    .getByRole("textbox", { name: "Document body", exact: true })
+    .press("Shift+ArrowLeft");
+  await page.locator(".selection-toolbar").waitFor({ state: "visible" });
+  await page
+    .locator(".selection-toolbar")
+    .getByRole("button", { name: "Bold", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Document body", exact: true })
+    .press("ArrowRight");
+  await page.locator(".editor-insert > summary").click();
   await page.getByRole("button", { name: "Inline math", exact: true }).click();
   await page.getByLabel("LaTeX expression").fill("E=mc^2");
   await page
     .getByRole("button", { name: "Insert expression", exact: true })
     .click();
+  await page.locator(".editor-insert > summary").click();
   await page.getByRole("button", { name: "Block math", exact: true }).click();
   await page.getByLabel("LaTeX expression").fill("\\sum_{i=1}^{n}x_i");
   await page
@@ -268,6 +414,40 @@ try {
     .waitFor({ state: "hidden" });
   await page.locator(".document-citation").nth(1).waitFor();
   await saved(page);
+  stage = "PDF note → existing writing";
+  console.log("Stage: " + stage);
+  await page.goto(
+    origin +
+      path +
+      `/sources/${source.id}/read?version=${upload.versionId}&page=1&annotation=${note.id}`,
+  );
+  await page
+    .locator(".annotation-card")
+    .filter({ hasText: note.body })
+    .getByRole("button", { name: "Write from this", exact: true })
+    .click();
+  await page.getByLabel("Writing destination").selectOption(docId);
+  await page.getByRole("link", { name: "Open and cite", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Add source citation", exact: true })
+    .waitFor();
+  assert.equal(
+    await page.getByLabel("Source", { exact: true }).inputValue(),
+    source.id,
+  );
+  assert.equal(
+    await page.getByLabel("Source version", { exact: true }).inputValue(),
+    upload.versionId,
+  );
+  await page
+    .getByRole("button", { name: "Insert citation", exact: true })
+    .click();
+  await saved(page);
+  await page
+    .getByRole("heading", { name: "Add source citation", exact: true })
+    .waitFor({ state: "hidden" });
+  await saved(page);
+  assert.equal(new URL(page.url()).searchParams.has("citeSource"), false);
   stage = "save failure retains text";
   console.log("Stage: " + stage);
   await page.route("**" + endpoint + `/documents/${docId}`, (route) =>
@@ -323,6 +503,9 @@ try {
     ).includes("Second tab recoverable content."),
   );
   stage = "checkpoint/history";
+  await page
+    .locator('.action-menu > summary[aria-label="Document options"]')
+    .click();
   console.log("Stage: " + stage);
   await page
     .getByRole("button", { name: "Save checkpoint", exact: true })
@@ -350,8 +533,7 @@ try {
     .getByRole("button", { name: "Create task", exact: true })
     .click();
   await page.waitForURL("**/tasks/*");
-  const taskUrl = page.url(),
-    taskId = taskUrl.split("/").at(-1)!;
+  const taskUrl = page.url();
   await page.getByLabel("Task title").waitFor();
   assert.equal(
     await page.getByLabel("Assignee", { exact: true }).inputValue(),
@@ -361,6 +543,26 @@ try {
   await page.getByRole("button", { name: "Save task", exact: true }).click();
   await page.getByRole("status").filter({ hasText: /Saved/ }).waitFor();
   await page.screenshot({ path: join(folder, "task-detail.png") });
+  await page.goto(origin + path + "/tasks");
+  await page
+    .getByRole("button", {
+      name: "Quick edit Review the equation and source",
+      exact: true,
+    })
+    .click();
+  await page.getByLabel("Priority", { exact: true }).selectOption("high");
+  await page.getByLabel("Due date", { exact: true }).fill("2026-11-20");
+  await page.getByRole("button", { name: "Save task", exact: true }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.goto(taskUrl);
+  assert.equal(
+    await page.getByLabel("Priority", { exact: true }).inputValue(),
+    "high",
+  );
+  assert.equal(
+    await page.getByLabel("Due date", { exact: true }).inputValue(),
+    "2026-11-20",
+  );
   stage = "linked discussion";
   console.log("Stage: " + stage);
   await page.getByRole("button", { name: "Discuss", exact: true }).click();
@@ -383,6 +585,36 @@ try {
   assert.equal(
     await page.locator(".discussion-message .artifact-card").count(),
     3,
+  );
+  await page
+    .getByLabel("Reply", { exact: true })
+    .fill("A recoverable unsent observation.");
+  await page.goto(origin + path + "/sources");
+  await page.goto(threadUrl);
+  assert.equal(
+    await page.getByLabel("Reply", { exact: true }).inputValue(),
+    "A recoverable unsent observation.",
+  );
+  await page
+    .getByRole("button", { name: "Discard draft", exact: true })
+    .click();
+  const homeData = await (
+    await context.request.get(origin + "/api/home")
+  ).json();
+  assert.equal(
+    homeData.projects.find((x: { projectId: string }) => x.projectId === p)
+      .documents,
+    1,
+  );
+  assert.equal(
+    homeData.projects.find((x: { projectId: string }) => x.projectId === p)
+      .sources,
+    3,
+  );
+  assert.ok(
+    homeData.projects
+      .find((x: { projectId: string }) => x.projectId === p)
+      .recent.some((x: { id: string }) => x.id === docId),
   );
   const ec = await browser.newContext({
       viewport: { width: 1440, height: 1000 },
@@ -426,7 +658,7 @@ try {
     .filter({ hasText: "Evidence-linked research draft" })
     .click();
   await page.getByRole("textbox", { name: "Document body" }).waitFor();
-  await page.locator(`.document-citation[href*="${note.id}"]`).click();
+  await page.locator(`.document-citation[href*="${note.id}"]`).first().click();
   await page.waitForURL("**/read?*");
   assert.ok(
     page.url().includes(upload.versionId!) && page.url().includes(note.id),
@@ -483,7 +715,39 @@ try {
     ).status(),
     404,
   );
+  assert.equal(
+    (
+      await vc.request.post(
+        origin + `/api/research/${w}/${p}/sources/collect`,
+        { headers: { origin }, data: { ids: [source.id], collectionId } },
+      )
+    ).status(),
+    404,
+  );
   await vc.close();
+  stage = "working tabs, project search and live home data";
+  console.log("Stage: " + stage);
+  await page.goto(docUrl);
+  await page
+    .getByRole("textbox", { name: "Document body", exact: true })
+    .waitFor();
+  await page
+    .getByRole("navigation", { name: "Open pages" })
+    .getByRole("link", { name: "Evidence-linked research draft", exact: true })
+    .waitFor();
+  await page.goto(origin + "/home");
+  await page.locator(".project-counts").first().waitFor();
+  await page.locator(".continue-grid").getByRole("link").first().waitFor();
+  await page.screenshot({ path: join(folder, "home-desktop.png") });
+  await page
+    .getByRole("button", {
+      name: "Connected research verification",
+      exact: true,
+    })
+    .click();
+  await page.getByLabel("Search projects").fill("Connected research");
+  assert.equal(await page.locator(".project-picker > a").count(), 1);
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   stage = "desktop/narrow main surfaces";
   console.log("Stage: " + stage);
   await page.goto(origin + path + "/tasks");
@@ -510,13 +774,88 @@ try {
     await page.evaluate("document.documentElement.scrollWidth <= innerWidth"),
     true,
   );
+  stage = "focused screen comparison and closed AI surface";
+  console.log("Stage: " + stage);
+  const surfaces = [
+    ["home", "/home", ".project-counts"],
+    ["research", path + "/discover", ".discovery-search"],
+    ["library", path + "/sources", ".paper-row"],
+    [
+      "reader",
+      path + `/sources/${source.id}/read?version=${upload.versionId}&page=1`,
+      ".pdf-paper canvas",
+    ],
+    ["document", new URL(docUrl).pathname, ".atlas-prose"],
+    ["tasks", path + "/tasks", ".task-card"],
+    ["discussion", new URL(threadUrl).pathname, ".discussion-composer"],
+    ["inbox", "/inbox", ".inbox-page"],
+    ["settings", "/settings", ".settings-section"],
+  ];
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 1440 ? 1000 : 900 });
+    for (const [name, route, ready] of surfaces) {
+      await page.goto(origin + route);
+      await page.locator(ready).first().waitFor();
+      if (name === "home")
+        await page.locator(".continue-grid a").first().waitFor();
+      await page.screenshot({ path: join(folder, `${name}-${width}.png`) });
+      assert.equal(
+        await page.evaluate(
+          "document.documentElement.scrollWidth <= innerWidth",
+        ),
+        true,
+        name + " overflow at " + width,
+      );
+    }
+    await page.goto(origin + path + "/sources");
+    await page.getByRole("button", { name: "Ask Atlas", exact: true }).click();
+    await page
+      .getByText(
+        "AI answers are turned off. You can still search your papers for evidence.",
+        { exact: true },
+      )
+      .waitFor();
+    await page.screenshot({ path: join(folder, `ai-closed-${width}.png`) });
+    await page.keyboard.press("Escape");
+  }
+  await page.goto(origin + "/settings");
+  await page
+    .locator(".settings-section")
+    .filter({ hasText: "Appearance" })
+    .getByRole("button", { name: "Dark theme", exact: true })
+    .click();
+  await page.goto(docUrl);
+  await page.locator(".atlas-prose").waitFor();
+  await page.screenshot({ path: join(folder, "document-dark-390.png") });
+  await page.getByLabel("Switch open page", { exact: true }).click();
+  await page
+    .locator(".tab-switch-menu a")
+    .first()
+    .waitFor({ state: "visible" });
+  await page.keyboard.press("Escape");
+  await authDb.session.updateMany({
+    where: { userId: a.id },
+    data: { createdAt: new Date(Date.now() - 360000) },
+  });
+  const staleSessions = await context.request.get(origin + "/api/me/sessions");
+  assert.equal(staleSessions.status(), 403);
+  assert.equal((await staleSessions.json()).error, "REAUTH_REQUIRED");
+  await page.goto(origin + "/settings");
+  await page
+    .getByRole("link", { name: "sign in again", exact: true })
+    .waitFor();
+  assert.ok(
+    await page
+      .getByRole("navigation", { name: "Open pages" })
+      .getByRole("link")
+      .count(),
+  );
   assert.equal(await page.locator("nextjs-portal").count(), 0);
   assert.deepEqual(errors, []);
   console.log(
     "PASS: note→cited math document→acknowledged save/error/retry→two-tab recovery/history→assigned task→linked discussion→Inbox→original PDF locator; reload/re-login/export/viewer/other-scope and desktop/narrow checks.",
   );
   console.log("Evidence folder: " + folder);
-  void taskId;
 } catch (e) {
   console.error("Failed stage: " + stage);
   await page.screenshot({ path: join(folder, "failure.png") }).catch(() => {});

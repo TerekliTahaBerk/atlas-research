@@ -1,6 +1,7 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import Link from "next/link";
 import {
   Failure,
   InlineError,
@@ -112,7 +113,16 @@ function AccountSettings({ me }: { me: Me }) {
         <h2>Sessions</h2>
         <p>Revoke a session to sign that device out immediately.</p>
         {sessions.error ? (
-          <Failure error={sessions.error} retry={sessions.reload} />
+          sessions.error instanceof ApiError &&
+          sessions.error.code === "REAUTH_REQUIRED" ? (
+            <p className="notice">
+              To manage signed-in devices,{" "}
+              <Link href="/sign-in?next=%2Fsettings">sign in again</Link>. Your
+              research stays saved.
+            </p>
+          ) : (
+            <Failure error={sessions.error} retry={sessions.reload} />
+          )
         ) : !sessions.data ? (
           <Loading />
         ) : (

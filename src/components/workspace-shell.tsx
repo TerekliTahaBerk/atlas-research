@@ -7,6 +7,8 @@ const AiCompanion = dynamic(
   { ssr: false },
 );
 import { usePathname, useRouter } from "next/navigation";
+import { WorkingTabs } from "./working-tabs";
+import { useWorkspaceIdentity } from "./workspace-context";
 import { api, ApiError } from "@/lib/api";
 import type { ResearchLibrary } from "@/lib/research-types";
 import {
@@ -15,6 +17,7 @@ import {
   InlineError,
   Loading,
   Modal,
+  PopoverMenu,
   ThemeControl,
   useResource,
 } from "./ui";
@@ -56,19 +59,35 @@ export function WorkspaceShell({
     contextProject?: Project;
   }) => ReactNode;
 }) {
-  const me = useResource<Me>("/api/me"),
-    workspaces = useResource<Workspace[]>(me.data ? "/api/workspaces" : null),
-    projects = useResource<Project[]>(me.data ? "/api/projects" : null);
+  const { me, workspaces, projects, inbox, collapsed, setCollapsed } =
+    useWorkspaceIdentity();
   const [drawer, setDrawer] = useState(false),
-    [collapsed, setCollapsed] = useState(false),
     [switching, setSwitching] = useState(false),
+    [projectQuery, setProjectQuery] = useState(""),
+    [rememberedProject, setRememberedProject] = useState(""),
     [create, setCreate] = useState<"project" | "workspace" | null>(null),
     [signOutError, setSignOutError] = useState<unknown>();
   const path = usePathname(),
     current = projects.data?.find((p) => path.startsWith(projectPath(p))),
     contextProject =
-      current ?? projects.data?.find((p) => !p.archivedAt && !p.deletedAt),
+      current ??
+      projects.data?.find((p) => p.id === rememberedProject && !p.deletedAt) ??
+      projects.data?.find((p) => !p.archivedAt && !p.deletedAt),
     base = contextProject ? projectPath(contextProject) : null;
+  useEffect(() => {
+    if (!me.data) return;
+    const key = `atlas-project:${me.data.user.id}`;
+    if (current) {
+      try {
+        sessionStorage.setItem(key, current.id);
+      } catch {}
+    } else {
+      try {
+        const id = sessionStorage.getItem(key);
+        if (id) queueMicrotask(() => setRememberedProject(id));
+      } catch {}
+    }
+  }, [me.data, current]);
   const sources = useResource<ResearchLibrary>(
     contextProject
       ? `/api/research/${contextProject.workspaceId}/${contextProject.id}/sources`
@@ -90,9 +109,16 @@ export function WorkspaceShell({
         return;
       }
       await api("/api/auth/sign-out", {});
+      window.dispatchEvent(new Event("atlas-signed-out"));
       try {
         for (const key of Object.keys(sessionStorage))
-          if (key.startsWith("atlas-draft-v1:") || key.startsWith("atlas-ai-"))
+          if (
+            key.startsWith("atlas-draft-v1:") ||
+            key.startsWith("atlas-ai-") ||
+            key.startsWith("atlas-navigation:") ||
+            key.startsWith("atlas-project:") ||
+            key.startsWith("atlas-reply:")
+          )
             sessionStorage.removeItem(key);
       } catch {}
       location.assign(location.origin + "/sign-in");
@@ -118,7 +144,7 @@ export function WorkspaceShell({
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [base, router]);
+  }, [base, router, setCollapsed]);
   const active =
     path === "/inbox"
       ? "inbox"
@@ -201,6 +227,12 @@ export function WorkspaceShell({
         >
           <Icon name="inbox" />
           Inbox
+          {!!inbox.data?.filter((n) => !n.readAt).length && (
+            <span className="nav-count">
+              {inbox.data.filter((n) => !n.readAt).length}
+              {inbox.data.length === 100 ? "+" : ""}
+            </span>
+          )}
         </Link>
         {base && (
           <details className="nav-group" open>
@@ -292,7 +324,7 @@ export function WorkspaceShell({
             </Link>
           </details>
         )}
-        {!base && (
+        {!base && !!projects.data && (
           <div className="nav-hint">
             Create a project to start your library.
           </div>
@@ -365,111 +397,33 @@ export function WorkspaceShell({
           >
             <Icon name="menu" />
           </button>
-          <nav className="workspace-tabs" aria-label="Open pages">
-            <Link
-              href="/home"
-              aria-current={active === "home" ? "page" : undefined}
-            >
-              <Icon name="home" />
-              <span>Home</span>
-            </Link>
-            {!current && ["settings", "inbox", "help"].includes(active) && (
-              <Link href={path} aria-current="page">
-                <Icon name="settings" />
-                <span>{title}</span>
-              </Link>
-            )}
-            {current && (
-              <>
-                {[
-                  "overview",
-                  "members",
-                  "documents",
-                  "tasks",
-                  "discussions",
-                ].includes(active) ? (
-                  <Link
-                    href={
-                      projectPath(current) +
-                      (active === "members"
-                        ? "/members"
-                        : active === "documents"
-                          ? "/docs"
-                          : active === "tasks"
-                            ? "/tasks"
-                            : active === "discussions"
-                              ? "/discussions"
-                              : "")
-                    }
-                    aria-current="page"
-                  >
-                    <Icon
-                      name={
-                        active === "members"
-                          ? "people"
-                          : active === "documents"
-                            ? "note"
-                            : active === "tasks"
-                              ? "check"
-                              : active === "discussions"
-                                ? "discussion"
-                                : "grid"
-                      }
-                    />
-                    <span>{title}</span>
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href={projectPath(current) + "/sources"}
-                      aria-current={
-                        active === "library" && surface !== "reader"
-                          ? "page"
-                          : undefined
-                      }
-                    >
-                      <Icon name="library" />
-                      <span>Library</span>
-                    </Link>
-                    {(active === "discover" || surface === "reader") && (
-                      <>
-                        <Link
-                          href={projectPath(current) + "/discover"}
-                          aria-current={
-                            active === "discover" ? "page" : undefined
-                          }
-                        >
-                          <Icon name="telescope" />
-                          <span>Research</span>
-                        </Link>
-                      </>
-                    )}
-                    {surface === "reader" && (
-                      <span className="open-file-tab" aria-current="page">
-                        <Icon name="file" />
-                        <span className="truncate" title={title}>
-                          {title}
-                        </span>
-                        <Link
-                          href={projectPath(current) + "/sources"}
-                          aria-label="Close reader"
-                        >
-                          <Icon name="close" />
-                        </Link>
-                      </span>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </nav>
-          <button
-            className="icon-button toolbar-new"
-            aria-label="New project"
-            onClick={() => setCreate("project")}
-          >
-            <Icon name="plus" />
-          </button>
+          <WorkingTabs
+            userId={projects.data ? me.data?.user.id : undefined}
+            path={path}
+            title={title}
+            allowedProjects={projects.data?.map(projectPath) ?? []}
+          />
+          <PopoverMenu className="action-menu">
+            <summary className="icon-button toolbar-new" aria-label="Open page">
+              <Icon name="plus" />
+            </summary>
+            <div className="open-page-menu">
+              <Link href="/home">Home</Link>
+              <Link href="/inbox">Inbox</Link>
+              {base && (
+                <>
+                  <Link href={base + "/discover"}>Research</Link>
+                  <Link href={base + "/sources"}>Library</Link>
+                  <Link href={base + "/docs"}>Documents</Link>
+                  <Link href={base + "/tasks"}>Tasks</Link>
+                  <Link href={base + "/discussions"}>Discussions</Link>
+                </>
+              )}
+              <button onClick={() => setSwitching(true)}>
+                Switch project…
+              </button>
+            </div>
+          </PopoverMenu>
           <div id="atlas-toolbar-actions" className="toolbar-actions" />
           {current && <div id="atlas-ai-toggle" />}
         </header>
@@ -512,23 +466,44 @@ export function WorkspaceShell({
       )}
       {switching && (
         <Modal title="Switch project" onClose={() => setSwitching(false)}>
+          <label className="picker-search">
+            <Icon name="search" />
+            <input
+              aria-label="Search projects"
+              placeholder="Find a project or workspace…"
+              value={projectQuery}
+              onChange={(e) => setProjectQuery(e.target.value)}
+            />
+          </label>
           <div className="project-picker">
-            {projects.data?.map((p) => (
-              <Link
-                key={p.id}
-                href={projectPath(p)}
-                onClick={() => setSwitching(false)}
-              >
-                <Icon name="folder" />
-                <span>
-                  {p.name}
-                  <small>
-                    {workspaces.data?.find((w) => w.id === p.workspaceId)?.name}
-                  </small>
-                </span>
-                {current?.id === p.id && <Icon name="check" />}
-              </Link>
-            ))}
+            {projects.data
+              ?.filter(
+                (p) =>
+                  !p.deletedAt &&
+                  `${p.name} ${workspaces.data?.find((w) => w.id === p.workspaceId)?.name ?? ""}`
+                    .toLowerCase()
+                    .includes(projectQuery.toLowerCase()),
+              )
+              .map((p) => (
+                <Link
+                  key={p.id}
+                  href={projectPath(p)}
+                  onClick={() => setSwitching(false)}
+                >
+                  <Icon name="folder" />
+                  <span>
+                    {p.name}
+                    <small>
+                      {
+                        workspaces.data?.find((w) => w.id === p.workspaceId)
+                          ?.name
+                      }
+                      {p.archivedAt ? " · Archived" : ""}
+                    </small>
+                  </span>
+                  {current?.id === p.id && <Icon name="check" />}
+                </Link>
+              ))}
             <button
               onClick={() => {
                 setSwitching(false);
@@ -667,16 +642,32 @@ export function Home({ onboarding = false }: { onboarding?: boolean }) {
     [kind, setKind] = useState("all"),
     [view, setView] = useState("grid"),
     [sort, setSort] = useState("edited");
+  const activity = useResource<{
+    projects: {
+      projectId: string;
+      sources: number;
+      documents: number;
+      tasks: number;
+      recent: {
+        id: string;
+        title: string;
+        kind: string;
+        href: string;
+        updatedAt: string;
+      }[];
+      assigned: {
+        id: string;
+        title: string;
+        status: string;
+        dueDate: string | null;
+        href: string;
+      }[];
+    }[];
+    limited: boolean;
+  }>("/api/home");
   return (
     <WorkspaceShell title={onboarding ? "Welcome" : "Home"}>
-      {({
-        me,
-        workspaces,
-        projects,
-        reload,
-        recentSources,
-        contextProject,
-      }) => {
+      {({ me, workspaces, projects, reload }) => {
         const hour = new Date().getHours(),
           greeting =
             hour < 12
@@ -776,36 +767,50 @@ export function Home({ onboarding = false }: { onboarding?: boolean }) {
                 </div>
               </div>
             </div>
-            {contextProject && !!recentSources?.items.length && (
+            {activity.data && (
               <section className="continue-section">
                 <h2>Continue working</h2>
                 <div className="continue-grid">
-                  {recentSources.items.slice(0, 4).map((source) => (
-                    <Link
-                      href={
-                        projectPath(contextProject) + "/sources/" + source.id
-                      }
-                      key={source.id}
-                    >
-                      <span className="continue-icon">
-                        <Icon name="book" />
-                      </span>
-                      <span className="truncate">
-                        <strong>{source.title}</strong>
-                        <small>
-                          {recentSources.readings.find(
-                            (r) => r.sourceId === source.id,
-                          )?.status === "reading"
-                            ? "Reading"
-                            : "Source"}{" "}
-                          · {contextProject.name}
-                        </small>
-                      </span>
-                    </Link>
-                  ))}
+                  {activity.data.projects
+                    .filter((a) => visible.some((p) => p.id === a.projectId))
+                    .flatMap((a) =>
+                      a.recent.map((r) => ({
+                        ...r,
+                        project: projects.find((p) => p.id === a.projectId)
+                          ?.name,
+                      })),
+                    )
+                    .sort(
+                      (a, b) =>
+                        Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+                    )
+                    .slice(0, 4)
+                    .map((item) => (
+                      <Link href={item.href} key={item.id}>
+                        <span className="continue-icon">
+                          <Icon
+                            name={item.kind === "document" ? "note" : "book"}
+                          />
+                        </span>
+                        <span className="truncate">
+                          <strong>{item.title}</strong>
+                          <small>
+                            {item.kind === "document" ? "Document" : item.kind}{" "}
+                            · {item.project}
+                          </small>
+                        </span>
+                      </Link>
+                    ))}
                 </div>
+                {!activity.data.projects.some((a) => a.recent.length) && (
+                  <p className="muted">
+                    Open a paper or start a document. Your recent work will
+                    appear here.
+                  </p>
+                )}
               </section>
             )}
+            {!!activity.error && <InlineError error={activity.error} />}
             <section>
               <div className="section-heading">
                 <h2>
@@ -832,6 +837,14 @@ export function Home({ onboarding = false }: { onboarding?: boolean }) {
                       <small>
                         {workspaces.find((w) => w.id === p.workspaceId)?.name}
                       </small>
+                      {activity.data?.projects
+                        .filter((a) => a.projectId === p.id)
+                        .map((a) => (
+                          <small className="project-counts" key={a.projectId}>
+                            {a.sources} papers · {a.documents} docs · {a.tasks}{" "}
+                            open tasks
+                          </small>
+                        ))}
                       <p>
                         {p.description || "Start with a research question."}
                       </p>
@@ -857,6 +870,32 @@ export function Home({ onboarding = false }: { onboarding?: boolean }) {
                 ))}
               </div>
             </section>
+            {!!activity.data?.projects.some((a) => a.assigned.length) && (
+              <section className="home-assigned">
+                <div className="section-heading">
+                  <h2>Assigned to you</h2>
+                </div>
+                <div className="collab-rows">
+                  {activity.data.projects
+                    .filter((a) => visible.some((p) => p.id === a.projectId))
+                    .flatMap((a) => a.assigned)
+                    .slice(0, 6)
+                    .map((t) => (
+                      <Link className="collab-row" key={t.id} href={t.href}>
+                        <Icon name="check" />
+                        <span>
+                          <strong>{t.title}</strong>
+                          <small>
+                            {t.status.replaceAll("_", " ")}
+                            {t.dueDate ? ` · Due ${t.dueDate}` : ""}
+                          </small>
+                        </span>
+                        <Icon name="arrow" />
+                      </Link>
+                    ))}
+                </div>
+              </section>
+            )}
             {projects.length === 0 && (
               <section className="getting-started">
                 <h2>A clear space to begin</h2>

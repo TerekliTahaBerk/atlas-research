@@ -1,5 +1,8 @@
 "use client";
+import { PopoverMenu } from "./ui";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
+import { usePageTitle } from "./working-tabs";
 import {
   useCallback,
   useEffect,
@@ -514,6 +517,7 @@ function DocumentWriting({
   reload: () => void;
   userId: string;
 }) {
+  const query = useSearchParams();
   const state = useDocumentSave(
       detail.document,
       endpoint,
@@ -521,7 +525,7 @@ function DocumentWriting({
       detail.canEdit,
     ),
     [citations, setCitations] = useState(detail.citations),
-    [picker, setPicker] = useState(false),
+    [picker, setPicker] = useState(!!query.get("citeSource") && detail.canEdit),
     [history, setHistory] = useState(false),
     [preview, setPreview] = useState<{
       revision: number;
@@ -535,6 +539,20 @@ function DocumentWriting({
   const used = citationIds(state.draft.body).flatMap(
     (id) => citations.find((c) => c.id === id) ?? [],
   );
+  usePageTitle(state.draft.title);
+  function closePicker() {
+    setPicker(false);
+    const url = new URL(location.href);
+    for (const key of ["citeSource", "citeVersion", "citeAnnotation"])
+      url.searchParams.delete(key);
+    window.history.replaceState(null, "", url);
+    window.dispatchEvent(new Event("atlas-location-changed"));
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>('[aria-label="Document body"]')
+        ?.focus(),
+    );
+  }
   async function archive() {
     setActionError(undefined);
     try {
@@ -597,6 +615,37 @@ function DocumentWriting({
         >
           History
         </button>
+        <PopoverMenu className="action-menu">
+          <summary className="icon-button" aria-label="Document options">
+            <Icon name="options" />
+          </summary>
+          <div>
+            <button
+              className="mobile-menu-item"
+              onClick={() => {
+                reload();
+                setHistory(true);
+              }}
+            >
+              History
+            </button>
+            <a className="mobile-menu-item" href={endpoint + "/export"}>
+              Export Markdown
+            </a>
+            {detail.canEdit && (
+              <button onClick={() => void state.save(true)}>
+                Save checkpoint
+              </button>
+            )}
+            {detail.canManage && !state.dirty && (
+              <button onClick={() => void archive()}>
+                {detail.document.archivedAt
+                  ? "Restore document"
+                  : "Archive document"}
+              </button>
+            )}
+          </div>
+        </PopoverMenu>
         <a className="toolbar-button" href={endpoint + "/export"}>
           Export Markdown
         </a>
@@ -619,17 +668,7 @@ function DocumentWriting({
                   <Icon name="book" />
                   Add citation
                 </button>
-                <button onClick={() => void state.save(true)}>
-                  Save checkpoint
-                </button>
               </>
-            )}
-            {detail.canManage && !state.dirty && (
-              <button onClick={archive}>
-                {detail.document.archivedAt
-                  ? "Restore document"
-                  : "Archive document"}
-              </button>
             )}
           </div>
           {(state.status === "Save failed" || state.status === "Offline") && (
@@ -651,6 +690,7 @@ function DocumentWriting({
             onChange={(body) => state.change({ body })}
             citations={citations}
             insertRef={insertRef}
+            onCitation={() => setPicker(true)}
           />
           {used.length > 0 && (
             <section className="document-references">
@@ -682,14 +722,14 @@ function DocumentWriting({
           w={w}
           p={p}
           endpoint={endpoint}
-          onClose={() => setPicker(false)}
+          onClose={closePicker}
           onInsert={(all) => {
             const added = all.find(
               (c) => !citations.some((old) => old.id === c.id),
             );
             flushSync(() => setCitations(all));
             if (added) insertRef.current?.(added.id);
-            setPicker(false);
+            closePicker();
           }}
         />
       )}
@@ -834,10 +874,11 @@ function CitationPicker({
   onClose: () => void;
   onInsert: (all: CitationView[]) => void;
 }) {
+  const query = useSearchParams();
   const [q, setQ] = useState(""),
-    [source, setSource] = useState(""),
-    [version, setVersion] = useState(""),
-    [annotation, setAnnotation] = useState(""),
+    [source, setSource] = useState(query.get("citeSource") ?? ""),
+    [version, setVersion] = useState(query.get("citeVersion") ?? ""),
+    [annotation, setAnnotation] = useState(query.get("citeAnnotation") ?? ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
   const library = useResource<ResearchLibrary>(
@@ -936,8 +977,8 @@ function CitationPicker({
             </label>
           </>
         )}
-        <InlineError error={error} />
-        <button className="primary" disabled={!source || busy}>
+        <InlineError error={error ?? library.error ?? detail.error} />
+        <button className="primary" disabled={!source || busy || !detail.data}>
           Insert citation
         </button>
       </form>

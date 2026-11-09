@@ -165,16 +165,19 @@ function Evidence({ items }: { items: EvidenceView[] }) {
           <Link className="ai-citation" href={e.href}>
             Open exact version · page {e.page}
           </Link>
-          <small>
-            Verified locator · characters {e.start}–{e.end}
-          </small>
-          <small className="ai-hash">
-            PDF SHA-256 {e.fileSha256}
-            <br />
-            Quote SHA-256 {e.quoteHash}
-            <br />
-            {e.extractor}
-          </small>
+          <details className="evidence-provenance">
+            <summary>Source verification</summary>
+            <small>
+              Verified location · characters {e.start}–{e.end}
+            </small>
+            <small className="ai-hash">
+              PDF SHA-256 {e.fileSha256}
+              <br />
+              Quote SHA-256 {e.quoteHash}
+              <br />
+              {e.extractor}
+            </small>
+          </details>
         </details>
       ))}
     </div>
@@ -207,6 +210,7 @@ function AiPanel({
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
     [policyOpen, setPolicyOpen] = useState(false),
+    [earlierVersions, setEarlierVersions] = useState(false),
     [proposalRun, setProposalRun] = useState("");
   const heading = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
@@ -287,7 +291,7 @@ function AiPanel({
       <p ref={heading} tabIndex={-1} className="ai-scope">
         {projectName}
         <br />
-        <small>Private conversation · fixed source versions</small>
+        <small>Private · selected papers</small>
       </p>
       {options.error ? (
         <InlineError error={options.error} />
@@ -338,24 +342,25 @@ function AiPanel({
           </label>
           {policy && (
             <>
-              <div className="ai-usage">
-                Today (UTC): {dollars(policy.usage.spentMicros)} used ·{" "}
-                {dollars(policy.usage.heldMicros)} reserved /{" "}
-                {dollars(policy.dailyBudgetMicros)}
-                <br />
-                <small>
-                  {policy.usage.requests}/20 requests per user ·{" "}
-                  {policy.usage.activeWorkspace}/2 workspace active
-                </small>
-              </div>
+              {policyOpen && (
+                <div className="ai-usage">
+                  Today (UTC): {dollars(policy.usage.spentMicros)} used ·{" "}
+                  {dollars(policy.usage.heldMicros)} reserved /{" "}
+                  {dollars(policy.dailyBudgetMicros)}
+                  <br />
+                  <small>
+                    {policy.usage.requests}/20 requests per user ·{" "}
+                    {policy.usage.activeWorkspace}/2 workspace active
+                  </small>
+                </div>
+              )}
               {unavailable && (
                 <p className="notice" role="status">
                   {!policy.callsEnabled
-                    ? "AI calls are disabled. No provider request is sent."
+                    ? "AI answers are turned off. You can still search your papers for evidence."
                     : !policy.keyConfigured
                       ? "The server API key is not configured."
                       : "Workspace sharing or its daily budget is disabled."}{" "}
-                  You can prepare and preview evidence without a model call.
                 </p>
               )}
               {policyOpen && (
@@ -365,41 +370,65 @@ function AiPanel({
           )}
           <details open={!conversation}>
             <summary>Source scope · {ids.length}/10 versions</summary>
-            <small>
-              The scope stays fixed when you move between pages. Start a new
-              conversation to change it.
-            </small>
+            {conversation && (
+              <small>
+                The scope stays fixed when you move between pages. Start a new
+                conversation to change it.
+              </small>
+            )}
             <fieldset disabled={!!conversation || busy} className="ai-sources">
               {options.data.versions.length === 0 && (
                 <p>Add a PDF in this project’s Library first.</p>
               )}
-              {options.data.versions.map((v) => (
-                <label key={v.id} className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={ids.includes(v.id)}
-                    onChange={(e) => {
-                      setPreview(undefined);
-                      setSelected(
-                        e.target.checked
-                          ? [...selected, v.id].slice(0, 10)
-                          : selected.filter((id) => id !== v.id),
-                      );
-                    }}
-                  />
-                  <span>
-                    {v.title} · v{v.ordinal}
-                    <small>
-                      {v.indexed
-                        ? "Evidence ready"
-                        : v.file
-                          ? "PDF evidence not prepared"
-                          : "Metadata only · cannot support claims"}
-                    </small>
-                  </span>
-                </label>
-              ))}
+              {options.data.versions
+                .filter((v) =>
+                  conversation
+                    ? ids.includes(v.id)
+                    : earlierVersions ||
+                      ids.includes(v.id) ||
+                      !options.data!.versions.some(
+                        (other) =>
+                          other.sourceId === v.sourceId &&
+                          other.ordinal > v.ordinal,
+                      ),
+                )
+                .map((v) => (
+                  <label key={v.id} className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={ids.includes(v.id)}
+                      onChange={(e) => {
+                        setPreview(undefined);
+                        setSelected(
+                          e.target.checked
+                            ? [...selected, v.id].slice(0, 10)
+                            : selected.filter((id) => id !== v.id),
+                        );
+                      }}
+                    />
+                    <span>
+                      {v.title} · v{v.ordinal}
+                      <small>
+                        {v.indexed
+                          ? "Evidence ready"
+                          : v.file
+                            ? "PDF evidence not prepared"
+                            : "Metadata only · cannot support claims"}
+                      </small>
+                    </span>
+                  </label>
+                ))}
             </fieldset>
+            {!conversation && (
+              <label className="compact-check">
+                <input
+                  type="checkbox"
+                  checked={earlierVersions}
+                  onChange={(e) => setEarlierVersions(e.target.checked)}
+                />
+                Show earlier versions
+              </label>
+            )}
             {options.data.canEdit &&
               options.data.versions
                 .filter((v) => ids.includes(v.id) && v.file && !v.indexed)
@@ -584,10 +613,6 @@ function AiPanel({
                 placeholder="Ask about a finding in the selected PDFs…"
               />
             </label>
-            <small>
-              Lexical search retrieves a limited set of excerpts. It does not
-              read or search the entire literature.
-            </small>
             <button
               className="primary"
               disabled={busy || !ids.length || !question.trim()}
@@ -597,43 +622,61 @@ function AiPanel({
           </form>
           {preview && (
             <section className="ai-preview">
-              <h3>Review before sharing</h3>
+              <h3>
+                {unavailable
+                  ? "Evidence from your papers"
+                  : "Review before sharing"}
+              </h3>
               {preview.warnings.map((v, i) => (
                 <p className="notice" key={i}>
                   {v}
                 </p>
               ))}
               <p>
-                {preview.evidence.length} excerpts · reserve at most{" "}
-                {dollars(preview.reservedMicros)} budget units.
+                {preview.evidence.length} matching excerpts
+                {!unavailable && (
+                  <>
+                    {" "}
+                    · reserve at most {dollars(preview.reservedMicros)} budget
+                    units
+                  </>
+                )}
               </p>
               <Evidence items={preview.evidence} />
-              <p className="muted">
-                Only this question and these excerpts go to OpenAI (
-                {policy?.model}), using its global API. Responses are not stored
-                as API history; default abuse monitoring may retain content for
-                up to 30 days. Do not share material you lack permission to
-                send.
-              </p>
-              <label className="check-row">
-                <input
-                  type="checkbox"
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                />
-                <span>
-                  I approve sending this question and the displayed excerpts.
-                </span>
-              </label>
-              <button
-                className="primary"
-                disabled={
-                  busy || !consent || unavailable || !preview.evidence.length
-                }
-                onClick={() => void send()}
-              >
-                Send approved evidence
-              </button>
+              {!unavailable && (
+                <>
+                  <p className="muted">
+                    Only this question and these excerpts go to OpenAI (
+                    {policy?.model}), using its global API. Responses are not
+                    stored as API history; default abuse monitoring may retain
+                    content for up to 30 days. Do not share material you lack
+                    permission to send.
+                  </p>
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                    />
+                    <span>
+                      I approve sending this question and the displayed
+                      excerpts.
+                    </span>
+                  </label>
+                  <button
+                    className="primary"
+                    disabled={
+                      busy ||
+                      !consent ||
+                      unavailable ||
+                      !preview.evidence.length
+                    }
+                    onClick={() => void send()}
+                  >
+                    Send approved evidence
+                  </button>
+                </>
+              )}
             </section>
           )}
           <InlineError error={error} />

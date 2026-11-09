@@ -17,6 +17,8 @@ import {
   annotationEdit,
   editAnnotation,
   retryFile,
+  collectSources,
+  bulkSourcesInput,
 } from "@/server/research/library";
 import {
   metadataInput,
@@ -45,10 +47,21 @@ async function handle(request: Request, context: Context) {
       url = new URL(request.url),
       method = request.method;
     if (parts[0] === "sources") {
+      if (parts.length === 2 && parts[1] === "collect" && method === "POST")
+        return collectSources(
+          db,
+          actor,
+          w,
+          p,
+          await readMutation(request, bulkSourcesInput),
+        );
       if (parts.length === 1) {
         if (method === "GET") {
           const collection = url.searchParams.get("collection") || undefined,
             status = url.searchParams.get("status") || undefined;
+          const sort = url.searchParams.get("sort") || "edited";
+          if (!["edited", "title", "year"].includes(sort))
+            throw new AppError("INVALID_INPUT");
           if (status && !["unread", "reading", "done"].includes(status))
             throw new AppError("INVALID_INPUT");
           return listLibrary(
@@ -63,6 +76,7 @@ async function handle(request: Request, context: Context) {
               tag:
                 (url.searchParams.get("tag") ?? "").slice(0, 40) || undefined,
               status,
+              sort,
             },
           );
         }
@@ -178,13 +192,30 @@ async function handle(request: Request, context: Context) {
       const format = url.searchParams.get("format");
       if (!["bib", "ris"].includes(format ?? ""))
         throw new AppError("INVALID_INPUT");
-      const sources = await research(db, actor, w, p, false, (tx) =>
-        tx.source.findMany({
-          where: { workspaceId: w, projectId: p, archivedAt: null },
+      const parsedIds = url.searchParams.has("ids")
+        ? z
+            .array(z.uuid())
+            .min(1)
+            .max(100)
+            .safeParse(url.searchParams.get("ids")!.split(","))
+        : undefined;
+      if (parsedIds && !parsedIds.success) throw new AppError("INVALID_INPUT");
+      const ids = parsedIds?.success ? parsedIds.data : undefined;
+      const sources = await research(db, actor, w, p, false, async (tx) => {
+        const rows = await tx.source.findMany({
+          where: {
+            workspaceId: w,
+            projectId: p,
+            archivedAt: null,
+            ...(ids ? { id: { in: ids } } : {}),
+          },
           orderBy: { title: "asc" },
           take: 2000,
-        }),
-      );
+        });
+        if (ids && rows.length !== new Set(ids).size)
+          throw new AppError("UNAVAILABLE", 404);
+        return rows;
+      });
       return new Response(format === "bib" ? bibtex(sources) : ris(sources), {
         headers: {
           "Content-Type":
