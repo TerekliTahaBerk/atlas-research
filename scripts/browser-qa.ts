@@ -89,7 +89,9 @@ function observe(page: Page) {
       (/\b(401|403|404|429)\b/.test(value) || value.includes("net::ERR_FAILED"))
     )
       return;
-    errors.push("browser-console-" + message.type());
+    const code =
+      value.match(/net::ERR_[A-Z_]+|status of \d{3}/)?.[0] ?? "unclassified";
+    errors.push(`${stage}:browser-console-${message.type()}:${code}`);
   });
 }
 const timer = setInterval(() => void mail.flush().catch(() => {}), 250);
@@ -541,6 +543,7 @@ try {
   );
   console.log(`Synthetic screenshot evidence: ${folder}`);
 } catch (error) {
+  if (errors.length) console.error({ browserErrorClasses: errors });
   console.error(
     `FAIL: browser QA at ${stage}; ${error instanceof Error ? error.name : "Error"}. Raw URLs, tokens and credentials omitted.`,
   );
