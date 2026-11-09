@@ -8,7 +8,7 @@ Status: **G01 OPEN**. Application and local operations evidence exist; live Cool
 | P01-2 | [PR #28](https://github.com/TerekliTahaBerk/atlas-research/pull/28), squash `5b32556c5022b1248d5f8e2c3e4f8d128f28072a` | [Real identity/SMTP/session](implementation/P01-2.md) |
 | P01-3 | [PR #29](https://github.com/TerekliTahaBerk/atlas-research/pull/29), squash `00426a5b49396d23efe47fbd88c8063ad18af7f6` | [RLS/tenancy/lifecycle](implementation/P01-3.md) |
 | P01-4 | [PR #30](https://github.com/TerekliTahaBerk/atlas-research/pull/30), squash `90bd0e663c9021f6d2b7d9da89a5e3fb79f877e8` | [UI/browser/fidelity](implementation/P01-4.md) |
-| P01-5 | Candidate branch feat/phase-01-5-operations; not closed | [Operations evidence](implementation/P01-5.md), [runbook](operations/COOLIFY_RUNBOOK.md) |
+| P01-5 | [Draft PR #31](https://github.com/TerekliTahaBerk/atlas-research/pull/31); feat/phase-01-5-operations; not closed | [Operations evidence](implementation/P01-5.md), [runbook](operations/COOLIFY_RUNBOOK.md) |
 
 Delivered locally: real Better Auth accounts/verification/login/logout/reset/DB sessions; own profile/session revocation; idempotent personal and shared workspaces; private projects and explicit roles; invitation acceptance/revocation, owner transfer, archive/deletion recovery; default-deny server authorization + FORCE RLS; light/dark responsive shell without demo data/future modules; separate web/mail/migration/backup credentials; Docker standalone and local recovery drill.
 
