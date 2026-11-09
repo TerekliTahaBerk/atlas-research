@@ -2,7 +2,7 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Phase 03 implementation:** source-linked math documents, acknowledged autosave/recovery/history, tasks, project discussions and recipient Inbox are implemented on `feat/phase-03-documents-collaboration`; [handoff and release evidence](docs/PHASE_03_HANDOFF.md). Email/S3 remain disabled; Phase 04 is not included.
+**Phase 03:** source-linked math documents, acknowledged autosave/recovery/history, tasks, project discussions and recipient Inbox are squash merged in [PR #35](https://github.com/TerekliTahaBerk/atlas-research/pull/35) and deployed as `4a013d2`; [handoff and release evidence](docs/PHASE_03_HANDOFF.md). Email/S3 remain disabled; Phase 04 is not included.
 
 **Previous release:** Phase 00 and Phase 01 P01-1–5 are squash merged (PR #31 → `8c9f6d5`). Phase 02 is squash merged (PR #32 → `d186819`) and deployed with real discovery, private PDF reading and persistent annotations; see the [Phase 02 handoff](docs/PHASE_02_HANDOFF.md). The owner-requested visual alignment is tracked in [PR #34](https://github.com/TerekliTahaBerk/atlas-research/pull/34) and the [reference comparison](docs/design/REFERENCE_AUDIT.md). The existing Coolify **yula.co** preview keeps email/S3 disabled. Comprehensive G01/G02 acceptance is deferred [before the Phase 05 beta](docs/BETA_REVIEW_BACKLOG.md), not marked complete.
 

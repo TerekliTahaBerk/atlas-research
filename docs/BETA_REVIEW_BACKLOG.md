@@ -27,3 +27,5 @@ Phase 02 short delivery evidence is now in [PHASE_02_HANDOFF](PHASE_02_HANDOFF.m
 - Live controlled multi-user isolation/revocation and notification redaction remain broader pre-beta work; a short live writing→task→discussion smoke does not close them.
 
 The Phase 03 delivery check is the short final journey and critical changed behavior described in [PHASE_03](phases/PHASE_03.md). Previous results are not rewritten.
+
+Phase 03 short delivery evidence: [handoff](PHASE_03_HANDOFF.md), PR #35 / live `4a013d2`. Local real-PostgreSQL and production Chromium checks passed; live existing-account note→math writing→self-assigned task→topic/reply→Inbox and exact PDF locator/Markdown passed. Neither self-assignment nor local multi-user fixtures close the broader live team/revocation review.
