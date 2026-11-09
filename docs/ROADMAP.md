@@ -1,31 +1,42 @@
-# Roadmap
+# Atlas roadmap
 
-## A00 audit and A01 activation
+Status: proposed product roadmap accepted for restart preparation. No implementation phase has started.
 
-See the [canonical capability/status matrix and A00 evidence](phases/A00_REPOSITORY_HARDENING_REPORT.md). Phase 01–04 implementations are integrated into `master`; hosted Phase 02–04 activation remains blocked by migration-history/browser privileges, recovery verification and worker/provider gates. PR #11 (Phase 04 post-merge hardening) has since been merged into `master`. A01 requires the explicit target, approvals and verification sequence in the A00 report before any hosted changes.
+## Product
 
-## A04 implementation update (Phase 05 — communication hub)
+A connected research workspace for individual researchers and small teams of 2–10. Personal accounts do not require university affiliation.
 
-A04 code is implemented and verified in disposable environments (channels, threads, mentions, reactions, research sharing, notifications, private Realtime, @Atlas context). Hosted verification requires the approval packet in the [A04 report](phases/A04_RESEARCH_COMMUNICATION_REPORT.md). Phase 06 (beta) entry criteria are listed there.
+Beta workflow: create a project → discover/add sources → read/annotate → create source-linked notes/documents → assign tasks → discuss → ask evidence-grounded AI.
 
-## Phase 04 implementation update
+Stable links must preserve the relationships between sources, annotations, documents, tasks, discussions and AI citations.
 
-Phase 04 implementation and the Phase 04.1 hardening pass cover documents, versions, tasks, links, search and AI proposals, including archive-list restoration and progressive Board/List pagination. Actual verification and remaining gates are recorded in the [Phase 04 implementation report](phases/PHASE_04_IMPLEMENTATION_REPORT.md). Hosted activation remains blocked; Phase 05 planning can use stable artifact IDs and `mentioned_profile_ids` after reviewing that evidence. Phase 05 implementation is not part of this pass.
+## Phases
 
-## Phase 03 implementation update
+| Phase | Outcome | Acceptance gate |
+| --- | --- | --- |
+| 00 | Product definition, prototype audit, flows, screen map, data model and architecture decisions | One complete example research journey is mapped through the supplied design; beta scope and future work are explicit |
+| 01 | Real identity, personal/shared workspaces, projects, invitations, authorization and first Coolify deployment | Two researchers can collaborate and two unrelated teams cannot read each other's data |
+| 02 | Discovery, source library, private PDFs, reader, anchored notes/highlights and reference export | Real source/read/annotate journey persists across sessions |
+| 03 | Math-capable documents, source citations, recoverable saving/versioning, tasks, discussions, basic notifications and links | A source note becomes a document, assigned task and discussion without losing context |
+| 04 | Source-grounded AI, clickable provenance, reviewed draft proposals and usage limits | Real-paper evaluation covers citation location, support, access denial and insufficient evidence |
+| 05 | Closed beta, pilot support, recovery drill, reliability and feedback | Pilot users complete real work without critical access, data-loss or blocking defects |
 
-Phase 03 local code and deterministic testing proceed under explicit user authorization while hosted Phase 02 activation is pending. The AI engine uses the existing design and permissions. Hosted activation, real-provider scientific evaluation and worker operation remain separate gates; Phase 04 domain writes are implemented locally and documented in the current Phase 04 report. See the [current report](phases/PHASE_03_IMPLEMENTATION_REPORT.md).
+Phase 05 is the closed-beta release boundary. Pilot hypothesis: 5–10 researchers and at least two small teams; validate this with actual recruitment.
 
-Phase 00 delivers the foundation; Phase 00.5 adds the product-wide UI/UX foundation and explicit local interaction demonstrations. Phases 01–04 have local implementations; Phases 05–07 remain planned, with no calendar promises. Each phase gates the next through acceptance evidence and security review of new boundaries. See individual plans for exact tasks and issue breakdowns.
+## Beta boundary
 
-0.5. UI/UX master foundation: semantic V2 themes, responsive navigation, contextual AI presentation and pickers, coherent module screens, auth/onboarding previews, visual/interaction QA. No backend services. See [delivery plan](phases/PHASE_00_5.md).
+Include basic academic discovery, DOI/link/manual metadata/PDF addition, source collections/tags/reading status, PDF reading and annotations, math-capable documents, references/export, basic tasks and project discussion, simple notifications, scoped AI and artifact links.
 
-1. Core platform: identity, personal organizations, workspace/project CRUD, invitations, permissions.
-2. Research discovery/library: provider adapters, normalization, lawful private files, reading and annotations. Integrated into `master`; live providers, hosted activation and a production scanner remain gates (see the Phase 02 report).
-3. AI research: extraction/chunks/embeddings, permission-scoped RAG, citation verification and usage ledger.
-4. Documents/tasks: versioned notes, assignments, typed artifact links and authorized search.
-5. Communication: channels, durable messages, private realtime, mentions/reactions/notifications.
-6. Beta: integrated workflows, security/performance/restore review, onboarding and pilot evidence.
-7. Advanced OS: manuscripts, sandboxed LaTeX/Python, experiments, collaboration, voice, billing and enterprise policy. Break this phase into separately approved subprojects before implementation.
+Defer native LaTeX compilation, executable notebooks/Python, university SSO/administration, voice/video, autonomous agents, advanced semantic maps/graph visualization, comprehensive chat and advanced Zotero synchronization.
 
-No later phase should bypass Phase 01 tenant guards. AI depends on stable Phase 02 source provenance; contextual AI in messages depends on Phase 03 and Phase 05 access boundaries. Artifact registry design is agreed now and introduced with the first linking use case; no separate graph store. Capacity and scaling decisions follow telemetry rather than speculative infrastructure.
+Mathematical notation is in beta; LaTeX compilation is not. Simple links are in beta; an advanced graph interface is not.
+
+## After beta
+
+1. Fix measured usability/reliability issues before adding modules.
+2. Research/writing 1.0: co-editing, advanced bibliography, Zotero interoperability, manuscript workflows.
+3. LaTeX 1.1: files/editor, safe compilation, previews/templates.
+4. Experiments 1.2: isolated notebooks, datasets/output linkage and experiment records.
+5. Platform 2.0: validated advanced maps, controlled agents and institution/lab capabilities.
+
+Dates and effort are not commitments. Every phase needs concrete acceptance evidence; local code completion alone does not establish release readiness.

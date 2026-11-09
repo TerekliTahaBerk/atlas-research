@@ -1,16 +1,39 @@
-node_modules/
-.next/
-out/
-coverage/
-playwright-report/
-test-results/
+# Local configuration and secrets
 .env
 .env.*
 !.env.example
-.vercel/
+!.env.*.example
+*.pem
+*.key
+
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
-packages/database/src/generated/
-.DS_Store
+*.log
 .pnpm-store/
-.qa-artifacts/
-apps/web/next-env.d.ts
+
+# Local tooling and OS files
+.DS_Store
+.idea/
+.vscode/
+.turbo/
+.vercel/
+.tmp/
+tmp/
+
+# Local database files and research data
+*.dump
+*.sql.gz
+*.db
+*.sqlite
+*.sqlite3
+data/
+uploads/
+backups/

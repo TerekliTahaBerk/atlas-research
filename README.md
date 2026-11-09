@@ -1,69 +1,36 @@
-# Atlas Research OS
+# Atlas Research
 
-**Execution update, 3 November 2026:** [Current evidence](docs/operations/A01_HOSTED_EXECUTION_2026-11-02.md) supersedes earlier gate blockers: G1–G3 PASS; all 12 migrations are installed. Approved G4 development Storage/scanner and isolated extraction services are running; G5 non-AI hosted journeys and the loopback Zotero fixture passed, and all test identities/content were cleaned. Automatic AI indexing, paid AI, live Zotero credentials and production remain outside this verification.
+Atlas is a connected workspace for individual researchers and small research teams.
 
-Current consolidation evidence and unresolved hosted approvals: [A01–A03 final closure](docs/phases/A01_A02_A03_FINAL_CLOSURE_REPORT.md). Historical status paragraphs below retain their original observation dates.
+**Status:** clean restart prepared on 9 November 2026. Phase 00 has not started. There is no application, installed toolchain, database or deployment in this branch.
 
-Current infrastructure evidence, disposable verification and hosted activation gates: [A01 readiness](docs/phases/A01_INFRASTRUCTURE_READINESS_REPORT.md) and [approval manifest](docs/operations/A01_APPROVAL_MANIFEST.md). Production remains blocked; the dated execution record above is authoritative for development activation.
+## Start here
 
-Current capability classifications, audit findings and Phase A01 gates are recorded in the [A00 report](docs/phases/A00_REPOSITORY_HARDENING_REPORT.md). Phases 01–04 have live implementations in `master`; hosted activation of Phases 02–04 remains blocked. The default preview is a separate synthetic UI environment.
+- [Agent contract](AGENTS.md)
+- [Roadmap and beta boundary](docs/ROADMAP.md)
+- [Restart and recovery record](docs/RESTART.md)
+- [Design reference](docs/design/REFERENCE.md)
+- [Deployment and database decision](docs/decisions/0001-deployment-and-database.md)
+- [Phase 00 execution prompt](docs/prompts/PHASE_00.md)
+- [Contribution and branch policy](CONTRIBUTING.md)
 
-## Phase 04 documents, tasks and knowledge links
+## Product direction
 
-Live projects now have persisted research documents (Tiptap, immutable versions, autosave with conflict and draft recovery, source-aware citations, Markdown/text/HTML export), tasks (board/list, assignments, priorities, due dates, milestones, keyboard moves), typed artifact links, project search and a live graph. Atlas AI can propose document inserts and task plans that change nothing until explicitly approved. The approved development preview has verified documents/tasks/evidence links; production and AI provider activation remain gated; see the [Phase 04 report](docs/phases/PHASE_04_IMPLEMENTATION_REPORT.md) and [activation plan](docs/phases/PHASE_04_ACTIVATION_PLAN.md). No new environment variables are required.
+Create a project → discover or add sources → read and annotate → write source-linked notes/documents → assign tasks → discuss with collaborators → ask evidence-grounded AI.
 
-## Phase 03 AI research implementation
+The beta targets individual researchers and small teams of 2–10. Personal accounts must not require a university affiliation.
 
-Phase 03 adds official OpenAI/Anthropic adapters, isolated source extraction, pgvector/keyword retrieval, exact citation locations, persisted conversations, SSE, cancellation and conservative usage reservations. All existing Atlas placements use the same live engine. Deterministic tests use local HTTP fixtures; paid calls remain disabled. Paid provider calls and automatic AI indexing remain disabled pending separate Phase 03 provider review; development recovery/scanner verification is recorded above. See the [implementation report](docs/phases/PHASE_03_IMPLEMENTATION_REPORT.md), [AI architecture](docs/ai/AI_ARCHITECTURE.md) and [activation plan](docs/phases/PHASE_03_ACTIVATION_PLAN.md). Preview mode retains explicitly labelled samples.
+## Infrastructure direction
 
-## Phase 02 research discovery and library
+Deploy with Docker on Coolify. Use self-hosted PostgreSQL as the application database, with Prisma as the planned ORM. No hosted database subscription is required by this decision. Authentication, file storage, background work and backups must be designed explicitly in Phase 00. Nothing has been provisioned.
 
-In live mode, projects now have working Research (OpenAlex and Semantic Scholar search with filters, partial-failure states, details, deterministic comparison and saving), Library (persisted papers, collections, tags, reading status, archive, search, BibTeX/RIS export) and a PDF.js Reader (authorized private PDFs, navigation, zoom, search, persisted anchored highlights and notes). Uploads go to private Supabase Storage, are verified by the server and stay **quarantined until an isolated scanner accepts them**; no production scanner is deployed yet. Phase 03 connects these chips to the gated AI research engine described above. Historical Phase 02 checks passed for public OpenAlex and observed Semantic Scholar rate limiting; current provider operation needs activation verification. Hosted migration/Storage activation and the isolated ClamAV/qpdf deployment require approval and recovery verification; see the [activation plan](docs/phases/PHASE_02_ACTIVATION_PLAN.md). For current evidence, see the [Phase 02 report](docs/phases/PHASE_02_IMPLEMENTATION_REPORT.md), [provider adapters](docs/research/PROVIDER_ADAPTERS.md) and [PDF storage security](docs/library/PDF_STORAGE_SECURITY.md). New optional server settings are listed in `.env.example`.
+## Repository state
 
-## Phase 01 core platform
+- `main`: canonical integration branch; future Coolify deployment source.
+- `feat/phase-00-foundation`: prepared working branch for Phase 00.
+- `archive/pre-restart-2026-11-09`: legacy source and every original branch tip.
+- Short-lived `feat/*`, `fix/*`, `chore/*` and `docs/*` branches merge through pull requests.
+- Old code, migrations, dependencies, workflows and reports are absent from the active tree. Git history remains recoverable.
+- This documentation-only baseline has no build or test commands. Phase 00 defines the implementation toolchain and verification plan.
 
-The Phase 01 implementation adds real Supabase Auth flows, server-verified identity, profiles, recoverable onboarding, personal/shared organizations, workspaces, projects, invitations and membership authorization. The approved UI remains available as the default explicit design preview; configure `ATLAS_MODE=live` at build and runtime to use the real platform. See [environments](docs/identity/ENVIRONMENTS.md), [authentication](docs/identity/AUTHENTICATION.md), [authorization](docs/identity/AUTHORIZATION.md) and the [implementation report](docs/phases/PHASE_01_IMPLEMENTATION_REPORT.md) for actual verification and release blockers. Historical Phase 01 checks passed for hosted database/TLS/pooler compatibility, signup, confirmation, onboarding and persisted-project return login in the approved development project; hosted recovery/OAuth and deployment remain separate gates; no production-readiness claim is made.
-
-Live mode rejects sample identifiers and uses authorized DTOs for navigation/Home/settings. Research/library, AI and document/task services are implemented as described above; the approved development preview is active with the non-AI evidence above. Messages, compilation and execution remain planned; no synthetic research is attached to live projects. Invitation emails are not configured; only explicit loopback development links can be created.
-
-Additional checks: `pnpm test:integration` requires explicit disposable PostgreSQL test URLs. `pnpm test:auth:e2e` uses the disposable GoTrue/email harness in `tests/auth/compose.yml`; it never requires hosted credentials. Explicit non-mutating hosted compatibility checks are documented in `docs/TESTING.md` and require the approved development target.
-
-An independent foundation for a connected academic research workspace. Phase 00 implements architecture, contracts, tenant schema and tooling. Phase 00.5 extends it with a cohesive UI system, ten module screens, contextual Atlas AI presentation, and authentication/onboarding design previews. No Scholara code, credentials, schema, or infrastructure is used.
-
-## Start
-
-Use Node **24.21.0** (`nvm install && nvm use`) and **pnpm 11.25.0** (`npm install --global pnpm@11.25.0`). The supported engine range is Node 24.19–24.x; the execution host also validated Node 24.19.0 through its bundled pnpm runtime.
-
-```sh
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-Open http://127.0.0.1:3000. No environment file or external account is required. `/app` opens a clearly labelled sample workspace. Only theme and sidebar preferences are saved locally. Notes, tasks, messages, reading lists, and onboarding choices are explicit in-memory demonstrations that reset when you leave their screen. In this preview, authentication, research persistence, AI requests, uploads and collaboration are demonstrations only. The separately configured live implementation has the capabilities and activation blockers listed above.
-
-```sh
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm exec playwright install chromium
-pnpm test:e2e
-pnpm format:check
-pnpm db:validate
-```
-
-`pnpm start` serves the production build. Playwright launches its own production server on port 3100; build first. For restricted local environments where Turbopack cannot bind its CSS worker port, `pnpm build --webpack` runs the same production checks through Next.js’s supported Webpack bundler. See [Development](docs/DEVELOPMENT.md), [Testing](docs/TESTING.md), and [deployment procedure](docs/DEPLOYMENT.md).
-
-## Workspace
-
-| Path                | Responsibility                                                     |
-| ------------------- | ------------------------------------------------------------------ |
-| `apps/web`          | Next.js App Router, shell, preview screens, environment validation |
-| `packages/ui`       | shadcn/Radix component source and shared class utility             |
-| `packages/core`     | Zod inputs, API errors, tenant scope contracts                     |
-| `packages/database` | Prisma schema, client factory, migrations                          |
-| `packages/ai`       | Provider-neutral contracts, verification and server SDK adapters   |
-| `tests`             | Unit, component, browser, and isolated database verification       |
-| `docs`              | Product, architecture, security, design, decisions, phase plans    |
-
-Start future changes with [AGENTS.md](AGENTS.md), [master plan](docs/MASTER_PLAN.md), and the relevant phase specification. [Phase 00 handover](docs/HANDOVER.md) records actual validation and remaining external work. See the [UX blueprint](docs/UX_MASTER_BLUEPRINT.md), [screen map](docs/SCREEN_MAP.md), and [Phase 00.5 delivery record](docs/phases/PHASE_00_5.md). No production security, authentication, source verification, or AI execution claim is made by the preview.
+The repository remains public. Never commit private research data, credentials or proprietary design assets.

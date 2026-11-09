@@ -1,0 +1,117 @@
+{
+  "captured_on": "2026-11-09",
+  "repository": "TerekliTahaBerk/atlas-research",
+  "original_default_branch": "master",
+  "archive_branch": "archive/pre-restart-2026-11-09",
+  "archive_commit": "25b9b583172dcfda60f701d7afefef7b00ab719e",
+  "original_master_tree": "2e9a116d0c12657a77fb4b8f057460606842960c",
+  "branches": [
+    {
+      "name": "chore/a00-repository-hardening",
+      "sha": "15177feedd1881b6ebeb2125f7254d6eb9bc8c39"
+    },
+    {
+      "name": "chore/a01-a03-final-closure",
+      "sha": "d965178519d853bd0c2a93ac60aa8777539efeeb"
+    },
+    {
+      "name": "claude/adoring-carson-xrdmrx",
+      "sha": "70fe81cddf56c12c66d2bb69bc3ca499b34ff2e0"
+    },
+    {
+      "name": "claude/affectionate-brahmagupta-yel9m6",
+      "sha": "7a9a0e82c5d63cdccfdbb295b57d5b213333c688"
+    },
+    {
+      "name": "claude/dazzling-gates-v9on07",
+      "sha": "99a2d9ce66cd1916c5861f7e1eaf99ed42403209"
+    },
+    {
+      "name": "claude/dreamy-ritchie-yz7lcg",
+      "sha": "d4e6b5752f928262c5b503d30d6e1dee7389afd4"
+    },
+    {
+      "name": "claude/focused-davinci-aoadmm",
+      "sha": "4f4a766b9fab0350ad2f49f3a4900463191e11b0"
+    },
+    {
+      "name": "claude/gifted-wright-hivumw",
+      "sha": "d5381d42e703f4534ba084da224a7dc26a38ecce"
+    },
+    {
+      "name": "claude/vigilant-pascal-aqaepy",
+      "sha": "bd5b9828da68c569423abb82c88d39ed5469b5c4"
+    },
+    {
+      "name": "feat/a01-infrastructure-readiness",
+      "sha": "2f5aacc1fe938e22c666e371f935c8f0c83f0b15"
+    },
+    {
+      "name": "feat/a03-research-interoperability",
+      "sha": "d6562d498600ae76b09c9a66817e2f9272ec2105"
+    },
+    {
+      "name": "feat/phase-00-5-ui-ux",
+      "sha": "21e006f80f486fd4aee69ad382fe7a35c3418f40"
+    },
+    {
+      "name": "feat/phase-00-5a-design-integration",
+      "sha": "df50a64b094b19893749c5353c5db84ffb51bf10"
+    },
+    {
+      "name": "feat/phase-01-core-platform",
+      "sha": "e4073c5ffaaf8cfb37fbd75065f260f2d24bcf57"
+    },
+    {
+      "name": "feat/phase-03-ai-research",
+      "sha": "e2cf8c311adfa6da889e65fcbc4d2a4ba1ccc331"
+    },
+    {
+      "name": "fix/a01-recovery-ci",
+      "sha": "6f2158256a7a9df2aff9f47a643ae26861dbbaf2"
+    },
+    {
+      "name": "fix/a02-post-merge-hardening",
+      "sha": "4a7013b033dfea2c92823d9be5c9eda6f1367d30"
+    },
+    {
+      "name": "fix/phase-00-5b-visual-qa",
+      "sha": "6a5a36bde6dd2b413ccba0bf5bb7ac997cb14920"
+    },
+    {
+      "name": "fix/phase-04-post-merge-hardening",
+      "sha": "ef0c8d717ad874ddbe0671e8157268a997b2591c"
+    },
+    {
+      "name": "master",
+      "sha": "5163f12f0844b1cfefdb001b0b285aaf281f064f"
+    },
+    {
+      "name": "ops/a01-hosted-activation-g1-g3",
+      "sha": "a2c7944f649136be34ff678f613fbf8ab009b455"
+    },
+    {
+      "name": "test/a01-hosted-activation-execution",
+      "sha": "cac3612e059b2f2f680679e4b5ec8d19816aa5fe"
+    },
+    {
+      "name": "test/a01-hosted-g1-g2",
+      "sha": "8b3ab1e6741fe89b6eee120255956743e173ea18"
+    },
+    {
+      "name": "test/phase-00-foundation",
+      "sha": "072f558f12cd4879976b790f3eef3ef3bb576c27"
+    },
+    {
+      "name": "test/phase-02-hardening",
+      "sha": "312d3eb3e1f80d3f3ed8ddf977481165ab993443"
+    }
+  ],
+  "superseded_open_pull_requests": [
+    {
+      "number": 24,
+      "head": "claude/affectionate-brahmagupta-yel9m6",
+      "sha": "7a9a0e82c5d63cdccfdbb295b57d5b213333c688"
+    }
+  ]
+}
