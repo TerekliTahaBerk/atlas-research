@@ -2,12 +2,16 @@
 
 Durum dili: **PASS** gerçekten koşup beklenen sonucu verdi; **FAIL** koştu ve bekleneni vermedi; **NOT RUN** koşulmadı/uygulama yok. Planlanan test hiçbir zaman PASS yazılmaz. Faz 00 gerçek sonuçları [PHASE_00_HANDOFF](PHASE_00_HANDOFF.md), tasarım bulguları [REFERENCE_AUDIT](design/REFERENCE_AUDIT.md) içinde tutulur.
 
-## Bugünkü tekrar üretilebilir giriş noktası
+## Güncel Faz 01 kapısı
+
+`npm run verify` gerçek type/lint/unit/PostgreSQL/build/browser kapısıdır; `npm run verify:release` temiz commit için Docker/recovery kanıtını ekler. Sonuçlar ve kalan canlı kapılar [handoff](PHASE_01_HANDOFF.md) içindedir.
+
+## Tarihsel Faz 00 giriş noktası
 
 Repository root'ta Python 3 standart kütüphane yeterlidir; install/network/DB gerekmez:
 
 ```sh
-python3 scripts/verify_phase00.py
+python3 scripts/verify_phase00.py --historical
 git diff --check
 ```
 
@@ -34,7 +38,7 @@ Checker gerekli teslim dosyalarını, yerel Markdown dosya bağlantılarını, P
 | G04 | [Gerçek makale eval seti](AI_AND_SOURCE_CONTRACT.md), citation locator/support ayrı; proposal apply | Kota/timeout/cancel/revocation/prompt injection/unsupported evidence; provider error | [04](phases/PHASE_04.md) |
 | G05 | Pilotların J1 tamamlaması, metrik ham sayıları, support kaydı, DB+files restore | İki-ekip yeniden regresyon, fault/restart/load test, sıfır açık kritik access/data-loss/blocker | [05](phases/PHASE_05.md) |
 
-Her kabul kapısı önceki fazın ilgili regresyonunu korur. App test komutları Faz 01'de gerçek toolchain'e bağlanır; şu an `npm test/build` varmış gibi gösterilmez.
+Her kabul kapısı önceki fazın ilgili regresyonunu korur. Faz 00 planı sonrasında app testleri gerçek toolchain’e bağlandı; Faz 01 sonuçları handoff’ta tutulur.
 
 ## Erişim, veri ve job doğrulaması
 

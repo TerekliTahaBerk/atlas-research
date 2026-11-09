@@ -1,11 +1,12 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import pg from "pg";
 import nodemailer from "nodemailer";
-import type { ServerEnv } from "../env.js";
+import type { MailEnv } from "../env.js";
+import { SCHEMA_REVISION } from "../release.ts";
 
 export type Mail = { to: string; subject: string; text: string; authorization?: { actorId: string; sessionId: string; workspaceId: string; projectId: string; invitationId: string } };
-export function createMailQueue(env: ServerEnv) {
-  const pool = new pg.Pool({ connectionString: env.AUTH_DATABASE_URL, max: 2, connectionTimeoutMillis: 5_000 });
+export function createMailQueue(env: MailEnv) {
+  const pool = new pg.Pool({ connectionString: env.QUEUE_DATABASE_URL, max: 2, connectionTimeoutMillis: 5_000 });
   const runtime = new pg.Pool({ connectionString: env.DATABASE_URL, max: 2, connectionTimeoutMillis: 5_000 });
   const key = createHash("sha256").update("atlas-mail-v1\0").update(env.BETTER_AUTH_SECRET).digest();
   const transport = nodemailer.createTransport({
@@ -28,15 +29,17 @@ export function createMailQueue(env: ServerEnv) {
     return JSON.parse(Buffer.concat([cipher.update(data.subarray(28)), cipher.final()]).toString("utf8"));
   }
   return {
+    async heartbeat(){await pool.query('INSERT INTO ops.service_heartbeat(service,revision,"checkedAt") VALUES (\'mail\',$1,now()) ON CONFLICT(service) DO UPDATE SET revision=excluded.revision,"checkedAt"=excluded."checkedAt"',[SCHEMA_REVISION]);},
     async enqueue(mail: Mail, ttlSeconds = 3600) {
-      await pool.query('INSERT INTO identity.mail_outbox(id,payload,"expiresAt") VALUES ($1,$2,now()+$3*interval \'1 second\')', [randomUUID(), encrypt(mail), ttlSeconds]);
+      await pool.query('INSERT INTO ops.mail_outbox(id,payload,"expiresAt") VALUES ($1,$2,now()+$3*interval \'1 second\')', [randomUUID(), encrypt(mail), ttlSeconds]);
     },
     encrypt,
-    async flush(limit = 20) {
-      await pool.query('UPDATE identity.mail_outbox SET state=\'expired\',payload=NULL WHERE "expiresAt"<=now() AND payload IS NOT NULL');
+    async flush(limit = 20,shouldStop?:()=>boolean) {
+      await pool.query('UPDATE ops.mail_outbox SET state=\'expired\',payload=NULL WHERE "expiresAt"<=now() AND payload IS NOT NULL');
       for (let n = 0; n < limit; n++) {
-        const rows = await pool.query<{ id: string; payload: string; attempts: number }>(`UPDATE identity.mail_outbox SET state='running',"leaseUntil"=now()+interval '30 seconds',attempts=attempts+1
-          WHERE id=(SELECT id FROM identity.mail_outbox WHERE payload IS NOT NULL AND "expiresAt">now() AND attempts<5 AND "nextAttemptAt"<=now()
+        if(shouldStop?.())break;
+        const rows = await pool.query<{ id: string; payload: string; attempts: number }>(`UPDATE ops.mail_outbox SET state='running',"leaseUntil"=now()+interval '30 seconds',attempts=attempts+1
+          WHERE id=(SELECT id FROM ops.mail_outbox WHERE payload IS NOT NULL AND "expiresAt">now() AND attempts<5 AND "nextAttemptAt"<=now()
           AND (state='pending' OR (state='running' AND "leaseUntil"<now())) ORDER BY "createdAt" FOR UPDATE SKIP LOCKED LIMIT 1)
           RETURNING id,payload,attempts`);
         const row = rows.rows[0];
@@ -57,13 +60,13 @@ export function createMailQueue(env: ServerEnv) {
             finally { client.release(); }
           }
           if (!allowed) {
-            await pool.query("UPDATE identity.mail_outbox SET state='cancelled',payload=NULL,\"leaseUntil\"=NULL WHERE id=$1", [row.id]);
+            await pool.query("UPDATE ops.mail_outbox SET state='cancelled',payload=NULL,\"leaseUntil\"=NULL WHERE id=$1", [row.id]);
             continue;
           }
           await transport.sendMail({ to: mail.to, subject: mail.subject, text: mail.text, from: env.MAIL_FROM, messageId: `<${row.id}@atlas-mail.invalid>` });
-          await pool.query("UPDATE identity.mail_outbox SET state='sent',payload=NULL,\"leaseUntil\"=NULL WHERE id=$1", [row.id]);
+          await pool.query("UPDATE ops.mail_outbox SET state='sent',payload=NULL,\"leaseUntil\"=NULL WHERE id=$1", [row.id]);
         } catch {
-          await pool.query('UPDATE identity.mail_outbox SET state=$2,"leaseUntil"=NULL,"nextAttemptAt"=now()+interval \'1 minute\' WHERE id=$1', [row.id, row.attempts >= 5 ? "failed" : "pending"]);
+          await pool.query('UPDATE ops.mail_outbox SET state=$2,"leaseUntil"=NULL,"nextAttemptAt"=now()+interval \'1 minute\' WHERE id=$1', [row.id, row.attempts >= 5 ? "failed" : "pending"]);
           // No address, URL, body, SMTP response or raw exception is logged.
           console.error(JSON.stringify({ event: "mail_delivery_failed", mailId: row.id }));
         }

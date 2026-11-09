@@ -12,5 +12,5 @@ test("configuration fails closed without printing supplied secrets", () => {
   });
 });
 test("production origin must be HTTPS", () => {
-  assert.throws(() => parseEnv({ NODE_ENV: "production", APP_ORIGIN: "http://example.invalid", BETTER_AUTH_SECRET: randomBytes(24).toString("hex"), AUTH_DATABASE_URL: "postgresql://127.0.0.1/atlas", DATABASE_URL: "postgresql://127.0.0.1/atlas" }), /HTTPS/);
+  assert.throws(() => parseEnv({ NODE_ENV: "production", APP_ORIGIN: "http://example.invalid", BETTER_AUTH_SECRET: randomBytes(24).toString("hex"), AUTH_DATABASE_URL: "postgresql://127.0.0.1/atlas", DATABASE_URL: "postgresql://127.0.0.1/atlas",QUEUE_DATABASE_URL:"postgresql://127.0.0.1/atlas" }), /HTTPS/);
 });

@@ -1,6 +1,6 @@
 # Coolify ve PostgreSQL operasyon planı
 
-Bu belge bir runbook tasarımıdır. Hiçbir host'a bağlanılmadı; kaynak oluşturulmadı, migration/deploy/restart/silme yapılmadı. Eski dış servislerin durumu [RESTART](RESTART.md) kaydından öte varsayılmaz. Uygulama yönü [ARCHITECTURE](ARCHITECTURE.md), veri ve roller [DATA_MODEL](DATA_MODEL.md) / [AUTHORIZATION](AUTHORIZATION.md).
+Bu belge Faz 00 operasyon tasarımıdır; uygulama durumu ve güncel komutlar [Faz 01 handoff](PHASE_01_HANDOFF.md), [P01-5](implementation/P01-5.md) ve [runbook](operations/COOLIFY_RUNBOOK.md) içindedir. Aşağıdaki “planlanan/oluşturulmadı” ifadeleri Faz 00 tarihsel durumudur. Coolify yula.co hedefi salt okunur incelendi; mevcut sunucu ve başka proje ayarları değiştirilmedi. Hiçbir host'a bağlanılmadı; kaynak oluşturulmadı, migration/deploy/restart/silme yapılmadı. Eski dış servislerin durumu [RESTART](RESTART.md) kaydından öte varsayılmaz. Uygulama yönü [ARCHITECTURE](ARCHITECTURE.md), veri ve roller [DATA_MODEL](DATA_MODEL.md) / [AUTHORIZATION](AUTHORIZATION.md).
 
 ## Dev ve production sınırı
 
@@ -64,6 +64,6 @@ Başlangıç tahmini (ölçülmüş kapasite değil): küçük pilot için 2 vCP
 
 ## Ücretsiz yerel gate ve Coolify gate
 
-Bugünkü doğrulama `python3 scripts/verify_phase00.py` ve `git diff --check` (uygulama testleri yok). Faz 01'de `verify` giriş noktası type/lint/unit + disposable PostgreSQL RLS/integration + production build'e bağlanır. Sonraki fazlar gerçek browser journey/AI eval'i ekler. Yerelde çalışan kanıt exact commit/environment ile PR'a kaydedilir; GitHub Actions ücreti gerektirmez.
+Faz 00 tarihsel doğrulaması `python3 scripts/verify_phase00.py --historical` ve `git diff --check` (uygulama testleri yok). Faz 01'de `verify` giriş noktası type/lint/unit + disposable PostgreSQL RLS/integration + production build'e bağlanır. Sonraki fazlar gerçek browser journey/AI eval'i ekler. Yerelde çalışan kanıt exact commit/environment ile PR'a kaydedilir; GitHub Actions ücreti gerektirmez.
 
 Coolify daha sonra aynı frozen install/check/build adımında başarısızsa image terfisini durdurur. Entegrasyon testleri production DB'de koşmaz; ayrı disposable DB gerekir. Build gate'i readiness/runtime auth smoke'unun yerine geçmez. Henüz workflow/check yok; branch protection'a hayali required check adı eklenmez. Production'a runner kurulmaz.

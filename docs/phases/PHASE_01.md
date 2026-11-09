@@ -1,6 +1,6 @@
 # Faz 01 — Kimlik, workspace, proje ve ilk dağıtım
 
-Durum: plan; uygulanmadı. Yalnız yeni kullanıcı talimatıyla başlanır.
+Durum: kullanıcı talimatıyla P01-1–4 uygulanıp birleştirildi; P01-5 yerel aday/operasyon kanıtı hazır, canlı kabul bekliyor. [Faz 01 handoff](../PHASE_01_HANDOFF.md); G01 açık.
 
 ## Amaç
 

@@ -68,6 +68,9 @@ test("A01–A13 applicable tenancy: real RLS, two teams, governance privacy, inv
     await assert.rejects(acceptInvitation(db,c,issuerChanged.token));
     await setProjectRole(db,a,w.id,p.id,b.id,"admin");
     assert.throws(()=>transferProjectOwner(db,{...a,sessionCreatedAt:new Date(0)},w.id,p.id,b.id));
+    await authDb.session.update({where:{id:a.sessionId},data:{createdAt:new Date(0)}});
+    await assert.rejects(asIdentity(db,a,tx=>tx.project.update({where:{id:p.id},data:{deletedAt:new Date()}})));
+    await authDb.session.update({where:{id:a.sessionId},data:{createdAt:new Date()}});
     await transferProjectOwner(db,a,w.id,p.id,b.id);
     assert.equal((await readProject(db,b,w.id,p.id)).role,"owner");
     await transferProjectOwner(db,b,w.id,p.id,a.id);

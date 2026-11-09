@@ -24,7 +24,7 @@ export function createInvitation(db: Database, actor: Identity, mail: MailQueue,
     const id = randomUUID(), token = randomBytes(32).toString("hex"), expiresAt = new Date(Date.now() + 7 * 86400_000 - 1000);
     await tx.invitation.createMany({ data: [{ id, workspaceId: w, projectId: p, email: input.email, role: input.role, tokenHash: hash(token), createdBy: actor.id, originSessionId: actor.sessionId, expiresAt }] });
     const payload = mail.encrypt({ to: input.email, subject: "Your Atlas project invitation", text: `A researcher invited you to an Atlas project. Sign in with this email to review and accept within seven days:\n${origin}/invite/${token}`, authorization: { actorId: actor.id, sessionId: actor.sessionId, workspaceId: w, projectId: p, invitationId: id } });
-    await tx.$executeRaw`INSERT INTO identity.mail_outbox(id,payload,"expiresAt") VALUES (${randomUUID()}::uuid,${payload},${expiresAt})`;
+    await tx.$executeRaw`INSERT INTO ops.mail_outbox(id,payload,"expiresAt") VALUES (${randomUUID()}::uuid,${payload},${expiresAt})`;
     await audit(tx, actor, w, p, "invitation_created", id);
     return { id, email: input.email, role: input.role, expiresAt };
   });

@@ -44,9 +44,10 @@ Seçilen tek strateji: **sunucuda merkezi authorization + tüm private içerikte
 | `atlas_queue` | Queue lease/enqueue ve dar outbox dispatch; private araştırma içeriği SELECT yok |
 | `atlas_migrator` | Şema/migration/policy oluşturma; deployment'ın tek kullanımlık adımı; web/worker env'inde bulunmaz |
 | `atlas_policy` | NOLOGIN; sınırlı SECURITY DEFINER permission helper'larının sahibi; gerekli membership okumaları için dar bypass; veri döndüren API değil |
+| `atlas_lifecycle` | NOLOGIN; yalnız sabit invitation preview/accept ve workspace member revoke girişlerinin sahibi; aktör canlı session context’inden gelir, genel içerik API’si değildir |
 | `atlas_backup` | Yalnız yedek job'unda kapsamlı okuma/backup yetkisi; uygulamaya verilmez; restore rolü ayrı operasyon |
 
-Her domain transaction önce session'dan türeyen user ID'yi transaction-local `app.user_id` olarak ayarlar. Missing/invalid context deny olur. `SET LOCAL` aynı transaction'ın aynı bağlantısındadır; pooled bağlantıya session-level SET yapılmaz, outside-transaction Prisma sorgusu yasaktır. Transaction sonrası bir kullanıcının context'i sonraki kullanıcıya geçmemelidir.
+Her domain transaction önce session'dan türeyen user ID'yi transaction-local `app.user_id`, canlı session ID’yi `app.session_id` olarak ayarlar. Missing/invalid context deny olur. `SET LOCAL` aynı transaction'ın aynı bağlantısındadır; pooled bağlantıya session-level SET yapılmaz, outside-transaction Prisma sorgusu yasaktır. Transaction sonrası bir kullanıcının context'i sonraki kullanıcıya geçmemelidir.
 
 RLS permission helper'ları yalnız sabit membership/project tablosundan boolean üretir; actor parametresi kabul etmez, transaction context'ini okur. Böylece membership tablolarındaki policy recursion'ı önlenir. SECURITY DEFINER fonksiyonlarının sahibi login olamaz; search_path sabit ve nesneler qualified, PUBLIC EXECUTE/CREATE kaldırılmış, dynamic SQL yok, fonksiyon kapsamı yalnız rol/aktiflik kontrolüdür. Membership değişiklikleri ayrı action helper + server kurallarıyla korunur; yetkisi olmayan kişinin kendini admin yapmasına WITH CHECK izin vermez. Auth-only/kendi notification/özel conversation tabloları kendi kullanıcı policy'sini de uygular.
 
@@ -80,4 +81,6 @@ Fixture yalnız sentetik: W-A/P-A'da A owner, B editor, V viewer; W-B/P-B'de C o
 | A12 | Kaynak/atıf/AI conversation başkasına ait; clipboard/download link replay | Erişim tekrar kontrolü; private conversation owner dışına açılmaz | G02→G04 |
 | A13 | Revocation ile concurrent transaction, cancel/retry veya stale cache | Kilit sırası, yeni istekte deny, deadlock retry bounded; önceki stream sınırı raporlu | G01→G04 |
 
-Faz 00'da bu testlerin tamamı **NOT RUN**. Planın tutarlılık incelemesi bunların başarılı koştuğu anlamına gelmez.
+Faz 00’da bu testlerin tamamı NOT RUN idi. Faz 01’de auth/workspace/project alt kümesi gerçek PostgreSQL’de koştu; güncel kanıt ve sonraki modüllere ait NOT RUN bölümleri [handoff](PHASE_01_HANDOFF.md) içindedir.
+
+Uygulama notu: atlas_policy ayrıca yetkiyi kilit öncesi/sonrası denetleyen boolean scope-lock helper’larına sahiptir; veri sorguları runtime RLS’den geçer. atlas_lifecycle preview yalnız doğru doğrulanmış alıcıya dar davet DTO’su verir; accept/revoke sabit transaction işlemleridir. ops mail kuyruğu yalnız ayrı queue credential’ı tarafından okunur; runtime yalnız atomik enqueue yapar.

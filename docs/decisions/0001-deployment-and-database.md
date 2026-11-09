@@ -1,7 +1,7 @@
 # ADR 0001 — Coolify and self-hosted PostgreSQL
 
 Date: 2026-11-09
-Status: selected for the new plan; implementation/provisioning not started.
+Status: implemented in the Phase 01 local Docker/PostgreSQL candidate; live provisioning/acceptance pending. See [P01-5](../implementation/P01-5.md).
 
 ## Decision
 

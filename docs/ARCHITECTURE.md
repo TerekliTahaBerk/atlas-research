@@ -1,5 +1,7 @@
 # Mimari
 
+Current implementation/evidence: [Phase 01 handoff](PHASE_01_HANDOFF.md). The Phase 00 candidate/version and future-module planning below is historical design context; exact installed pins and actual gates are recorded per implementation slice. G01 is open for live deployment.
+
 Durum: Faz 00 planı, uygulama yok. Temel karar [ADR 0001](decisions/0001-deployment-and-database.md). Kavramsal veri [DATA_MODEL](DATA_MODEL.md), tüm erişim kuralları [AUTHORIZATION](AUTHORIZATION.md), operasyon [COOLIFY_PLAN](COOLIFY_PLAN.md) içindedir.
 
 ## Sınırlar ve çalışma biçimi

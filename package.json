@@ -20,6 +20,9 @@
     "db:migrate": "prisma migrate deploy",
     "verify": "npm run typecheck && npm run lint && npm test && npm run test:integration && npm run build && npm run test:browser",
     "test:browser": "node --import tsx scripts/test-integration.ts --browser",
+    "test:operations": "node --import tsx scripts/test-operations.ts",
+    "verify:release": "node ops/verify-release.mjs",
+    "verify:compose": "node ops/validate-compose.mjs",
     "format:check": "prettier --check src/components src/lib scripts/browser-qa.ts",
     "postinstall": "prisma generate",
     "mail:worker": "node dist/worker/mail/run.js"

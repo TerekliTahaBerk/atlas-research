@@ -28,7 +28,9 @@ test("verified personal identity, encrypted SMTP outbox, reset/revocation, idemp
     await assert.rejects(auth.api.signInEmail({ body: { email, password } }));
     const duplicate = await auth.api.signUpEmail({ body: { name: "Independent Researcher", email, password } });
     assert.equal(duplicate.token, null);
-    const pending = await db.mailOutbox.findMany({ where: { state: "pending" } });
+    const queueDb=createDatabase(env.QUEUE_DATABASE_URL);
+    const pending = await queueDb.mailOutbox.findMany({ where: { state: "pending" } });
+    await queueDb.$disconnect();
     assert.ok(pending.length);
     for (const row of pending) { assert.ok(!row.payload?.includes(email)); assert.ok(!row.payload?.includes("http")); }
     await mail.flush();
