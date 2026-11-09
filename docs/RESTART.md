@@ -16,7 +16,7 @@ The archival checkpoint retains the exact original master tree. Its 25 parents p
 
 The full original branch-to-SHA mapping is in repository/legacy-refs.json. Only after verifying all tips are retained may obsolete active branch names be removed.
 
-Legacy PR #24 is superseded by the clean restart and is to be closed without merging. Its branch tip is preserved in the archive manifest.
+Legacy PR #24 was closed without merging because it is superseded by the clean restart. Its branch tip is preserved in the archive manifest.
 
 ## New baseline
 
@@ -37,6 +37,6 @@ Archive every original tip; never force-push the checkpoint. The archive remains
 
 ## External state
 
-This preparation does not remove old databases, deployments, domains, secrets, GitHub Apps or webhooks. Existing external services must be inventoried separately before later deployment. Do not assume they have stopped running.
+This preparation does not remove old databases, deployments, domains, secrets, GitHub Apps or webhooks. One targeted exception: the old Vercel project named web was disconnected from this Git repository after a paused-project deployment produced a failing commit status. Its settings and existing deployments were preserved. Other external services must be inventoried separately before later deployment; do not assume they have stopped running.
 
 New deployment target: Coolify. New database decision: self-hosted PostgreSQL. Neither is created in this step.
