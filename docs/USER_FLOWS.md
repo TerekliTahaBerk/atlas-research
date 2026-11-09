@@ -45,3 +45,7 @@ Sadece seçili ve hazır, izinli kaynak sürümleri kullanılır. Kaynak yoksa g
 ## Ortak gezinme ve geri dönüş
 
 Doğrudan artifact link'i oturum gerekiyorsa girişe, sonra aynı hedefe döner; URL içinde erişim token'ı bulunmaz. İzin yoksa varlığı doğrulamayan ortak unavailable ekranı S16 açılır. Arşivli hedef yetkili kullanıcıya salt okunur görünür. Silinen hedefte güvenli tombstone ve geri bağlantı gösterilir. PDF'den dokümana dönüş sayfa ve scroll konumunu korur; erişim yeniden denetlenir. Modal/drawer kapanınca odak tetikleyiciye, hedef silinmişse en yakın anlamlı başlığa döner.
+
+## Dynamic AI island — 10 November decision
+
+Compact → floating → focus → docked are presentations of one private project conversation, not separate histories. Presentation changes retain draft and pending request; minimizing does not cancel. Project change clears the previous surface. Scope changes require an explicit new/forked conversation. The +/@ picker resolves authorized project objects; preview shows immutable document revision or annotation PDF version/page and exact text before external sharing. Paid calls remain prohibited; local evidence previews and private history remain available.

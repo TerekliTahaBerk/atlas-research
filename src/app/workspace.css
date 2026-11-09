@@ -5565,3 +5565,57 @@ textarea.document-title {
 .task-filter-fields .compact-check {
   flex-direction: row;
 }
+
+/* One persistent AI surface; reference aiBox 680 / 720 / 392, radius 16. */
+.ai-island {
+  position: fixed; z-index: 35; left: var(--ai-left, 264px); bottom: var(--ai-bottom, 18px);
+  width: var(--ai-width, min(680px, calc(100vw - 288px))); max-width: calc(100vw - 24px);
+  max-height: min(680px, calc(var(--ai-visible-height, 100dvh) - 80px));
+  display: flex; flex-direction: column; min-height: 0; background: var(--canvas);
+  border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 32px #0003;
+  transition: width .18s ease, left .18s ease, border-radius .18s ease;
+}
+.ai-island[data-presentation="hidden"] { display: none; }
+.ai-island .ai-content { min-height: 0; overflow: auto; padding: 10px 16px 0; display: flex; flex-direction: column; }
+.ai-island-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border-soft, var(--border)); flex-shrink: 0; font-size: 12px; }
+.ai-island-heading strong { display: flex; gap: 7px; align-items: center; }
+.ai-island-heading small { color: var(--secondary); font-weight: 400; }
+.ai-island-heading nav { display: flex; gap: 2px; }
+.ai-island-heading button { min-height: 28px; padding: 3px 7px; border: 0; background: transparent; font-size: 11px; }
+.ai-island-heading button[aria-pressed="true"] { background: var(--hover); }
+.ai-island .ai-question { position: sticky; bottom: 0; background: var(--canvas); padding: 8px 0; margin: 0; order: 20; flex-shrink: 0; }
+.ai-island .ai-question textarea { min-height: 40px; max-height: 160px; resize: vertical; border: 0; font-size: 13px; }
+.ai-island .ai-question label { margin: 0; font-size: 11px; }
+.ai-context-open { position: sticky; top: 0; align-self: flex-start; min-height: 28px; padding: 2px 8px; z-index: 1; }
+.ai-island[data-presentation="compact"] .ai-content > :not(.ai-question):not(.ai-context-open) { display: none; }
+.ai-island[data-presentation="compact"] .ai-content { flex-direction: row; gap: 8px; align-items: center; padding: 0 10px; overflow: visible; }
+.ai-island[data-presentation="compact"] .ai-question { display: flex; flex: 1; gap: 8px; align-items: center; padding: 4px 0; }
+.ai-island[data-presentation="compact"] .ai-question label { flex: 1; font-size: 0; }
+.ai-island[data-presentation="compact"] .ai-question textarea { height: 40px; min-height: 40px; resize: none; }
+.ai-island[data-presentation="compact"] .ai-question button { min-height: 30px; padding: 3px 8px; font-size: 11px; }
+.ai-island[data-presentation="compact"] .ai-island-heading { border: 0; padding-bottom: 0; }
+.ai-island-dim { position: fixed; inset: 0; background: #0006; z-index: 59; }
+.ai-island[data-presentation="focus"] { z-index: 60; left: 50%; transform: translateX(-50%); width: min(720px, calc(100vw - 32px)); top: max(32px, 10dvh); bottom: 32px; max-height: calc(var(--ai-visible-height, 100dvh) - 64px); }
+.ai-island[data-presentation="docked"] { left: auto; right: 0; bottom: 0; top: 48px; width: 392px; max-height: none; border-radius: 0; box-shadow: none; }
+body:has(.ai-island[data-presentation="docked"]) .main-pane { margin-right: 392px; }
+body:has(.ai-island) .content { padding-bottom: 130px; }
+.ai-island .ai-exchange h3 { font-size: 13px; font-weight: 500; padding: 10px 12px; border-radius: 12px; background: var(--hover); }
+.ai-island .ai-segment { line-height: 1.65; }
+.ai-island .ai-sources { max-height: 180px; overflow: auto; }
+@media (max-width: 1199px) {
+  .ai-dock-action { display: none; }
+  .ai-island[data-presentation="docked"] { left: 12px; right: 12px; width: auto; top: 60px; bottom: 12px; border-radius: 16px; }
+  body:has(.ai-island[data-presentation="docked"]) .main-pane { margin-right: 0; }
+}
+@media (max-width: 640px) {
+  .ai-island { left: 12px !important; width: calc(100vw - 24px) !important; bottom: max(8px, env(safe-area-inset-bottom)); max-height: calc(var(--ai-visible-height, 100dvh) - 70px); }
+  .ai-island-heading small { display: none; }
+  .ai-island[data-presentation="focus"] { transform: none; top: 12px; bottom: 12px; max-height: calc(var(--ai-visible-height, 100dvh) - 24px); }
+  .ai-island .ai-question textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .ai-island { transition: none; } }
+.ai-island[data-presentation="compact"] .ai-question { flex-direction: row; width: auto; }
+.ai-island[data-presentation="compact"] .ai-question label { min-width: 0; width: auto; }
+.ai-island[data-presentation="compact"] .ai-question button { flex: 0 0 auto; width: auto; }
+.ai-island .ai-answer-text pre, .ai-island .katex-display { max-width: 100%; overflow: auto; }
+.ai-island .ai-context-open { position: static; }

@@ -1,3 +1,4 @@
+import { getEnv } from "../env";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Database } from "../db/client";
@@ -111,6 +112,35 @@ export function createProposal(
     for (const seg of answer.segments) {
       const inline: DocNode[] = [{ type: "text", text: seg.text + " " }];
       for (const ref of seg.citations) {
+        if (!data.evidence.some((e) => e.id === ref.evidenceId)) {
+          const snapshot = (
+            data.context.artifacts as unknown as {
+              id: string;
+              title: string;
+              revision?: number;
+              text: string;
+              href: string;
+            }[]
+          ).find((a) => a.id === ref.evidenceId);
+          if (!snapshot || !snapshot.text.includes(ref.quote))
+            throw new AppError("AI_INVALID_EVIDENCE", 409);
+          inline.push(
+            {
+              type: "text",
+              text: `[${snapshot.title}${snapshot.revision ? ` · revision ${snapshot.revision}` : ""}: “${ref.quote}”]`,
+              marks: [
+                {
+                  type: "link",
+                  attrs: {
+                    href: new URL(snapshot.href, getEnv().APP_ORIGIN).href,
+                  },
+                },
+              ],
+            },
+            { type: "text", text: " " },
+          );
+          continue;
+        }
         let cite = plan.find((c) => c.evidenceId === ref.evidenceId);
         if (!cite) {
           cite = { citationId: randomUUID(), evidenceId: ref.evidenceId };

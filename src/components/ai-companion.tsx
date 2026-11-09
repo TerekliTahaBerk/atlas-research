@@ -1,7 +1,11 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useReducer } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import katex from "katex";
+import { usePathname } from "next/navigation";
+import { TaskLinkPicker } from "./task-form";
+import { CreateArtifactDialog } from "./collaboration-shared";
 import { api, ApiError } from "@/lib/api";
 import type {
   AiContextView,
@@ -31,137 +35,253 @@ export function AiCompanion({
   userId: string;
   projectName: string;
 }) {
-  const key = `atlas-ai-v1:${userId}:${w}:${p}`;
+  const key = `atlas-ai-v2:${userId}:${w}:${p}`;
   const saved = () => {
     try {
-      return sessionStorage.getItem("atlas-ai-active-project") === key
-        ? JSON.parse(sessionStorage.getItem(key) ?? "{}")
-        : {};
+      return JSON.parse(sessionStorage.getItem(key) ?? "{}");
     } catch {
       return {};
     }
   };
-  const [open, setOpen] = useState(() => saved().open === true),
-    [conversation, setConversation] = useState<string>(() => saved().id ?? ""),
-    [seed, setSeed] = useState<Seed>(),
-    [wide, setWide] = useState(() => matchMedia("(min-width:1200px)").matches),
-    [target, setTarget] = useState<HTMLElement | null>(null);
-  const mount = useCallback((node: HTMLSpanElement | null) => {
-    if (node) setTarget(document.getElementById("atlas-ai-toggle"));
-  }, []);
+  const [mode, dispatch] = useReducer(
+    (_: Presentation, next: Presentation) => next,
+    "compact",
+    () =>
+      ["compact", "floating", "docked"].includes(saved().mode)
+        ? (saved().mode as Presentation)
+        : "compact",
+  );
+  const [conversation, setConversation] = useState<string>(
+    () => saved().id ?? "",
+  );
+  const [seed, setSeed] = useState<Seed>();
+  const [target, setTarget] = useState<HTMLElement | null>(null);
+  const [activity, setActivity] = useState(false);
+  const surface = useRef<HTMLElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    const media = matchMedia("(min-width:1200px)");
-    const sync = () => setWide(media.matches);
-    media.addEventListener("change", sync);
-    try {
-      sessionStorage.setItem("atlas-ai-active-project", key);
-    } catch {}
+    const observe = () => setTarget(document.getElementById("atlas-ai-toggle"));
+    observe();
+    const observer = new MutationObserver(observe);
+    observer.observe(document.body, { childList: true, subtree: true });
     const launch = (event: Event) => {
       const data = (event as CustomEvent<Seed>).detail;
       if (data.w !== w || data.p !== p) return;
       setSeed(data);
-      setConversation("");
-      setOpen(true);
-      window.dispatchEvent(new Event("atlas-ai-opened"));
-      try {
-        sessionStorage.setItem(key, JSON.stringify({ open: true, id: "" }));
-      } catch {}
+      dispatch("floating");
     };
-    const closeForWriting = () => {
-      setOpen(false);
-      try {
-        const old = JSON.parse(sessionStorage.getItem(key) ?? "{}");
-        sessionStorage.setItem(key, JSON.stringify({ ...old, open: false }));
-      } catch {}
+    const writing = () => dispatch("compact");
+    const keyboard = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        dispatch("floating");
+        surface.current
+          ?.querySelector<HTMLTextAreaElement>("textarea")
+          ?.focus();
+      }
     };
-    window.addEventListener("atlas-document-tools-open", closeForWriting);
+    window.addEventListener("keydown", keyboard);
     window.addEventListener("atlas-ai-open", launch);
+    window.addEventListener("atlas-document-tools-open", writing);
     return () => {
-      media.removeEventListener("change", sync);
+      observer.disconnect();
+      window.removeEventListener("keydown", keyboard);
       window.removeEventListener("atlas-ai-open", launch);
-      window.removeEventListener("atlas-document-tools-open", closeForWriting);
+      window.removeEventListener("atlas-document-tools-open", writing);
     };
   }, [key, w, p]);
-  function changeOpen(value: boolean) {
-    setOpen(value);
-    if (value) window.dispatchEvent(new Event("atlas-ai-opened"));
+  useEffect(() => {
+    const update = () => {
+      const main = document
+        .querySelector(".main-pane")
+        ?.getBoundingClientRect();
+      if (!main || !surface.current) return;
+      const rail = document
+        .querySelector(
+          ".task-detail-rail,.source-inspector,.reader-notes,.document-side-panel",
+        )
+        ?.getBoundingClientRect();
+      const available = main.width - (rail && rail.width > 0 ? rail.width : 0);
+      const width = Math.max(240, Math.min(680, available - 48));
+      surface.current.style.setProperty(
+        "--ai-left",
+        `${main.left + Math.max(12, (available - width) / 2)}px`,
+      );
+      surface.current.style.setProperty("--ai-width", `${width}px`);
+      surface.current.style.setProperty(
+        "--ai-bottom",
+        document.querySelector(".reader-experience") ? "52px" : "18px",
+      );
+      surface.current.style.setProperty(
+        "--ai-visible-height",
+        `${window.visualViewport?.height ?? innerHeight}px`,
+      );
+    };
+    const resize = new ResizeObserver(update);
+    resize.observe(document.body);
+    const observer = new MutationObserver(update);
+    observer.observe(document.getElementById("atlas-workspace-pages")!, {
+      childList: true,
+      subtree: true,
+    });
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    update();
+    return () => {
+      resize.disconnect();
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, []);
+  useEffect(() => {
+    const resize = () => {
+      if (mode === "docked" && innerWidth < 1200) dispatch("focus");
+    };
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [mode]);
+  function present(next: Presentation) {
+    dispatch(next);
+    if (next !== "compact" && next !== "hidden")
+      window.dispatchEvent(new Event("atlas-ai-opened"));
+    if (next === "compact" || next === "hidden") trigger.current?.focus();
     try {
       sessionStorage.setItem(
         key,
-        JSON.stringify({ open: value, id: conversation }),
+        JSON.stringify({
+          id: conversation,
+          mode: next === "focus" ? "floating" : next,
+        }),
       );
     } catch {}
-    if (!value) trigger.current?.focus();
   }
   function choose(id: string) {
     setConversation(id);
     try {
-      sessionStorage.setItem(key, JSON.stringify({ open: true, id }));
+      sessionStorage.setItem(
+        key,
+        JSON.stringify({ id, mode: mode === "focus" ? "floating" : mode }),
+      );
     } catch {}
   }
-  const panel = open ? (
-    <AiPanel
-      key={key}
-      w={w}
-      p={p}
-      conversation={conversation}
-      choose={choose}
-      seed={seed}
-      projectName={projectName}
-    />
-  ) : null;
+  useEffect(() => {
+    if (mode !== "focus") return;
+    const background = document.getElementById("atlas-workspace-pages");
+    if (background) background.inert = true;
+    const previous = document.activeElement as HTMLElement | null;
+    surface.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    return () => {
+      if (background) background.inert = false;
+      previous?.focus();
+    };
+  }, [mode]);
   return (
     <>
-      <span hidden ref={mount} />
       {target &&
         createPortal(
           <button
             ref={trigger}
             className="ai-toggle"
-            aria-expanded={open}
             aria-label="Ask Atlas"
-            onClick={() => changeOpen(!open)}
+            aria-expanded={mode !== "compact" && mode !== "hidden"}
+            onClick={() =>
+              present(
+                mode === "compact" || mode === "hidden"
+                  ? "floating"
+                  : "compact",
+              )
+            }
           >
             <Icon name="sparkles" />
             <span>Ask Atlas</span>
           </button>,
           target,
         )}
-      {open &&
-        (wide ? (
-          <aside
-            className="ai-panel"
-            aria-label="Ask Atlas"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                changeOpen(false);
-              }
-            }}
-          >
-            <div className="ai-heading">
-              <strong>
-                <Icon name="sparkles" /> Ask Atlas
-              </strong>
-              <button
-                className="icon-button"
-                aria-label="Close Ask Atlas"
-                onClick={() => changeOpen(false)}
-              >
-                <Icon name="close" />
-              </button>
-            </div>
-            {panel}
-          </aside>
-        ) : (
-          <Modal title="Ask Atlas" onClose={() => changeOpen(false)}>
-            {panel}
-          </Modal>
-        ))}
+      {mode === "focus" && (
+        <div className="ai-island-dim" onClick={() => present("floating")} />
+      )}
+      <aside
+        ref={surface}
+        className="ai-island"
+        data-presentation={mode}
+        aria-label="Ask Atlas"
+        role={mode === "focus" ? "dialog" : "complementary"}
+        aria-modal={mode === "focus" || undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            present(mode === "focus" ? "floating" : "compact");
+          }
+          if (mode === "focus" && e.key === "Tab") {
+            const nodes = [
+              ...surface.current!.querySelectorAll<HTMLElement>(
+                "button:not(:disabled),textarea:not(:disabled),input:not(:disabled),select:not(:disabled),a[href],summary",
+              ),
+            ].filter((n) => n.getClientRects().length);
+            if (e.shiftKey && document.activeElement === nodes[0]) {
+              e.preventDefault();
+              nodes.at(-1)?.focus();
+            }
+            if (!e.shiftKey && document.activeElement === nodes.at(-1)) {
+              e.preventDefault();
+              nodes[0]?.focus();
+            }
+          }
+        }}
+      >
+        <div className="ai-island-heading">
+          <strong>
+            <Icon name="sparkles" /> Atlas{" "}
+            <small role="status">
+              {activity ? "Request in progress" : "Private research"}
+            </small>
+          </strong>
+          <nav aria-label="AI presentation">
+            <button aria-label="Compact AI" onClick={() => present("compact")}>
+              −
+            </button>
+            <button
+              aria-label="Floating AI"
+              aria-pressed={mode === "floating"}
+              onClick={() => present("floating")}
+            >
+              Float
+            </button>
+            <button
+              aria-label="Focus AI"
+              aria-pressed={mode === "focus"}
+              onClick={() => present("focus")}
+            >
+              Focus
+            </button>
+            <button
+              className="ai-dock-action"
+              aria-label="Dock AI"
+              aria-pressed={mode === "docked"}
+              onClick={() => present("docked")}
+            >
+              Dock
+            </button>
+          </nav>
+        </div>
+        <AiPanel
+          w={w}
+          p={p}
+          conversation={conversation}
+          choose={choose}
+          seed={seed}
+          projectName={projectName}
+          onActivity={setActivity}
+          expand={() => present("floating")}
+        />
+      </aside>
     </>
   );
 }
+type Presentation = "compact" | "floating" | "focus" | "docked" | "hidden";
+
 function Evidence({ items }: { items: EvidenceView[] }) {
   return (
     <div className="ai-evidence">
@@ -201,7 +321,11 @@ function AiPanel({
   choose,
   seed,
   projectName,
+  onActivity,
+  expand,
 }: {
+  onActivity: (active: boolean) => void;
+  expand: () => void;
   w: string;
   p: string;
   conversation: string;
@@ -214,6 +338,10 @@ function AiPanel({
     history = useResource<AiConversationView>(
       conversation ? base + "/conversations/" + conversation : null,
     );
+  const pathname = usePathname();
+  const [passage, setPassage] = useState("");
+  const [artifactIds, setArtifacts] = useState<string[]>([]);
+  const [taskDraft, setTaskDraft] = useState("");
   const [selection, setSelected] = useState<string[] | null>(null),
     [question, setQuestion] = useState(""),
     [preview, setPreview] = useState<AiContextView>(),
@@ -225,7 +353,7 @@ function AiPanel({
     [proposalRun, setProposalRun] = useState("");
   const heading = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
-    heading.current?.focus();
+    // The compact composer remains writable without stealing editor focus.
   }, []);
   const seededVersion = options.data?.versions.find((v) =>
     seed?.versionId
@@ -263,11 +391,17 @@ function AiPanel({
       setBusy(false);
     }
   }
+  useEffect(() => {
+    onActivity(busy || !!active);
+  }, [busy, active, onActivity]);
   async function makePreview() {
+    expand();
     await act(async () => {
       const data = await api<AiContextView>(base + "/preview", {
         question,
         versionIds: ids,
+        artifactIds: history.data?.conversation.artifactIds ?? artifactIds,
+        selection: passage || undefined,
         conversationId: conversation || null,
       });
       setPreview(data);
@@ -277,12 +411,19 @@ function AiPanel({
       history.reload();
     });
   }
+  const runRequest = useRef<{ context: string; id: string } | null>(null);
   async function send() {
     if (!preview || !consent) return;
     await act(async () => {
       await api(base + "/runs", {
         contextId: preview.context.id,
-        requestId: crypto.randomUUID(),
+        requestId: (runRequest.current?.context === preview.context.id
+          ? runRequest.current
+          : (runRequest.current = {
+              context: preview.context.id,
+              id: crypto.randomUUID(),
+            })
+        ).id,
         consent: true,
       });
       setPreview(undefined);
@@ -299,6 +440,18 @@ function AiPanel({
     policy.dailyBudgetMicros <= 0;
   return (
     <div className="ai-content">
+      <button
+        className="ai-context-open"
+        aria-label="Add AI context"
+        onClick={() => {
+          expand();
+          document
+            .querySelector<HTMLDetailsElement>(".ai-scope-picker")
+            ?.setAttribute("open", "");
+        }}
+      >
+        +
+      </button>
       <p ref={heading} tabIndex={-1} className="ai-scope">
         {projectName}
         <br />
@@ -320,6 +473,7 @@ function AiPanel({
               onClick={() => {
                 choose("");
                 setSelected([]);
+                setArtifacts([]);
                 setPreview(undefined);
                 setQuestion("");
                 setConsent(false);
@@ -327,6 +481,7 @@ function AiPanel({
             >
               New conversation
             </button>
+            <button onClick={() => history.reload()}>Refresh history</button>
             <button onClick={() => setPolicyOpen((v) => !v)}>
               Usage & sharing
             </button>
@@ -379,13 +534,120 @@ function AiPanel({
               )}
             </>
           )}
-          <details open={!conversation}>
+          {seededVersion && !ids.includes(seededVersion.id) && (
+            <section className="ai-context-suggestion">
+              <p>
+                Suggested context: {seededVersion.title} · v
+                {seededVersion.ordinal}
+              </p>
+              <button
+                disabled={busy}
+                onClick={() => {
+                  choose("");
+                  setSelected(
+                    [...new Set([...ids, seededVersion.id])].slice(0, 10),
+                  );
+                  setArtifacts(
+                    history.data?.conversation.artifactIds ?? artifactIds,
+                  );
+                  setPreview(undefined);
+                  setConsent(false);
+                }}
+              >
+                Review in a new conversation
+              </button>
+            </section>
+          )}
+          <details className="ai-scope-picker" open={!conversation}>
             <summary>Source scope · {ids.length}/10 versions</summary>
             {conversation && (
               <small>
                 The scope stays fixed when you move between pages. Start a new
                 conversation to change it.
               </small>
+            )}
+            {!conversation && (
+              <>
+                <TaskLinkPicker
+                  w={w}
+                  p={p}
+                  value={artifactIds}
+                  onChange={setArtifacts}
+                />
+                <button
+                  onClick={() => {
+                    const id =
+                      new URL(location.href).searchParams.get("annotation") ??
+                      pathname.match(
+                        /\/(?:docs|tasks|discussions|sources)\/([a-f0-9-]{36})/,
+                      )?.[1];
+                    const version = new URL(location.href).searchParams.get(
+                      "version",
+                    );
+                    const source = options.data?.versions.find(
+                      (v) =>
+                        v.sourceId === id && (!version || v.id === version),
+                    );
+                    if (source)
+                      setSelected((old) =>
+                        [...new Set([...(old ?? []), source.id])].slice(0, 10),
+                      );
+                    if (id)
+                      setArtifacts((old) =>
+                        [...new Set([...old, id])].slice(0, 10),
+                      );
+                  }}
+                >
+                  Suggest current page as context
+                </button>
+              </>
+            )}
+            {conversation && (
+              <button
+                onClick={() => {
+                  choose("");
+                  setPreview(undefined);
+                  setConsent(false);
+                  setSelected([...ids]);
+                  setArtifacts(history.data?.conversation.artifactIds ?? []);
+                }}
+              >
+                Fork with reviewed scope
+              </button>
+            )}
+            {(history.data?.conversation.artifactIds ?? artifactIds).map(
+              (id) => (
+                <p className="ai-context-chip" key={id}>
+                  {history.data?.contexts
+                    .flatMap((c) => c.artifacts ?? [])
+                    .find((a) => a.id === id)?.title ??
+                    "Selected project research"}{" "}
+                  <button
+                    disabled={!!conversation}
+                    aria-label="Remove research context"
+                    onClick={() =>
+                      setArtifacts((old) => old.filter((v) => v !== id))
+                    }
+                  >
+                    ×
+                  </button>
+                </p>
+              ),
+            )}
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const text = window.getSelection()?.toString().trim();
+                if (text) setPassage(text.slice(0, 4000));
+              }}
+            >
+              Use selected passage
+            </button>
+            {passage && (
+              <p className="ai-context-chip">
+                Selected passage: {passage}
+                <button onClick={() => setPassage("")}>Remove passage</button>
+              </p>
             )}
             <fieldset disabled={!!conversation || busy} className="ai-sources">
               {options.data.versions.length === 0 && (
@@ -485,6 +747,23 @@ function AiPanel({
                     Cancel request
                   </button>
                 )}
+                {[
+                  "cancelled",
+                  "limited",
+                  "provider_error",
+                  "validation_failed",
+                ].includes(c.run!.state) && (
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      setQuestion(c.question);
+                      setPreview(undefined);
+                      setConsent(false);
+                    }}
+                  >
+                    Retry question with a new evidence preview
+                  </button>
+                )}
                 {c.run!.error && (
                   <p className="notice">
                     {c.run!.error}. No automatic retry. A dispatched request may
@@ -493,6 +772,32 @@ function AiPanel({
                 )}
                 {c.run!.result && (
                   <>
+                    <button
+                      onClick={() =>
+                        void navigator.clipboard
+                          .writeText(
+                            c
+                              .run!.result!.segments.map((s) => s.text)
+                              .join("\n\n"),
+                          )
+                          .catch(setError)
+                      }
+                    >
+                      Copy answer
+                    </button>
+                    {history.data?.canEdit && (
+                      <button
+                        onClick={() =>
+                          setTaskDraft(
+                            c
+                              .run!.result!.segments.map((s) => s.text)
+                              .join("\n\n"),
+                          )
+                        }
+                      >
+                        Review task draft
+                      </button>
+                    )}
                     <p className="ai-limitations">
                       {c.run!.result.limitations}
                     </p>
@@ -503,7 +808,7 @@ function AiPanel({
                     )}
                     {c.run!.result.segments.map((s, i) => (
                       <section key={i} className="ai-segment">
-                        <p>{s.text}</p>
+                        <AnswerText value={s.text} />
                         {s.citations.map((ref, j) => {
                           const e = c.evidence.find(
                             (e) => e.id === ref.evidenceId,
@@ -518,7 +823,30 @@ function AiPanel({
                                 Read cited PDF version · page {e.page}
                               </Link>
                             </details>
-                          ) : null;
+                          ) : (
+                            (() => {
+                              const artifact = c.artifacts?.find(
+                                (a) => a.id === ref.evidenceId,
+                              );
+                              return artifact ? (
+                                <details key={j}>
+                                  <summary>
+                                    {artifact.title}
+                                    {artifact.revision
+                                      ? ` · revision ${artifact.revision}`
+                                      : ""}
+                                    {artifact.page
+                                      ? ` · page ${artifact.page}`
+                                      : ""}
+                                  </summary>
+                                  <blockquote>{ref.quote}</blockquote>
+                                  <Link href={artifact.href}>
+                                    Open cited research object
+                                  </Link>
+                                </details>
+                              ) : null;
+                            })()
+                          );
                         })}
                         <label className="ai-review">
                           Scientific support ·{" "}
@@ -556,6 +884,15 @@ function AiPanel({
                         </label>
                       </section>
                     ))}
+                    <button
+                      onClick={() =>
+                        document
+                          .querySelector(".ai-question")
+                          ?.scrollIntoView({ block: "end" })
+                      }
+                    >
+                      Return to composer
+                    </button>
                     <p className="muted">
                       Locator validation checks the quote and location.
                       Scientific support requires your review.
@@ -601,6 +938,35 @@ function AiPanel({
                   </button>
                 </section>
               ))}
+          <label className="ai-research-action">
+            Research action
+            <select
+              aria-label="Research action"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  setQuestion(e.target.value);
+                  setPreview(undefined);
+                  setConsent(false);
+                }
+                e.target.value = "";
+              }}
+            >
+              <option value="">Choose an instruction…</option>
+              <option value="Explain the selected passage using its evidence and identify uncertainties.">
+                Explain passage
+              </option>
+              <option value="Summarize the selected sources with citations and explicit limitations.">
+                Summarize sources
+              </option>
+              <option value="Compare the selected sources, citing agreements and disagreements.">
+                Compare sources
+              </option>
+              <option value="Propose research next steps grounded in the selected sources.">
+                Draft research steps
+              </option>
+            </select>
+          </label>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -618,15 +984,27 @@ function AiPanel({
                 value={question}
                 onChange={(e) => {
                   setQuestion(e.target.value);
+                  if (e.target.value.endsWith("@")) {
+                    expand();
+                    document
+                      .querySelector(".ai-scope-picker")
+                      ?.setAttribute("open", "");
+                  }
                   setPreview(undefined);
                   setConsent(false);
                 }}
-                placeholder="Ask about a finding in the selected PDFs…"
+                placeholder="Ask Atlas… (@ to choose sources)"
               />
             </label>
             <button
               className="primary"
-              disabled={busy || !ids.length || !question.trim()}
+              disabled={
+                busy ||
+                (!ids.length &&
+                  !artifactIds.length &&
+                  !history.data?.conversation.artifactIds?.length) ||
+                !question.trim()
+              }
             >
               Preview evidence
             </button>
@@ -653,6 +1031,17 @@ function AiPanel({
                   </>
                 )}
               </p>
+              {preview.context.artifacts?.map((a) => (
+                <details key={a.id}>
+                  <summary>
+                    {a.kind} · {a.title}
+                    {a.revision ? ` · revision ${a.revision}` : ""}
+                    {a.page ? ` · page ${a.page}` : ""}
+                  </summary>
+                  <pre>{a.text}</pre>
+                  <Link href={a.href}>Open original context</Link>
+                </details>
+              ))}
               <Evidence items={preview.evidence} />
               {!unavailable && (
                 <>
@@ -680,7 +1069,8 @@ function AiPanel({
                       busy ||
                       !consent ||
                       unavailable ||
-                      !preview.evidence.length
+                      (!preview.evidence.length &&
+                        !preview.context.artifacts?.some((a) => a.text))
                     }
                     onClick={() => void send()}
                   >
@@ -691,6 +1081,15 @@ function AiPanel({
             </section>
           )}
           <InlineError error={error} />
+          {taskDraft && (
+            <CreateArtifactDialog
+              w={w}
+              p={p}
+              kind="task"
+              initialText={taskDraft}
+              onClose={() => setTaskDraft("")}
+            />
+          )}
           {proposalRun && (
             <Proposal
               w={w}
@@ -965,5 +1364,61 @@ function Proposal({
       )}
       <InlineError error={error} />
     </Modal>
+  );
+}
+
+function AnswerText({ value }: { value: string }) {
+  const blocks = value.split(/(```[\s\S]*?```|\$\$[\s\S]*?\$\$)/g);
+  const math = (source: string, displayMode: boolean) =>
+    katex.renderToString(source, {
+      displayMode,
+      throwOnError: false,
+      trust: false,
+      strict: "warn",
+    });
+  return (
+    <div className="ai-answer-text">
+      {blocks.map((block, i) =>
+        block.startsWith("```") ? (
+          <pre key={i}>
+            <code>
+              {block.replace(/^```[^\n]*\n?/, "").replace(/```$/, "")}
+            </code>
+          </pre>
+        ) : block.startsWith("$$") ? (
+          <div
+            key={i}
+            dangerouslySetInnerHTML={{ __html: math(block.slice(2, -2), true) }}
+          />
+        ) : (
+          <div key={i}>
+            {block.split("\n").map((line, j) => (
+              <div key={j}>
+                {/^(?:[-*] |[0-9]+\. )/.test(line) ? (
+                  <ul>
+                    <li>{line.replace(/^(?:[-*] |[0-9]+\. )/, "")}</li>
+                  </ul>
+                ) : (
+                  <p>
+                    {line.split(/(\$[^$\n]+\$)/g).map((part, k) =>
+                      part.startsWith("$") && part.endsWith("$") ? (
+                        <span
+                          key={k}
+                          dangerouslySetInnerHTML={{
+                            __html: math(part.slice(1, -1), false),
+                          }}
+                        />
+                      ) : (
+                        <span key={k}>{part}</span>
+                      ),
+                    )}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ),
+      )}
+    </div>
   );
 }

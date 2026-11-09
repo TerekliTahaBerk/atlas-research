@@ -578,6 +578,7 @@ model AiConversation {
  userId String
  title String
  versionIds String[] @db.Uuid
+ artifactIds String[] @default([]) @db.Uuid
  createdAt DateTime @default(now())
  @@unique([workspaceId,projectId,id])
  @@map("ai_conversations")
@@ -590,6 +591,7 @@ model AiContext {
  userId String
  conversationId String @db.Uuid
  question String
+ artifacts Json @default("[]")
  expiresAt DateTime
  createdAt DateTime @default(now())
  @@unique([workspaceId,projectId,id])

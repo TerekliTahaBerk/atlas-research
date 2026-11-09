@@ -1,11 +1,6 @@
 "use client";
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-const AiCompanion = dynamic(
-  () => import("./ai-companion").then((m) => m.AiCompanion),
-  { ssr: false },
-);
 import { usePathname, useRouter } from "next/navigation";
 import { WorkingTabs } from "./working-tabs";
 import { useWorkspaceIdentity } from "./workspace-context";
@@ -443,15 +438,6 @@ export function WorkspaceShell({
             })
           )}
         </main>
-        {current && me.data && (
-          <AiCompanion
-            key={me.data.user.id + ":" + current.id}
-            w={current.workspaceId}
-            p={current.id}
-            userId={me.data.user.id}
-            projectName={current.name}
-          />
-        )}
       </div>
       {drawer && (
         <Modal drawer title="Navigation" onClose={() => setDrawer(false)}>

@@ -7,6 +7,11 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import dynamic from "next/dynamic";
+const AiCompanion = dynamic(
+  () => import("./ai-companion").then((m) => m.AiCompanion),
+  { ssr: false },
+);
 import { usePathname } from "next/navigation";
 import { useResource } from "./ui";
 import type { Me, Workspace, Project } from "./workspace-shell";
@@ -42,11 +47,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       active ? "/api/collaboration/inbox" : null,
     );
   const [collapsed, setCollapsed] = useState(false);
+  const current = projects.data?.find((p) =>
+    path.startsWith(`/w/${p.workspaceId}/p/${p.id}/`),
+  );
   return (
     <Context.Provider
       value={{ me, workspaces, projects, inbox, collapsed, setCollapsed }}
     >
-      {children}
+      <div id="atlas-workspace-pages">{children}</div>
+      {current && me.data && !me.error && !projects.error && (
+        <AiCompanion
+          key={me.data.user.id + ":" + current.id}
+          w={current.workspaceId}
+          p={current.id}
+          userId={me.data.user.id}
+          projectName={current.name}
+        />
+      )}
     </Context.Provider>
   );
 }
