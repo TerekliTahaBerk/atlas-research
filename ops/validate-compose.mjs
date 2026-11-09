@@ -11,13 +11,13 @@ try {
   const file = join(folder, "compose.yaml");
   writeFileSync(file, source.replace(/^    exclude_from_hc: true\n/gm, ""));
   const variables = {
-    POSTGRES_PASSWORD: "0".repeat(64),
-    ATLAS_MIGRATOR_PASSWORD: "1".repeat(64),
-    ATLAS_AUTH_PASSWORD: "2".repeat(64),
-    ATLAS_RUNTIME_PASSWORD: "3".repeat(64),
-    ATLAS_QUEUE_PASSWORD: "4".repeat(64),
-    ATLAS_BACKUP_PASSWORD: "5".repeat(64),
-    BETTER_AUTH_SECRET: "6".repeat(64),
+    SERVICE_HEX_64_ATLASPOSTGRES: "0".repeat(64),
+    SERVICE_HEX_64_ATLASMIGRATOR: "1".repeat(64),
+    SERVICE_HEX_64_ATLASAUTH: "2".repeat(64),
+    SERVICE_HEX_64_ATLASRUNTIME: "3".repeat(64),
+    SERVICE_HEX_64_ATLASQUEUE: "4".repeat(64),
+    SERVICE_HEX_64_ATLASBACKUP: "5".repeat(64),
+    SERVICE_HEX_64_ATLASSESSION: "6".repeat(64),
     ATLAS_RELEASE: "local",
     APP_ORIGIN: "https://atlas.example.invalid",
     SMTP_HOST: "smtp.example.invalid",
