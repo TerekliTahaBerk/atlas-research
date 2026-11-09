@@ -1,6 +1,6 @@
 # ADR 0003 — Açık proje üyeliği, app authorization ve RLS
 
-Tarih: 2026-11-09. Durum: Faz 00 kararı; migration/test yok.
+Tarih: 2026-11-09. Durum: [P01-3 uygulaması ve PostgreSQL testleri](../implementation/P01-3.md); canlı dağıtım kapısı açık.
 
 ## Karar
 
