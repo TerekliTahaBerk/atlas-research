@@ -1,6 +1,6 @@
 # Atlas roadmap
 
-Status: proposed product roadmap accepted for restart preparation. No implementation phase has started.
+Status: product roadmap preserved through Phase 00 planning on 9 November 2026. The [Phase 00 package](PHASE_00_HANDOFF.md) is prepared for review; no implementation phase has started. Detailed scope, dependencies, PR slices and evidence gates are in [Phase 00](phases/PHASE_00.md), [01](phases/PHASE_01.md), [02](phases/PHASE_02.md), [03](phases/PHASE_03.md), [04](phases/PHASE_04.md) and [05](phases/PHASE_05.md).
 
 ## Product
 

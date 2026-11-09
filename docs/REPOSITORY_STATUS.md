@@ -1,6 +1,6 @@
 # Repository preparation verification — 9 November 2026
 
-Status: preparation complete. Phase 00 has not started.
+Status: historical repository-preparation verification, before Phase 00. Current planning state and verification are in [PHASE_00_HANDOFF](PHASE_00_HANDOFF.md). The statements below describe the observed preparation checkpoint; settings were not reconfigured by Phase 00.
 
 ## Verified repository state
 
@@ -46,4 +46,4 @@ NOT RUN / not applicable: application install, lint, unit tests, build, browser 
 
 ## Next action
 
-Execute docs/prompts/PHASE_00.md on feat/phase-00-foundation, open a PR, and stop at the end of Phase 00.
+The subsequent user instruction executed docs/prompts/PHASE_00.md on feat/phase-00-foundation. See [the handoff](PHASE_00_HANDOFF.md) for deliverables, actual checks and remaining decisions. Phase 01 requires a new instruction.

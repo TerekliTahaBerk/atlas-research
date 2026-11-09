@@ -5,7 +5,7 @@ Status: selected for the new plan; implementation/provisioning not started.
 
 ## Decision
 
-Use Docker-based application deployment managed by Coolify and a self-hosted PostgreSQL database in the same controlled infrastructure. Plan Next.js/React/TypeScript as a modular monolith and Prisma for database access/migrations; Phase 00 verifies the supported version matrix before pinning versions.
+Use Docker-based application deployment managed by Coolify and a self-hosted PostgreSQL database in the same controlled infrastructure. Plan Next.js/React/TypeScript as a modular monolith and Prisma for database access/migrations. Phase 00 researched a candidate supported version matrix in [ARCHITECTURE](../ARCHITECTURE.md); exact patch/image pins and integration verification are the first implementation gate in Phase 01, not an installed-toolchain claim.
 
 Use a dedicated Atlas database and least-privilege runtime role. Keep the database private on the appropriate internal network; use persistent storage and separate development/production data. Plan PostgreSQL full-text search first and evaluate pgvector in Phase 04 when semantic retrieval is needed. No mandatory Redis dependency is introduced.
 
@@ -27,4 +27,4 @@ Do not treat a local volume on the same host as the only backup. Choose the actu
 - https://coolify.io/docs/databases/backups
 - https://www.postgresql.org/docs/
 
-No exact PostgreSQL major, package version, provider credential or external resource identifier is pinned by this preparation step.
+No exact PostgreSQL major, package version, provider credential or external resource identifier was pinned by the preparation step. Phase 00's conceptual candidate does not provision or change any existing resource. Operational detail is in [COOLIFY_PLAN](../COOLIFY_PLAN.md).
