@@ -12,7 +12,14 @@ export function research<T>(
   w: string,
   p: string,
   write: boolean,
-  fn: (tx: Tx, scope: { projectRole: string; project: { archivedAt: Date | null; deletedAt: Date | null }; workspace: { archivedAt: Date | null } }) => Promise<T>,
+  fn: (
+    tx: Tx,
+    scope: {
+      projectRole: string;
+      project: { archivedAt: Date | null; deletedAt: Date | null };
+      workspace: { archivedAt: Date | null };
+    },
+  ) => Promise<T>,
 ) {
   return inProject(db, actor, w, p, write, async (tx, scope) => {
     if (write) {
@@ -48,7 +55,12 @@ export function listLibrary(
   p: string,
   query: string,
   page: number,
-  filters: { collection?: string; tag?: string; status?: string } = {},
+  filters: {
+    collection?: string;
+    tag?: string;
+    status?: string;
+    sort?: string;
+  } = {},
 ) {
   return research(db, actor, w, p, false, async (tx, scope) => {
     const found = query
@@ -91,7 +103,16 @@ export function listLibrary(
     }
     const items = await tx.source.findMany({
       where: { workspaceId: w, projectId: p, archivedAt: null, AND: and },
-      orderBy: { updatedAt: "desc" },
+      orderBy:
+        filters.sort === "title"
+          ? [{ title: "asc" }, { id: "asc" }]
+          : filters.sort === "year"
+            ? [
+                { year: { sort: "desc", nulls: "last" } },
+                { title: "asc" },
+                { id: "asc" },
+              ]
+            : [{ updatedAt: "desc" }, { id: "asc" }],
       skip: page * 30,
       take: 31,
     });
@@ -127,6 +148,66 @@ export function listLibrary(
       canEdit: ["owner", "admin", "editor"].includes(scope.projectRole),
       storageAvailable: !!process.env.FILE_STORAGE_PATH,
     };
+  });
+}
+export const bulkSourcesInput = z
+  .object({
+    ids: z.array(z.uuid()).min(1).max(100),
+    collectionId: z.uuid(),
+  })
+  .strict();
+export function collectSources(
+  db: Database,
+  actor: Identity,
+  w: string,
+  p: string,
+  raw: z.infer<typeof bulkSourcesInput>,
+) {
+  return research(db, actor, w, p, true, async (tx) => {
+    const ids = [...new Set(raw.ids)];
+    const [sources, collection] = await Promise.all([
+      tx.source.findMany({
+        where: {
+          workspaceId: w,
+          projectId: p,
+          id: { in: ids },
+          archivedAt: null,
+        },
+        select: { id: true },
+      }),
+      tx.collection.findFirst({
+        where: { id: raw.collectionId, workspaceId: w, projectId: p },
+      }),
+    ]);
+    if (sources.length !== ids.length || !collection)
+      throw new AppError("UNAVAILABLE", 404);
+    const existing = await tx.sourceCollection.findMany({
+      where: {
+        workspaceId: w,
+        projectId: p,
+        collectionId: collection.id,
+        sourceId: { in: ids },
+      },
+      select: { sourceId: true },
+    });
+    const added = ids.filter(
+      (id) => !existing.some((link) => link.sourceId === id),
+    );
+    await tx.sourceCollection.createMany({
+      data: ids.map((sourceId) => ({
+        workspaceId: w,
+        projectId: p,
+        sourceId,
+        collectionId: collection.id,
+      })),
+      skipDuplicates: true,
+    });
+    if (added.length)
+      await tx.source.updateMany({
+        where: { workspaceId: w, projectId: p, id: { in: added } },
+        data: { revision: { increment: 1 } },
+      });
+    return { count: ids.length };
   });
 }
 export function addSource(

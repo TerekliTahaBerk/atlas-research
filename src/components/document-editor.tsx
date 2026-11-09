@@ -1,4 +1,7 @@
 "use client";
+import { PopoverMenu } from "./ui";
+import { BubbleMenu } from "@tiptap/react/menus";
+import katex from "katex";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -7,15 +10,18 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DocNode } from "@/lib/document-model";
 import { safeHref } from "@/lib/document-model";
 import type { CitationView } from "@/lib/collaboration-types";
-import { Modal } from "./ui";
+import { Modal, Icon } from "./ui";
 import "katex/dist/katex.min.css";
+const selectionMenuOptions = { placement: "top" as const, offset: 8 };
 export function RichEditor({
   initial,
   editable,
   onChange,
   citations,
   insertRef,
+  onCitation,
 }: {
+  onCitation?: () => void;
   initial: DocNode;
   editable: boolean;
   onChange?: (n: DocNode) => void;
@@ -145,16 +151,34 @@ export function RichEditor({
     };
   }, [editor, insertRef]);
   if (!editor) return <p className="muted">Opening editor…</p>;
+  const returnToWriting = () =>
+    requestAnimationFrame(() => {
+      if (!editor.isDestroyed) editor.commands.focus();
+    });
   const tool = (label: string, fn: () => void, active = false) => (
     <button
       type="button"
       key={label}
       aria-label={label}
       aria-pressed={active}
+      title={label}
+      onMouseDown={(e) => e.preventDefault()}
       onClick={fn}
       disabled={!editable}
     >
-      {label}
+      {label === "Bold" ? (
+        <b>B</b>
+      ) : label === "Italic" ? (
+        <i>I</i>
+      ) : label === "Link" ? (
+        <Icon name="link" />
+      ) : label === "Undo" ? (
+        <Icon name="undo" />
+      ) : label === "Redo" ? (
+        <Icon name="redo" />
+      ) : (
+        label
+      )}
     </button>
   );
   return (
@@ -202,56 +226,122 @@ export function RichEditor({
             () => editor.chain().focus().toggleItalic().run(),
             editor.isActive("italic"),
           )}
+          <PopoverMenu className="editor-insert">
+            <summary className="toolbar-button">
+              <Icon name="plus" /> Insert
+            </summary>
+            <div
+              className="editor-insert-menu"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest("button"))
+                  target.closest("details")?.removeAttribute("open");
+              }}
+            >
+              {tool(
+                "Bullet list",
+                () => editor.chain().focus().toggleBulletList().run(),
+                editor.isActive("bulletList"),
+              )}
+              {tool(
+                "Numbered list",
+                () => editor.chain().focus().toggleOrderedList().run(),
+                editor.isActive("orderedList"),
+              )}
+              {tool(
+                "Quote",
+                () => editor.chain().focus().toggleBlockquote().run(),
+                editor.isActive("blockquote"),
+              )}
+              {tool(
+                "Code block",
+                () => editor.chain().focus().toggleCodeBlock().run(),
+                editor.isActive("codeBlock"),
+              )}
+              {tool("Link", () =>
+                setLink(editor.getAttributes("link").href ?? ""),
+              )}
+              {tool("Inline math", () =>
+                setMath(
+                  editor.isActive("inlineMath")
+                    ? {
+                        kind: "inlineMath",
+                        latex: editor.getAttributes("inlineMath").latex,
+                        pos: editor.state.selection.from,
+                      }
+                    : { kind: "inlineMath", latex: "" },
+                ),
+              )}
+              {tool("Block math", () =>
+                setMath(
+                  editor.isActive("blockMath")
+                    ? {
+                        kind: "blockMath",
+                        latex: editor.getAttributes("blockMath").latex,
+                        pos: editor.state.selection.from,
+                      }
+                    : { kind: "blockMath", latex: "" },
+                ),
+              )}
+              {onCitation && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={onCitation}
+                >
+                  <Icon name="book" /> Citation
+                </button>
+              )}
+            </div>
+          </PopoverMenu>
+          {tool("Undo", () => editor.chain().focus().undo().run())}
+          {tool("Redo", () => editor.chain().focus().redo().run())}
+        </div>
+      )}
+      {editable && (
+        <BubbleMenu
+          editor={editor}
+          options={selectionMenuOptions}
+          className="selection-toolbar"
+          aria-label="Selection formatting"
+        >
           {tool(
-            "Bullet list",
-            () => editor.chain().focus().toggleBulletList().run(),
-            editor.isActive("bulletList"),
+            "Bold",
+            () => editor.chain().focus().toggleBold().run(),
+            editor.isActive("bold"),
           )}
           {tool(
-            "Numbered list",
-            () => editor.chain().focus().toggleOrderedList().run(),
-            editor.isActive("orderedList"),
+            "Italic",
+            () => editor.chain().focus().toggleItalic().run(),
+            editor.isActive("italic"),
           )}
+          {tool("Link", () => setLink(editor.getAttributes("link").href ?? ""))}
           {tool(
             "Quote",
             () => editor.chain().focus().toggleBlockquote().run(),
             editor.isActive("blockquote"),
           )}
-          {tool(
-            "Code block",
-            () => editor.chain().focus().toggleCodeBlock().run(),
-            editor.isActive("codeBlock"),
+          {onCitation && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onCitation}
+              aria-label="Cite selection"
+            >
+              <Icon name="book" />
+            </button>
           )}
-          {tool("Link", () => setLink(editor.getAttributes("link").href ?? ""))}
-          {tool("Inline math", () =>
-            setMath(
-              editor.isActive("inlineMath")
-                ? {
-                    kind: "inlineMath",
-                    latex: editor.getAttributes("inlineMath").latex,
-                    pos: editor.state.selection.from,
-                  }
-                : { kind: "inlineMath", latex: "" },
-            ),
-          )}
-          {tool("Block math", () =>
-            setMath(
-              editor.isActive("blockMath")
-                ? {
-                    kind: "blockMath",
-                    latex: editor.getAttributes("blockMath").latex,
-                    pos: editor.state.selection.from,
-                  }
-                : { kind: "blockMath", latex: "" },
-            ),
-          )}
-          {tool("Undo", () => editor.chain().focus().undo().run())}
-          {tool("Redo", () => editor.chain().focus().redo().run())}
-        </div>
+        </BubbleMenu>
       )}
       <EditorContent editor={editor} />
       {math && editable && (
-        <Modal title="Math expression" onClose={() => setMath(null)}>
+        <Modal
+          title="Math expression"
+          onClose={() => {
+            setMath(null);
+            returnToWriting();
+          }}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -266,8 +356,26 @@ export function RichEditor({
                 chain.insertInlineMath({ latex: math.latex }).run();
               else chain.insertBlockMath({ latex: math.latex }).run();
               setMath(null);
+              returnToWriting();
             }}
           >
+            <label>
+              Placement
+              <select
+                aria-label="Equation placement"
+                disabled={math.pos !== undefined}
+                value={math.kind}
+                onChange={(e) =>
+                  setMath({
+                    ...math,
+                    kind: e.target.value as "inlineMath" | "blockMath",
+                  })
+                }
+              >
+                <option value="inlineMath">In the sentence</option>
+                <option value="blockMath">On its own line</option>
+              </select>
+            </label>
             <label>
               LaTeX expression
               <textarea
@@ -278,15 +386,42 @@ export function RichEditor({
                 onChange={(e) => setMath({ ...math, latex: e.target.value })}
               />
             </label>
+            <div className="math-examples">
+              {["p < 0.05", "\\frac{a}{b}", "\\sum_{i=1}^{n} x_i"].map(
+                (expression) => (
+                  <button
+                    key={expression}
+                    type="button"
+                    onClick={() => setMath({ ...math, latex: expression })}
+                  >
+                    {expression}
+                  </button>
+                ),
+              )}
+            </div>
+            <MathPreview
+              latex={math.latex}
+              display={math.kind === "blockMath"}
+            />
             <p className="muted">
-              Notation only. Click an equation to edit it.
+              Click any equation in your writing to edit it.
             </p>
-            <button className="primary">Insert expression</button>
+            <button className="primary">
+              {math.pos === undefined
+                ? "Insert expression"
+                : "Update expression"}
+            </button>
           </form>
         </Modal>
       )}
       {link !== null && (
-        <Modal title="Text link" onClose={() => setLink(null)}>
+        <Modal
+          title="Text link"
+          onClose={() => {
+            setLink(null);
+            returnToWriting();
+          }}
+        >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -308,6 +443,7 @@ export function RichEditor({
                   .run();
               }
               setLink(null);
+              returnToWriting();
             }}
           >
             <label>
@@ -327,5 +463,22 @@ export function RichEditor({
         </Modal>
       )}
     </>
+  );
+}
+
+function MathPreview({ latex, display }: { latex: string; display: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (ref.current)
+      katex.render(latex || "x", ref.current, {
+        displayMode: display,
+        trust: false,
+        throwOnError: false,
+        maxExpand: 100,
+        maxSize: 20,
+      });
+  }, [latex, display]);
+  return (
+    <div className="math-preview" aria-label="Equation preview" ref={ref} />
   );
 }

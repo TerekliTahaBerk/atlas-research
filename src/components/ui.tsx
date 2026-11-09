@@ -15,6 +15,9 @@ export function Icon({
   name,
 }: {
   name:
+    | "link"
+    | "undo"
+    | "redo"
     | "sparkles"
     | "inbox"
     | "discussion"
@@ -51,6 +54,9 @@ export function Icon({
     | "close";
 }) {
   const paths = {
+    link: "M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2",
+    undo: "M3 10h11a7 7 0 0 1 0 14M3 10l5-5M3 10l5 5",
+    redo: "M21 10H10a7 7 0 0 0 0 14m11-14-5-5m5 5-5 5",
     sparkles:
       "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4",
     inbox: "M4 3h16l2 12v6H2v-6Zm-2 12h6l2 3h4l2-3h6",
@@ -131,6 +137,7 @@ export function useResource<T>(url: string | null) {
           if (
             !denied &&
             error instanceof ApiError &&
+            error.code !== "REAUTH_REQUIRED" &&
             [401, 403, 404].includes(error.status)
           ) {
             denied = true;
@@ -145,11 +152,13 @@ export function useResource<T>(url: string | null) {
     const timer = setInterval(load, 20_000);
     window.addEventListener("focus", load);
     window.addEventListener("atlas-access-changed", load);
+    window.addEventListener("atlas-inbox-changed", load);
     return () => {
       controller.abort();
       clearInterval(timer);
       window.removeEventListener("focus", load);
       window.removeEventListener("atlas-access-changed", load);
+      window.removeEventListener("atlas-inbox-changed", load);
     };
   }, [url, revision]);
   return {
@@ -157,6 +166,62 @@ export function useResource<T>(url: string | null) {
     error: state?.url === url ? state.error : undefined,
     reload,
   };
+}
+export function PopoverMenu({
+  className,
+  children,
+}: {
+  className: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null),
+    [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: PointerEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node))
+        ref.current.open = false;
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && ref.current?.open) {
+        event.preventDefault();
+        event.stopPropagation();
+        ref.current.open = false;
+        ref.current.querySelector<HTMLElement>("summary")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", key);
+    };
+  }, [open]);
+  return (
+    <details
+      name="atlas-popover"
+      ref={ref}
+      className={className}
+      onToggle={() => setOpen(ref.current?.open ?? false)}
+      onClickCapture={(event) => {
+        if (
+          (event.target as HTMLElement).closest("button,a") &&
+          !(event.target as HTMLElement).closest("summary")
+        )
+          ref.current?.querySelector<HTMLElement>("summary")?.focus();
+      }}
+      onClick={(event) => {
+        if (
+          (event.target as HTMLElement).closest("button,a") &&
+          !(event.target as HTMLElement).closest("summary") &&
+          ref.current
+        )
+          ref.current.open = false;
+      }}
+    >
+      {children}
+    </details>
+  );
 }
 export function Loading() {
   return (

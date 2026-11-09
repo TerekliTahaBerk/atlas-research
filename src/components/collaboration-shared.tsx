@@ -1,4 +1,5 @@
 "use client";
+import { PopoverMenu } from "./ui";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -191,12 +192,16 @@ export function CreateArtifactDialog({
   onClose: () => void;
 }) {
   const router = useRouter(),
+    documents = useResource<{ items: { id: string; title: string }[] }>(
+      kind === "document" && origin ? collabApi(w, p) + "/documents" : null,
+    ),
     members = useResource<{ members: Member[] }>(
       kind !== "document"
         ? `/api/projects/${p}/members?workspaceId=${w}`
         : null,
     );
   const [requestId] = useState(() => crypto.randomUUID()),
+    [destination, setDestination] = useState(""),
     [title, setTitle] = useState(""),
     [body, setBody] = useState(""),
     [links, setLinks] = useState(originId ? [originId] : []),
@@ -245,6 +250,49 @@ export function CreateArtifactDialog({
   return (
     <Modal title={`New ${kind}`} onClose={onClose}>
       <form onSubmit={submit} className="collab-form">
+        {kind === "document" && origin && !!documents.data?.items.length && (
+          <div className="writing-destination">
+            <label>
+              Add to an existing document
+              <select
+                aria-label="Writing destination"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+              >
+                <option value="">Choose a document…</option>
+                {documents.data.items.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {destination && (
+              <Link
+                className="button"
+                href={
+                  collabPath(w, p) +
+                  "/docs/" +
+                  destination +
+                  "?" +
+                  new URLSearchParams({
+                    citeSource: origin.sourceId,
+                    ...(origin.versionId
+                      ? { citeVersion: origin.versionId }
+                      : {}),
+                    ...(origin.annotationId
+                      ? { citeAnnotation: origin.annotationId }
+                      : {}),
+                  })
+                }
+                onClick={onClose}
+              >
+                Open and cite
+              </Link>
+            )}
+            <small className="muted">Or create a new document below.</small>
+          </div>
+        )}
         {kind === "task" ? (
           <TaskFields
             value={task}
@@ -312,43 +360,83 @@ export function ResearchActions({
   );
   return (
     <div className="research-connected">
-      {origin && (
-        <button
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent("atlas-ai-open", {
-                detail: {
-                  w,
-                  p,
-                  sourceId: origin.sourceId,
-                  versionId: origin.versionId,
-                },
-              }),
-            )
-          }
-        >
-          <Icon name="sparkles" /> Ask about this source
-        </button>
-      )}
-      {canEdit && (
-        <div className="actions">
-          {origin && (
-            <button onClick={() => setKind("document")}>
-              <Icon name="note" />
-              Write from this
+      {compact ? (
+        <>
+          {origin && canEdit && (
+            <button
+              className="toolbar-button"
+              onClick={() => setKind("document")}
+            >
+              <Icon name="note" /> Write from this
             </button>
           )}
-          <button onClick={() => setKind("task")}>Create task</button>
-          <button onClick={() => setKind("discussion")}>Discuss</button>
-        </div>
-      )}
-      {compact && (
-        <button
-          className="related-toggle"
-          onClick={() => setShowLinks((v) => !v)}
-        >
-          Related research
-        </button>
+          <PopoverMenu className="action-menu">
+            <summary className="toolbar-button">
+              <Icon name="options" /> More
+            </summary>
+            <div>
+              {origin && (
+                <button
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("atlas-ai-open", {
+                        detail: {
+                          w,
+                          p,
+                          sourceId: origin.sourceId,
+                          versionId: origin.versionId,
+                        },
+                      }),
+                    )
+                  }
+                >
+                  <Icon name="sparkles" /> Ask about this source
+                </button>
+              )}
+              {canEdit && (
+                <>
+                  <button onClick={() => setKind("task")}>Create task</button>
+                  <button onClick={() => setKind("discussion")}>Discuss</button>
+                </>
+              )}
+              <button onClick={() => setShowLinks((v) => !v)}>
+                Related research
+              </button>
+            </div>
+          </PopoverMenu>
+        </>
+      ) : (
+        <>
+          {origin && (
+            <button
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent("atlas-ai-open", {
+                    detail: {
+                      w,
+                      p,
+                      sourceId: origin.sourceId,
+                      versionId: origin.versionId,
+                    },
+                  }),
+                )
+              }
+            >
+              <Icon name="sparkles" /> Ask about this source
+            </button>
+          )}
+          {canEdit && (
+            <div className="actions">
+              {origin && (
+                <button onClick={() => setKind("document")}>
+                  <Icon name="note" /> Write from this
+                </button>
+              )}
+              <button onClick={() => setKind("task")}>Create task</button>
+              <button onClick={() => setKind("discussion")}>Discuss</button>
+            </div>
+          )}
+        </>
       )}
       {links.data && links.data.length > 0 && (
         <>

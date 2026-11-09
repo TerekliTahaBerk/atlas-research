@@ -1,7 +1,14 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { PopoverMenu } from "./ui";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type FormEvent,
+} from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { api, ApiError } from "@/lib/api";
 import type {
@@ -48,7 +55,7 @@ export function ResearchScreen({
       title={
         mode === "discover"
           ? "Research"
-          : mode === "reader"
+          : mode === "reader" || mode === "source"
             ? (detail.data?.source.title ?? "PDF Reader")
             : "Library"
       }
@@ -83,6 +90,7 @@ function ResearchBody({
   detail: { data?: ResearchDetail; error?: unknown; reload: () => void };
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const base = researchApi(w, p),
     path = researchPath(w, p),
     project = useResource<{
@@ -94,14 +102,20 @@ function ResearchBody({
       workspace: { archivedAt: string | null };
       role: string;
     }>(`/api/projects/${p}?workspaceId=${w}`);
-  const [query, setQuery] = useState(""),
-    [page, setPage] = useState(0),
-    [collection, setCollection] = useState(""),
-    [tag, setTag] = useState(""),
-    [status, setStatus] = useState("");
+  const [query, setQuery] = useState(searchParams.get("q") ?? ""),
+    [page, setPage] = useState(Number(searchParams.get("page")) || 0),
+    [collection, setCollection] = useState(
+      searchParams.get("collection") ?? "",
+    ),
+    [tag, setTag] = useState(searchParams.get("tag") ?? ""),
+    [status, setStatus] = useState(searchParams.get("status") ?? ""),
+    [sort, setSort] = useState(searchParams.get("sort") ?? "edited"),
+    [selected, setSelected] = useState<string[]>([]),
+    [bulkBusy, setBulkBusy] = useState(false),
+    [bulkMessage, setBulkMessage] = useState("");
   const library = useResource<ResearchLibrary>(
     mode === "library" || mode === "source"
-      ? `${base}/sources?${new URLSearchParams({ q: query, page: String(page), collection, tag, status })}`
+      ? `${base}/sources?${new URLSearchParams({ q: query, page: String(page), collection, tag, status, sort })}`
       : null,
   );
   const [add, setAdd] = useState(false),
@@ -113,6 +127,23 @@ function ResearchBody({
     library.reload();
     detail.reload();
   };
+  const filters = new URLSearchParams({
+    q: query,
+    page: String(page),
+    collection,
+    tag,
+    status,
+    sort,
+  }).toString();
+  useEffect(() => {
+    if (!["library", "source"].includes(mode)) return;
+    history.replaceState(
+      null,
+      "",
+      location.pathname + "?" + filters + location.hash,
+    );
+    window.dispatchEvent(new Event("atlas-location-changed"));
+  }, [mode, filters]);
   useEffect(() => {
     if (library.data && location.hash === "#library-search") {
       document.getElementById("library-search")?.focus();
@@ -153,7 +184,7 @@ function ResearchBody({
               Library
             </Link>
           ) : (
-            <details className="export-menu">
+            <PopoverMenu className="export-menu">
               <summary className="toolbar-button">
                 <Icon name="download" />
                 <span>Export</span>
@@ -162,7 +193,7 @@ function ResearchBody({
                 <a href={`${base}/export?format=bib`}>BibTeX ↓</a>
                 <a href={`${base}/export?format=ris`}>RIS ↓</a>
               </div>
-            </details>
+            </PopoverMenu>
           )}
           {canEdit && (
             <>
@@ -325,7 +356,20 @@ function ResearchBody({
                       </button>
                     ))}
                   </div>
-                  <details className="library-filter-menu">
+                  <select
+                    aria-label="Sort sources"
+                    className="compact-sort"
+                    value={sort}
+                    onChange={(e) => {
+                      setSort(e.target.value);
+                      setPage(0);
+                    }}
+                  >
+                    <option value="edited">Recently edited</option>
+                    <option value="title">Title A–Z</option>
+                    <option value="year">Newest publication</option>
+                  </select>
+                  <PopoverMenu className="library-filter-menu">
                     <summary className="toolbar-button">
                       <Icon name="filter" />
                       Filters
@@ -369,8 +413,104 @@ function ResearchBody({
                         </button>
                       )}
                     </div>
-                  </details>
+                  </PopoverMenu>
                 </div>
+                {!!library.data.items.length && (
+                  <div className="library-selection">
+                    <label className="compact-check">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all visible sources"
+                        checked={library.data.items.every((s) =>
+                          selected.includes(s.id),
+                        )}
+                        onChange={(e) =>
+                          setSelected(
+                            e.target.checked
+                              ? [
+                                  ...new Set([
+                                    ...selected,
+                                    ...library.data!.items.map((s) => s.id),
+                                  ]),
+                                ].slice(0, 100)
+                              : selected.filter(
+                                  (id) =>
+                                    !library.data!.items.some(
+                                      (s) => s.id === id,
+                                    ),
+                                ),
+                          )
+                        }
+                      />
+                      {selected.length
+                        ? `${selected.length} selected`
+                        : `${library.data.items.length} papers${library.data.hasMore ? " · more on next page" : ""}`}
+                    </label>
+                    {!!selected.length && (
+                      <>
+                        {canEdit && (
+                          <select
+                            aria-label="Add selected to collection"
+                            disabled={bulkBusy}
+                            value=""
+                            onChange={async (e) => {
+                              if (!e.target.value) return;
+                              setBulkBusy(true);
+                              setError(undefined);
+                              setBulkMessage("");
+                              try {
+                                const result = await api<{ count: number }>(
+                                  base + "/sources/collect",
+                                  {
+                                    ids: selected,
+                                    collectionId: e.target.value,
+                                  },
+                                );
+                                setBulkMessage(
+                                  `${result.count} papers added to collection`,
+                                );
+                                setSelected([]);
+                                library.reload();
+                              } catch (error) {
+                                setError(error);
+                              } finally {
+                                setBulkBusy(false);
+                              }
+                            }}
+                          >
+                            <option value="">Add to collection…</option>
+                            {library.data.collections.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <a
+                          className="toolbar-button"
+                          href={`${base}/export?format=bib&ids=${selected.join(",")}`}
+                        >
+                          BibTeX
+                        </a>
+                        <a
+                          className="toolbar-button"
+                          href={`${base}/export?format=ris&ids=${selected.join(",")}`}
+                        >
+                          RIS
+                        </a>
+                        <button
+                          className="toolbar-button"
+                          onClick={() => setSelected([])}
+                        >
+                          Clear selection
+                        </button>
+                      </>
+                    )}
+                    <span className="muted" role="status">
+                      {bulkBusy ? "Adding…" : bulkMessage}
+                    </span>
+                  </div>
+                )}
                 <p className="sr-only">
                   {library.data.items.length} sources on this page
                 </p>
@@ -413,15 +553,31 @@ function ResearchBody({
                           className={`paper-row ${s?.id === source.id ? "selected" : ""}`}
                           key={source.id}
                         >
+                          <input
+                            className="paper-select"
+                            type="checkbox"
+                            aria-label={`Select ${source.title}`}
+                            checked={selected.includes(source.id)}
+                            onChange={(e) =>
+                              setSelected(
+                                e.target.checked
+                                  ? [...selected, source.id].slice(0, 100)
+                                  : selected.filter((id) => id !== source.id),
+                              )
+                            }
+                          />
                           <div className="paper-info">
                             <Link
                               className="paper-title"
-                              href={`${path}/sources/${source.id}`}
+                              href={`${path}/sources/${source.id}?${filters}`}
                             >
                               {source.title}
                             </Link>
                             <div className="paper-meta">
                               <span>{authorLine(source)}</span>
+                              <span className="file-state">
+                                {version ? "PDF" : "Metadata only"}
+                              </span>
                               {source.tags.map((t) => (
                                 <button
                                   className="tag-chip"
@@ -487,7 +643,7 @@ function ResearchBody({
                     <span>Source details</span>
                     <Link
                       className="icon-button"
-                      href={path + "/sources"}
+                      href={path + "/sources?" + filters}
                       aria-label="Close source details"
                     >
                       <Icon name="close" />
@@ -632,7 +788,10 @@ function Discovery({
   canEdit: boolean;
   onManual: () => void;
 }) {
-  const [query, setQuery] = useState(""),
+  const searchParams = useSearchParams(),
+    initialQuery = searchParams.get("query") ?? "",
+    restored = useRef(false);
+  const [query, setQuery] = useState(initialQuery),
     [page, setPage] = useState(0),
     [results, setResults] = useState<{
       items: DiscoveryItem[];
@@ -642,22 +801,42 @@ function Discovery({
     [error, setError] = useState<unknown>(),
     [selected, setSelected] = useState<DiscoveryItem | null>(null),
     [saving, setSaving] = useState<string | null>(null);
-  async function search(next: number) {
-    if (query.trim().length < 2) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      const value = await api<{ items: DiscoveryItem[]; hasMore: boolean }>(
-        `${researchApi(w, p)}/discover?${new URLSearchParams({ q: query, page: String(next) })}`,
+  const search = useCallback(
+    async (next: number) => {
+      if (query.trim().length < 2) return;
+      setBusy(true);
+      setError(undefined);
+      try {
+        const isDoi =
+          /^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)?10\.\d{4,9}\//i.test(
+            query.trim(),
+          );
+        const value = await api<{ items: DiscoveryItem[]; hasMore: boolean }>(
+          `${researchApi(w, p)}/discover?${new URLSearchParams({ [isDoi ? "doi" : "q"]: query.trim().replace(/^doi:\s*/i, ""), page: String(next) })}`,
+        );
+        setResults(value);
+        setPage(next);
+        const url = new URL(location.href);
+        url.searchParams.set("query", query.trim());
+        url.searchParams.set("resultPage", String(next));
+        history.replaceState(null, "", url);
+        window.dispatchEvent(new Event("atlas-location-changed"));
+      } catch (error) {
+        setError(error);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [w, p, query],
+  );
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    if (initialQuery)
+      queueMicrotask(
+        () => void search(Number(searchParams.get("resultPage")) || 0),
       );
-      setResults(value);
-      setPage(next);
-    } catch (error) {
-      setError(error);
-    } finally {
-      setBusy(false);
-    }
-  }
+  }, [initialQuery, searchParams, search]);
   async function save(item: DiscoveryItem) {
     setSaving(item.providerId);
     setError(undefined);
@@ -774,7 +953,7 @@ function Discovery({
                 key={item.providerId}
               >
                 <div className="paper-glyph" aria-hidden="true">
-                  ▤
+                  <Icon name="file" />
                 </div>
                 <div className="paper-info">
                   <button

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import type {
@@ -11,12 +11,14 @@ import type {
 } from "@/lib/collaboration-types";
 import { taskStatuses, statusName } from "@/lib/collaboration-types";
 import { WorkspaceShell } from "./workspace-shell";
+import { usePageTitle } from "./working-tabs";
 import {
   Failure,
   InlineError,
   Loading,
   ToolbarActions,
   Icon,
+  Modal,
   useResource,
 } from "./ui";
 import {
@@ -62,6 +64,7 @@ export function CollaborationScreen({
 }
 function Tasks({ w, p }: { w: string; p: string }) {
   const [view, setView] = useState<"board" | "list">("board"),
+    [query, setQuery] = useState(""),
     [status, setStatus] = useState(""),
     [assignee, setAssignee] = useState(""),
     [priority, setPriority] = useState(""),
@@ -76,6 +79,7 @@ function Tasks({ w, p }: { w: string; p: string }) {
   const items =
     data.data?.items.filter(
       (t) =>
+        (!query || t.title.toLowerCase().includes(query.toLowerCase())) &&
         (!status || t.status === status) &&
         (!assignee ||
           (assignee === "none" ? !t.assigneeId : t.assigneeId === assignee)) &&
@@ -109,6 +113,13 @@ function Tasks({ w, p }: { w: string; p: string }) {
         </div>
       </div>
       <div className="collab-filters">
+        <input
+          className="compact-search"
+          aria-label="Search tasks"
+          placeholder="Find a task…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <select
           aria-label="Filter status"
           value={status}
@@ -191,13 +202,12 @@ function Tasks({ w, p }: { w: string; p: string }) {
             <p className="empty">No tasks match these filters.</p>
           )}
           {items.map((t) => (
-            <Link
-              key={t.id}
-              href={collabPath(w, p) + "/tasks/" + t.id}
-              className="collab-row"
-            >
+            <div key={t.id} className="collab-row">
               <Icon name="check" />
-              <span>
+              <Link
+                className="task-row-link"
+                href={collabPath(w, p) + "/tasks/" + t.id}
+              >
                 <strong>{t.title}</strong>
                 <small>
                   {statusName(t.status)} · {t.priority} ·{" "}
@@ -205,9 +215,17 @@ function Tasks({ w, p }: { w: string; p: string }) {
                     ?.name ?? "Unassigned"}
                   {t.dueDate ? " · Due " + t.dueDate : ""}
                 </small>
-              </span>
-              <Icon name="arrow" />
-            </Link>
+              </Link>
+              {data.data!.canEdit && !t.archivedAt && (
+                <TaskQuickEdit
+                  w={w}
+                  p={p}
+                  task={t}
+                  members={members.data?.members ?? []}
+                  reload={data.reload}
+                />
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -260,6 +278,9 @@ function TaskCard({
         </span>
         {t.dueDate && <time>{t.dueDate}</time>}
       </div>
+      {canEdit && (
+        <TaskQuickEdit w={w} p={p} task={t} members={members} reload={reload} />
+      )}
       <select
         aria-label={`Status for ${t.title}`}
         disabled={!canEdit || busy}
@@ -288,6 +309,98 @@ function TaskCard({
       </select>
       <InlineError error={error} />
     </article>
+  );
+}
+function TaskQuickEdit({
+  w,
+  p,
+  task,
+  members,
+  reload,
+}: {
+  w: string;
+  p: string;
+  task: TaskData;
+  members: Member[];
+  reload: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        className="task-quick-edit toolbar-button"
+        aria-label={`Quick edit ${task.title}`}
+        onClick={() => setOpen(true)}
+      >
+        <Icon name="new" /> Edit
+      </button>
+      {open && (
+        <TaskQuickForm
+          w={w}
+          p={p}
+          task={task}
+          members={members}
+          close={() => setOpen(false)}
+          reload={reload}
+        />
+      )}
+    </>
+  );
+}
+function TaskQuickForm({
+  w,
+  p,
+  task,
+  members,
+  close,
+  reload,
+}: {
+  w: string;
+  p: string;
+  task: TaskData;
+  members: Member[];
+  close: () => void;
+  reload: () => void;
+}) {
+  const [value, setValue] = useState(taskPayload(task)),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState<unknown>();
+  return (
+    <Modal title="Edit task" onClose={close}>
+      <form
+        className="collab-form"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          setError(undefined);
+          try {
+            await api(collabApi(w, p) + "/tasks/" + task.id, value, "PATCH");
+            reload();
+            close();
+          } catch (error) {
+            setError(error);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <TaskFields
+          value={value}
+          onChange={(v) => setValue({ ...v, revision: value.revision })}
+          members={members}
+          disabled={busy}
+        />
+        <InlineError error={error} />
+        <div className="actions">
+          <button className="primary" disabled={busy}>
+            {busy ? "Saving…" : "Save task"}
+          </button>
+          <button type="button" onClick={close}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 function TaskDetail({ w, p, id }: { w: string; p: string; id: string }) {
@@ -330,6 +443,7 @@ function TaskEditing({
   members: Member[];
   reload: () => void;
 }) {
+  usePageTitle(detail.task.title);
   const [value, setValue] = useState(taskPayload(detail.task)),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
@@ -494,6 +608,24 @@ function Discussion({
   id: string;
   userId: string;
 }) {
+  const draftKey = `atlas-reply:${userId}:${w}:${p}:${id}`;
+  const [restored] = useState(() => {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(draftKey) ?? "null");
+      if (
+        value &&
+        Date.now() - value.at < 86400000 &&
+        typeof value.body === "string"
+      )
+        return value as {
+          body: string;
+          links: string[];
+          mention: string;
+          clientId: string;
+        };
+    } catch {}
+    return null;
+  });
   const data = useResource<{
       discussion: DiscussionData;
       messages: MessageData[];
@@ -504,128 +636,197 @@ function Discussion({
     members = useResource<{ members: Member[] }>(
       `/api/projects/${p}/members?workspaceId=${w}`,
     ),
-    [body, setBody] = useState(""),
-    [links, setLinks] = useState<string[]>([]),
-    [mention, setMention] = useState(""),
-    [clientId, setClientId] = useState(() => crypto.randomUUID()),
+    [body, setBody] = useState(restored?.body ?? ""),
+    [links, setLinks] = useState<string[]>(restored?.links ?? []),
+    [mention, setMention] = useState(restored?.mention ?? ""),
+    [clientId, setClientId] = useState(
+      () => restored?.clientId ?? crypto.randomUUID(),
+    ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
+  usePageTitle(data.data?.discussion.title ?? "Discussion");
+  useEffect(() => {
+    if (!data.data?.canEdit) return;
+    try {
+      if (body.trim())
+        sessionStorage.setItem(
+          draftKey,
+          JSON.stringify({ body, links, mention, clientId, at: Date.now() }),
+        );
+      else sessionStorage.removeItem(draftKey);
+    } catch {}
+  }, [draftKey, body, links, mention, clientId, data.data?.canEdit]);
   if (data.error) return <Failure error={data.error} retry={data.reload} />;
   if (!data.data) return <Loading />;
   const d = data.data;
   return (
-    <div className="discussion-page">
-      <ToolbarActions>
-        <Link
-          className="toolbar-button"
-          href={collabPath(w, p) + "/discussions"}
-        >
-          All discussions
-        </Link>
-      </ToolbarActions>
-      <div className="discussion-heading">
-        <div>
-          <small className="muted">Project discussion</small>
-          <h1>{d.discussion.title}</h1>
+    <div className="discussions-workspace">
+      <TopicRail w={w} p={p} active={id} />
+      <div className="discussion-page">
+        <ToolbarActions>
+          <Link
+            className="toolbar-button"
+            href={collabPath(w, p) + "/discussions"}
+          >
+            All discussions
+          </Link>
+        </ToolbarActions>
+        <div className="discussion-heading">
+          <div>
+            <small className="muted">Project discussion</small>
+            <h1>{d.discussion.title}</h1>
+          </div>
+          <details className="discussion-related">
+            <summary>Related research ({d.links.length})</summary>
+            <ArtifactCards items={d.links} />
+          </details>
         </div>
-        <details className="discussion-related">
-          <summary>Related research ({d.links.length})</summary>
-          <ArtifactCards items={d.links} />
-        </details>
-      </div>
-      <div className="discussion-messages">
-        {d.messages.map((m) => (
-          <MessageRow
-            key={m.id}
-            w={w}
-            p={p}
-            thread={id}
-            message={m}
-            name={
-              members.data?.members.find((u) => u.userId === m.authorId)
-                ?.name ?? "Former member"
-            }
-            canEdit={d.canEdit && (d.canManage || m.authorId === userId)}
-            links={d.links.filter((c) => m.artifactIds.includes(c.id))}
-            reload={data.reload}
-          />
-        ))}
-        {d.messages.length === 500 && (
-          <p className="muted">
-            This topic shows its first 500 messages. Continue in a new topic.
+        <div className="discussion-messages">
+          {d.messages.map((m) => (
+            <MessageRow
+              key={m.id}
+              w={w}
+              p={p}
+              thread={id}
+              message={m}
+              name={
+                members.data?.members.find((u) => u.userId === m.authorId)
+                  ?.name ?? "Former member"
+              }
+              canEdit={d.canEdit && (d.canManage || m.authorId === userId)}
+              links={d.links.filter((c) => m.artifactIds.includes(c.id))}
+              reload={data.reload}
+            />
+          ))}
+          {d.messages.length === 500 && (
+            <p className="muted">
+              This topic shows its first 500 messages. Continue in a new topic.
+            </p>
+          )}
+        </div>
+        {d.canEdit ? (
+          <form
+            className="discussion-composer"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setError(undefined);
+              try {
+                await api(collabApi(w, p) + `/discussions/${id}/messages`, {
+                  clientId,
+                  body,
+                  links,
+                  mentions: mention ? [mention] : [],
+                });
+                setBody("");
+                setLinks([]);
+                setMention("");
+                setClientId(crypto.randomUUID());
+                try {
+                  sessionStorage.removeItem(draftKey);
+                } catch {}
+                data.reload();
+              } catch (e) {
+                setError(e);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label>
+              Reply
+              <textarea
+                aria-label="Reply"
+                disabled={busy}
+                required
+                maxLength={20000}
+                rows={3}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Share an observation…"
+              />
+            </label>
+            {!!body && (
+              <span className="composer-draft" role="status">
+                Draft kept on this tab{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBody("");
+                    setLinks([]);
+                    setMention("");
+                  }}
+                >
+                  Discard draft
+                </button>
+              </span>
+            )}
+            <details>
+              <summary>Attach research or notify someone</summary>
+              <LinkPicker w={w} p={p} value={links} onChange={setLinks} />
+              <label>
+                Notify member
+                <select
+                  value={mention}
+                  disabled={busy}
+                  onChange={(e) => setMention(e.target.value)}
+                >
+                  <option value="">No explicit mention</option>
+                  {members.data?.members
+                    .filter((m) => m.userId !== userId)
+                    .map((m) => (
+                      <option key={m.userId} value={m.userId}>
+                        {m.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </details>
+            <InlineError error={error} />
+            <button className="primary" disabled={busy}>
+              {busy ? "Sending…" : "Send reply"}
+            </button>
+          </form>
+        ) : (
+          <p className="read-only-message">
+            Read only · viewers can follow this discussion.
           </p>
         )}
       </div>
-      {d.canEdit ? (
-        <form
-          className="discussion-composer"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setBusy(true);
-            setError(undefined);
-            try {
-              await api(collabApi(w, p) + `/discussions/${id}/messages`, {
-                clientId,
-                body,
-                links,
-                mentions: mention ? [mention] : [],
-              });
-              setBody("");
-              setLinks([]);
-              setMention("");
-              setClientId(crypto.randomUUID());
-              data.reload();
-            } catch (e) {
-              setError(e);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <label>
-            Reply
-            <textarea
-              disabled={busy}
-              required
-              maxLength={20000}
-              rows={3}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Share an observation…"
-            />
-          </label>
-          <details>
-            <summary>Attach research or notify someone</summary>
-            <LinkPicker w={w} p={p} value={links} onChange={setLinks} />
-            <label>
-              Notify member
-              <select
-                value={mention}
-                disabled={busy}
-                onChange={(e) => setMention(e.target.value)}
-              >
-                <option value="">No explicit mention</option>
-                {members.data?.members
-                  .filter((m) => m.userId !== userId)
-                  .map((m) => (
-                    <option key={m.userId} value={m.userId}>
-                      {m.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </details>
-          <InlineError error={error} />
-          <button className="primary" disabled={busy}>
-            {busy ? "Sending…" : "Send reply"}
-          </button>
-        </form>
-      ) : (
-        <p className="read-only-message">
-          Read only · viewers can follow this discussion.
-        </p>
-      )}
     </div>
+  );
+}
+function TopicRail({ w, p, active }: { w: string; p: string; active: string }) {
+  const data = useResource<{ items: DiscussionData[] }>(
+      collabApi(w, p) + "/discussions",
+    ),
+    [query, setQuery] = useState("");
+  return (
+    <aside className="topic-rail" aria-label="Project topics">
+      <Link className="topic-heading" href={collabPath(w, p) + "/discussions"}>
+        Discussions
+      </Link>
+      <input
+        aria-label="Search topics"
+        placeholder="Find a topic…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <nav>
+        {data.data?.items
+          .filter((d) => d.title.toLowerCase().includes(query.toLowerCase()))
+          .map((d) => (
+            <Link
+              key={d.id}
+              href={collabPath(w, p) + "/discussions/" + d.id}
+              aria-current={active === d.id ? "page" : undefined}
+            >
+              <Icon name="discussion" />
+              <span>{d.title}</span>
+            </Link>
+          ))}
+      </nav>
+    </aside>
   );
 }
 function MessageRow({
@@ -732,6 +933,7 @@ function Inbox() {
   async function mark(id: string, read: boolean) {
     try {
       await api("/api/collaboration/inbox/" + id, { read }, "PATCH");
+      window.dispatchEvent(new Event("atlas-inbox-changed"));
       data.reload();
     } catch (e) {
       setError(e);
@@ -797,6 +999,15 @@ function Inbox() {
                     </Link>
                   ) : (
                     <span>Target unavailable · access may have changed</span>
+                  )}
+                  {n.target && (
+                    <small className="inbox-next">
+                      {n.event === "assignment"
+                        ? "Review your assigned task"
+                        : n.event === "mention"
+                          ? "Open the mentioned research"
+                          : "Read the latest reply"}
+                    </small>
                   )}
                 </div>
                 <button onClick={() => void mark(n.id, !n.readAt)}>
