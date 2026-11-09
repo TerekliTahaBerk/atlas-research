@@ -112,7 +112,7 @@ export function Icon({
     </svg>
   );
 }
-export function useResource<T>(url: string | null) {
+export function useResource<T>(url: string | null, keepPrevious = false) {
   const [state, setState] = useState<{
       url: string;
       data?: T;
@@ -162,7 +162,8 @@ export function useResource<T>(url: string | null) {
     };
   }, [url, revision]);
   return {
-    data: state?.url === url ? state.data : undefined,
+    data: state?.url === url || keepPrevious ? state?.data : undefined,
+    refreshing: !!url && state?.url !== url,
     error: state?.url === url ? state.error : undefined,
     reload,
   };

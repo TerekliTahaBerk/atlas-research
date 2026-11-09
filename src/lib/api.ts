@@ -59,6 +59,10 @@ export function message(error: unknown) {
       "Crossref could not respond. Try again, or add the source manually.",
     REVISION_CONFLICT:
       "Someone changed this record. Refresh before saving again.",
+    COLLECTION_EXISTS:
+      "A collection with this name already exists. Choose another name.",
+    LIBRARY_LIMIT:
+      "A source supports up to 30 tags and 50 collections. Remove one before adding another.",
     DUPLICATE_SOURCE:
       "This DOI or article link is already in this project’s library.",
     STORAGE_UNAVAILABLE:
@@ -80,7 +84,7 @@ export function message(error: unknown) {
   if (code === "REAUTH_REQUIRED")
     return "Sign in again before changing ownership or requesting deletion.";
   if (code === "ARCHIVED")
-    return "This workspace or project is archived. Restore it before making changes.";
+    return "This record or its project is archived. Restore it before making changes.";
   if (code === "CONFLICT" || code === "OWNER_REQUIRED")
     return "This change could not be saved. Transfer ownership before removing an owner, or refresh and try again.";
   if (code === "NETWORK_ERROR")

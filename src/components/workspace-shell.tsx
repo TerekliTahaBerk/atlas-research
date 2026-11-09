@@ -93,6 +93,11 @@ export function WorkspaceShell({
       ? `/api/research/${contextProject.workspaceId}/${contextProject.id}/sources`
       : null,
   );
+  useEffect(() => {
+    const refresh = sources.reload;
+    window.addEventListener("atlas-research-changed", refresh);
+    return () => window.removeEventListener("atlas-research-changed", refresh);
+  }, [sources.reload]);
   const reload = () => {
     workspaces.reload();
     projects.reload();
@@ -288,10 +293,7 @@ export function WorkspaceShell({
               <Icon name="chevron" />
               Sources
               {sources.data && (
-                <span className="nav-count">
-                  {sources.data.items.length}
-                  {sources.data.hasMore ? "+" : ""}
-                </span>
+                <span className="nav-count">{sources.data.total}</span>
               )}
             </summary>
             {sources.data?.items.slice(0, 5).map((source) => (
@@ -313,14 +315,6 @@ export function WorkspaceShell({
             >
               <Icon name="library" />
               Library
-            </Link>
-            <Link
-              className={`nav-item nav-secondary ${active === "discover" ? "selected" : ""}`}
-              href={base + "/discover"}
-              onClick={() => setDrawer(false)}
-            >
-              <Icon name="telescope" />
-              Find new papers
             </Link>
           </details>
         )}
@@ -412,7 +406,7 @@ export function WorkspaceShell({
               <Link href="/inbox">Inbox</Link>
               {base && (
                 <>
-                  <Link href={base + "/discover"}>Research</Link>
+                  <Link href={base + "/sources?view=discover"}>Discover</Link>
                   <Link href={base + "/sources"}>Library</Link>
                   <Link href={base + "/docs"}>Documents</Link>
                   <Link href={base + "/tasks"}>Tasks</Link>

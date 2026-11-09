@@ -56,7 +56,11 @@ export function PdfReader(props: Props) {
       version={version}
       onVersion={(id) => {
         const url = new URL(location.href);
-        url.search = new URLSearchParams({ version: id }).toString();
+        const library = url.searchParams.get("library");
+        url.search = new URLSearchParams({
+          version: id,
+          ...(library ? { library } : {}),
+        }).toString();
         history.replaceState(null, "", url);
         setVersionId(id);
       }}
@@ -74,7 +78,12 @@ function ReaderDocument({
   onVersion,
 }: Props & { version: ResearchVersion; onVersion: (id: string) => void }) {
   const base = `/api/research/${w}/${p}`,
-    sourceUrl = `/w/${w}/p/${p}/sources/${detail.source.id}`,
+    sourceUrl = (() => {
+      const library = new URLSearchParams(location.search).get("library");
+      return library
+        ? `/w/${w}/p/${p}/sources?${library}&source=${detail.source.id}`
+        : `/w/${w}/p/${p}/sources/${detail.source.id}`;
+    })(),
     fileUrl = `${base}/sources/${detail.source.id}/versions/${version.id}/file`;
   const [initial] = useState(
     (() => {
@@ -301,6 +310,9 @@ function ReaderDocument({
     setSelection(null);
     const url = new URL(location.href);
     url.search = new URLSearchParams({
+      ...(url.searchParams.get("library")
+        ? { library: url.searchParams.get("library")! }
+        : {}),
       version: version.id,
       page: String(next),
       ...(annotation ? { annotation } : {}),

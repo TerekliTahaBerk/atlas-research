@@ -4,6 +4,10 @@ import { readMutation } from "@/server/http";
 import { AppError } from "@/server/errors";
 import {
   research,
+  updateLibrarySources,
+  libraryBulkInput,
+  changeCollection,
+  collectionChangeInput,
   listLibrary,
   addSource,
   getSource,
@@ -32,7 +36,7 @@ export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
 function pageValue(raw: string | null) {
   const page = Number(raw ?? 0);
-  if (!Number.isInteger(page) || page < 0 || page > 100)
+  if (!Number.isInteger(page) || page < 0 || page > 1000000)
     throw new AppError("INVALID_INPUT");
   return page;
 }
@@ -47,6 +51,14 @@ async function handle(request: Request, context: Context) {
       url = new URL(request.url),
       method = request.method;
     if (parts[0] === "sources") {
+      if (parts.length === 2 && parts[1] === "bulk" && method === "POST")
+        return updateLibrarySources(
+          db,
+          actor,
+          w,
+          p,
+          await readMutation(request, libraryBulkInput),
+        );
       if (parts.length === 2 && parts[1] === "collect" && method === "POST")
         return collectSources(
           db,
@@ -59,10 +71,21 @@ async function handle(request: Request, context: Context) {
         if (method === "GET") {
           const collection = url.searchParams.get("collection") || undefined,
             status = url.searchParams.get("status") || undefined;
-          const sort = url.searchParams.get("sort") || "edited";
-          if (!["edited", "title", "year"].includes(sort))
+          const sort = url.searchParams.get("sort") || "added";
+          if (!["added", "edited", "title", "year"].includes(sort))
             throw new AppError("INVALID_INPUT");
           if (status && !["unread", "reading", "done"].includes(status))
+            throw new AppError("INVALID_INPUT");
+          const pdf = url.searchParams.get("pdf") || undefined,
+            year = url.searchParams.get("year");
+          if (pdf && !["yes", "no"].includes(pdf))
+            throw new AppError("INVALID_INPUT");
+          if (
+            year &&
+            (!/^\d{4}$/.test(year) ||
+              Number(year) < 1000 ||
+              Number(year) > 2200)
+          )
             throw new AppError("INVALID_INPUT");
           return listLibrary(
             db,
@@ -77,6 +100,9 @@ async function handle(request: Request, context: Context) {
                 (url.searchParams.get("tag") ?? "").slice(0, 40) || undefined,
               status,
               sort,
+              pdf,
+              year: year ? Number(year) : undefined,
+              archived: url.searchParams.get("archived") === "true",
             },
           );
         }
@@ -142,6 +168,15 @@ async function handle(request: Request, context: Context) {
         uuid(parts[1]),
         await readMutation(request, annotationEdit, 65536),
       );
+    if (parts[0] === "collections" && parts.length === 2 && method === "PATCH")
+      return changeCollection(
+        db,
+        actor,
+        w,
+        p,
+        uuid(parts[1]),
+        await readMutation(request, collectionChangeInput),
+      );
     if (parts[0] === "collections" && parts.length === 1) {
       if (method === "GET")
         return research(db, actor, w, p, false, (tx) =>
@@ -164,12 +199,9 @@ async function handle(request: Request, context: Context) {
         doi = url.searchParams.get("doi");
       if (!doi && (query.length < 2 || query.length > 200))
         throw new AppError("INVALID_INPUT");
-      const results = await discover(
-        db,
-        query,
-        Math.min(pageValue(url.searchParams.get("page")), 50),
-        doi,
-      );
+      const discoveryPage = pageValue(url.searchParams.get("page"));
+      if (discoveryPage > 50) throw new AppError("INVALID_INPUT");
+      const results = await discover(db, query, discoveryPage, doi);
       const saved = await research(db, actor, w, p, false, (tx) =>
         tx.source.findMany({
           where: {
@@ -182,6 +214,8 @@ async function handle(request: Request, context: Context) {
       );
       return {
         ...results,
+        hasMore: results.hasMore && discoveryPage < 50,
+        limitReached: results.hasMore && discoveryPage === 50,
         items: results.items.map((item) => ({
           ...item,
           existingSourceId: saved.find((s) => s.doi === item.doi)?.id,
@@ -206,11 +240,9 @@ async function handle(request: Request, context: Context) {
           where: {
             workspaceId: w,
             projectId: p,
-            archivedAt: null,
-            ...(ids ? { id: { in: ids } } : {}),
+            ...(ids ? { id: { in: ids } } : { archivedAt: null }),
           },
           orderBy: { title: "asc" },
-          take: 2000,
         });
         if (ids && rows.length !== new Set(ids).size)
           throw new AppError("UNAVAILABLE", 404);

@@ -56,7 +56,7 @@ export type ResearchAnnotation = {
   revision: number;
   createdAt: string;
 };
-export type ResearchCollection = { id: string; name: string };
+export type ResearchCollection = { id: string; name: string; count?: number };
 export type ResearchDetail = {
   source: ResearchSource;
   versions: ResearchVersion[];
@@ -80,6 +80,15 @@ export type ResearchLibrary = {
   role: string;
   canEdit: boolean;
   hasMore: boolean;
+  total: number;
+  years: number[];
+  counts: {
+    all: number;
+    archived: number;
+    unread: number;
+    reading: number;
+    done: number;
+  };
   storageAvailable: boolean;
 };
 export type DiscoveryItem = MetadataInput & {
