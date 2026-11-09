@@ -1,6 +1,6 @@
 # Faz 02 — Keşif, kaynak kütüphanesi ve okuma
 
-Durum: plan; uygulanmadı.
+Durum: uygulama çalışması sürüyor; güncel kısa doğrulama ve dağıtım kaydı [Faz 02 tesliminde](../PHASE_02_HANDOFF.md). Aşağıdaki geniş matris tarihsel beta hedefidir.
 
 9 Kasım 2026 kullanıcı kararı bu belgedeki eski G01 PASS ve her dilimde kapsamlı kabul önkoşulunu değiştirir: G01/G02'nin kapsamlı denetimleri [beta öncesi listeye](../BETA_REVIEW_BACKLOG.md) ertelenmiştir. Faz 02, mevcut hesap/projeleri koruyarak çalışan kaynak→PDF→kalıcı not yolculuğunu, son sürümde typecheck/lint/build ve kısa kritik veri/dosya erişimi kontrolleriyle teslim eder. E-posta ve S3 kapalı kalır. Aşağıdaki kapsamlı matris tarihsel hedef olarak korunur; yapılmamış kontroller PASS sayılmaz.
 
@@ -18,7 +18,7 @@ AI sentezi/Compare methods cevabı, semantic map/graph, OCR doğruluğu garantis
 
 ## Önkoşullar
 
-G01 PASS; yetkili storage/backup planı ve mail/outbox yolu mevcut. Metadata sağlayıcısı resmi API/erişim koşulu/kota/lisans açısından araştırılır; gerçek endpoint/anahtar ihtiyacı bu fazda belirlenir. Kaynak fixture yalnız lisansı uygun/açık veya sentetiktir.
+Güncel kullanıcı talimatı kapsamında mevcut hesap/proje temeli ve yetkili özel storage yolu yeterlidir. G01 PASS ve bağımsız backup tamamlanması bu fazın giriş koşulu değildir. Metadata sağlayıcısı resmi API/erişim koşulu/kota/lisans açısından araştırılır; gerçek endpoint/anahtar ihtiyacı bu fazda belirlenir. Kaynak fixture yalnız lisansı uygun/açık veya sentetiktir.
 
 ## Görevler ve PR dilimleri
 
@@ -27,7 +27,7 @@ G01 PASS; yetkili storage/backup planı ve mail/outbox yolu mevcut. Metadata sa�
 | P02-1 | Artifact registry, Source/Version, metadata provenance ve same-project FK; DOI/URL normalize/dedupe; manual add + tekrar giriş | G01 |
 | P02-2 | Provider adapter ve PostgreSQL metadata/full-text arama; kaydetme, pagination, provider failure→manual alternatif; SSRF sınırları | P02-1; sağlayıcı resmi koşul incelemesi |
 | P02-3 | Özel volume/proxy, UploadIntent/FileObject; type/size/hash/quota/staging/finalize; partial retry, cleanup ve private range | P02-1; ADR 0004 |
-| P02-4 | Graphile patch pin/schema kontrollü migration, outbox dispatcher ve aynı koddan worker; extraction version/status, bounded retry/cancel/lease recovery | P02-3; gerçek parser güvenlik/kaynak incelemesi |
+| P02-4 | ADR 0004 yeniden değerlendirmesi: mevcut PostgreSQL lease kuyruğu ve aynı koddan worker; extraction version/status, bounded retry/cancel/lease recovery | P02-3; gerçek parser güvenlik/kaynak incelemesi |
 | P02-5 | S07/S09 reader/page/text layer/zoom; annotation quote/page/rect/offset; collection/tag/reading state, reload/old-version/orphan davranışı | P02-2–4 |
 | P02-6 | BibTeX/RIS export/manifest, source-version deep links; job revoke ve DB+files restore testi; dört genişlik/a11y regresyon | P02-1–5 |
 
@@ -43,4 +43,4 @@ G01 PASS; yetkili storage/backup planı ve mail/outbox yolu mevcut. Metadata sa�
 
 ## Bitiş koşulları
 
-G02 PASS ve kaynak→okuma→not kanıtı gerçek kalıcılıkla teslim edilir; kritik file/access/data-loss sorunu yok. Faz 03'ün D1 yazı akışı için sürüm/citation locators hazırdır, editor henüz eklenmez.
+Güncel kullanıcı kararı: build ve kısa kaynak→okuma→not kanıtı gerçek kalıcılıkla teslim edilir; geniş G02 beta listesinde açık kalır; kritik file/access/data-loss sorunu yok. Faz 03'ün D1 yazı akışı için sürüm/citation locators hazırdır, editor henüz eklenmez.

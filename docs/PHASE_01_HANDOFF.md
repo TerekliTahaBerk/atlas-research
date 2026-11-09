@@ -1,5 +1,7 @@
 # Phase 01 handoff
 
+Subsequent integration update: PR #31 was squash merged as `8c9f6d5c7d393fdcc31c903fedebd6c901f31fd8` after typecheck/lint/production-build checks. G01 remains open. The branch/deployment descriptions below record the earlier Phase 01 preview, not the current release source.
+
 Subsequent owner decision (9 November 2026): comprehensive G01 reviews are deferred to the [pre-beta backlog](BETA_REVIEW_BACKLOG.md) and do not block Phase 02. Integration/merging PR #31 after short checks is distinct from full live acceptance. Evidence below describes the Phase 01 delivery; deferred live conditions are not converted into PASS by local tests or a merge.
 
 Status: **G01 OPEN**. The owner-selected no-email preview is deployed in **yula.co / production**; full live acceptance remains open. Do not interpret this document as a production completion claim. External changes are limited to new Atlas resources; existing server/other-project settings remain unchanged.
@@ -10,7 +12,7 @@ Status: **G01 OPEN**. The owner-selected no-email preview is deployed in **yula.
 | P01-2 | [PR #28](https://github.com/TerekliTahaBerk/atlas-research/pull/28), squash `5b32556c5022b1248d5f8e2c3e4f8d128f28072a` | [Real identity/SMTP/session](implementation/P01-2.md) |
 | P01-3 | [PR #29](https://github.com/TerekliTahaBerk/atlas-research/pull/29), squash `00426a5b49396d23efe47fbd88c8063ad18af7f6` | [RLS/tenancy/lifecycle](implementation/P01-3.md) |
 | P01-4 | [PR #30](https://github.com/TerekliTahaBerk/atlas-research/pull/30), squash `90bd0e663c9021f6d2b7d9da89a5e3fb79f877e8` | [UI/browser/fidelity](implementation/P01-4.md) |
-| P01-5 | [Draft PR #31](https://github.com/TerekliTahaBerk/atlas-research/pull/31); feat/phase-01-5-operations; not closed | [Operations evidence](implementation/P01-5.md), [runbook](operations/COOLIFY_RUNBOOK.md) |
+| P01-5 | [Merged PR #31](https://github.com/TerekliTahaBerk/atlas-research/pull/31); squash `8c9f6d5`; deferred G01 remains open | [Operations evidence](implementation/P01-5.md), [runbook](operations/COOLIFY_RUNBOOK.md) |
 
 Delivered locally: real Better Auth accounts/verification/login/logout/reset/DB sessions; own profile/session revocation; idempotent personal and shared workspaces; private projects and explicit roles; invitation acceptance/revocation, owner transfer, archive/deletion recovery; default-deny server authorization + FORCE RLS; light/dark responsive shell without demo data/future modules; separate web/mail/migration/backup credentials; Docker standalone and local recovery drill.
 
