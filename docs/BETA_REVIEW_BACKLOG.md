@@ -40,4 +40,4 @@ The owner authorized implementation/deployment, selected an existing key to ente
 - Short Chromium rail/sheet testing does not replace all theme, viewport, screen-reader, zoom and engine combinations.
 - Schema 007 rollback requires compatible images; pre-007 rollback has not been validated. Preserve consistent encrypted DB and files.
 
-Phase 05 is not started. Email and independent backup acceptance remain deferred.
+Phase 05 preparation/hardening is now authorized; the owner confirmed no participants/support owner yet. Email and independent backup acceptance remain deferred. See [the current preparation ledger](PHASE_05_HANDOFF.md); no prior acceptance gate is silently closed.

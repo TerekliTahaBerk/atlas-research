@@ -536,6 +536,31 @@ function AiPanel({
                 </details>
               </article>
             ))}
+          {!preview &&
+            !question &&
+            history.data?.contexts
+              .filter((c) => !c.run)
+              .slice(-1)
+              .map((c) => (
+                <section className="ai-unsent" key={c.id}>
+                  <h3>Saved question preview</h3>
+                  <p>{c.question}</p>
+                  <small>
+                    No provider request was sent. Preview again to refresh
+                    evidence; approval is required again.
+                  </small>
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      setQuestion(c.question);
+                      setPreview(undefined);
+                      setConsent(false);
+                    }}
+                  >
+                    Restore unsent question
+                  </button>
+                </section>
+              ))}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -546,6 +571,7 @@ function AiPanel({
             <label>
               Research question
               <textarea
+                aria-label="Research question"
                 required
                 maxLength={4000}
                 rows={3}

@@ -308,6 +308,10 @@ export function WorkspaceShell({
             <Icon name="chevron" />
           </summary>
           <div className="account-popover">
+            <Link href="/help">
+              <Icon name="book" />
+              Pilot guide & support
+            </Link>
             <Link href="/settings">
               <Icon name="settings" />
               Settings
@@ -369,7 +373,7 @@ export function WorkspaceShell({
               <Icon name="home" />
               <span>Home</span>
             </Link>
-            {!current && ["settings", "inbox"].includes(active) && (
+            {!current && ["settings", "inbox", "help"].includes(active) && (
               <Link href={path} aria-current="page">
                 <Icon name="settings" />
                 <span>{title}</span>

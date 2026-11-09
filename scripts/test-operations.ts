@@ -4,6 +4,7 @@ import {
   writeFileSync,
   readFileSync,
   mkdirSync,
+  readdirSync,
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,7 +26,23 @@ import {
   listProjects,
 } from "../src/server/domain/projects";
 import type { Identity } from "../src/server/auth/identity";
+import { addSource, addAnnotation } from "../src/server/research/library";
+import { uploadPdf } from "../src/server/research/storage";
+import { createFileWorker } from "../src/server/files/worker";
+import {
+  createDocument,
+  getDocument,
+  createTask,
+  getTask,
+  createDiscussion,
+  getDiscussion,
+  taskInput,
+  discussionInput,
+} from "../src/server/collaboration/service";
+import { preview, getConversation } from "../src/server/ai/service";
+import { syntheticPdf } from "../tests/helpers/pdf";
 import images from "../ops/images.json";
+import { SCHEMA_REVISION } from "../src/server/release";
 
 // No external connection URL is accepted. All resources have our fresh prefix.
 const prefix = `atlas-drill-${randomBytes(6).toString("hex")}`,
@@ -162,7 +179,7 @@ async function waitReady(origin: string) {
         signal: AbortSignal.timeout(1000),
       });
       if (response.ok) {
-        assert.equal((await response.json()).schema, "202611090004_operations");
+        assert.equal((await response.json()).schema, SCHEMA_REVISION);
         return;
       }
     } catch {}
@@ -269,6 +286,18 @@ async function fixture(port: string) {
       sessionCreatedAt: now,
     });
   }
+  Object.assign(process.env, {
+    NODE_ENV: "test",
+    APP_ORIGIN: "http://127.0.0.1:3000",
+    BETTER_AUTH_SECRET: authSecret,
+    AUTH_DATABASE_URL: url("atlas_auth", "127.0.0.1", port),
+    DATABASE_URL: url("atlas_runtime", "127.0.0.1", port),
+    QUEUE_DATABASE_URL: url("atlas_queue", "127.0.0.1", port),
+    FILE_STORAGE_PATH: join(folder, "private-files"),
+    ATLAS_AI_CALLS_ENABLED: "false",
+  });
+  const worker = createFileWorker(process.env),
+    artifacts = [];
   const records = [];
   for (const actor of actors) {
     const w = await createSharedWorkspace(runtime, actor, {
@@ -280,8 +309,102 @@ async function fixture(port: string) {
       requestId: randomUUID(),
     });
     records.push(p);
+    const source = (
+      await addSource(runtime, actor, w.id, p.id, {
+        title: "Synthetic recovery paper",
+        authors: ["Fixture Author"],
+        year: 2026,
+        venue: "Recovery fixture",
+        doi: "10.1234/recovery-fixture",
+        url: null,
+        abstract: "",
+      })
+    ).source;
+    const bytes = syntheticPdf();
+    const uploaded = await uploadPdf(
+      new Request(process.env.APP_ORIGIN + "/upload", {
+        method: "POST",
+        headers: {
+          origin: process.env.APP_ORIGIN!,
+          "content-type": "application/pdf",
+          "content-length": String(bytes.length),
+        },
+        body: new Uint8Array(bytes),
+      }),
+      runtime,
+      actor,
+      w.id,
+      p.id,
+      source.id,
+      randomUUID(),
+    );
+    await worker.heartbeat();
+    await worker.flush();
+    const note = await addAnnotation(
+      runtime,
+      actor,
+      w.id,
+      p.id,
+      source.id,
+      uploaded.versionId!,
+      {
+        kind: "note",
+        page: 1,
+        body: "Synthetic restored note",
+        quote: "",
+        rects: [],
+        color: "yellow",
+      },
+    );
+    const document = await createDocument(runtime, actor, w.id, p.id, {
+      requestId: randomUUID(),
+      title: "Synthetic restored writing",
+      origin: {
+        sourceId: source.id,
+        versionId: uploaded.versionId!,
+        annotationId: note.id,
+      },
+    });
+    const task = await createTask(
+      runtime,
+      actor,
+      w.id,
+      p.id,
+      taskInput.parse({
+        requestId: randomUUID(),
+        title: "Synthetic restored task",
+        assigneeId: actor.id,
+        links: [document.id, note.id],
+      }),
+    );
+    const topic = await createDiscussion(
+      runtime,
+      actor,
+      w.id,
+      p.id,
+      discussionInput.parse({
+        requestId: randomUUID(),
+        title: "Synthetic restored thread",
+        body: "Synthetic first message",
+        links: [document.id, task.id],
+      }),
+    );
+    const context = await preview(runtime, actor, w.id, p.id, {
+      conversationId: null,
+      versionIds: [uploaded.versionId!],
+      question: "What stable source supports connected research?",
+    });
+    assert.ok(context.evidence.length > 0);
+    artifacts.push({
+      documentId: document.id,
+      taskId: task.id,
+      topicId: topic.id,
+      conversationId: context.context.conversationId,
+      evidenceHash: context.evidence[0].quoteHash,
+    });
   }
-  return { actors, records };
+  await worker.close();
+  return { actors, records, artifacts };
 }
 async function verifyRestored(
   port: string,
@@ -301,6 +424,33 @@ async function verifyRestored(
         )
       ).project.name,
       data.records[i].name,
+    );
+    const item = data.artifacts[i],
+      w = data.records[i].workspaceId,
+      p = data.records[i].id;
+    const doc = await getDocument(db, actor, w, p, item.documentId);
+    assert.equal(doc.document.revision, 1);
+    assert.ok(doc.citations.length > 0);
+    assert.ok(doc.versions.length > 0);
+    assert.ok(await getTask(db, actor, w, p, item.taskId));
+    assert.ok(await getDiscussion(db, actor, w, p, item.topicId));
+    const conversation = await getConversation(
+      db,
+      actor,
+      w,
+      p,
+      item.conversationId,
+    );
+    assert.equal(
+      conversation.contexts[0].evidence[0].quoteHash,
+      item.evidenceHash,
+    );
+    assert.equal(conversation.contexts[0].run, null);
+    await assert.rejects(
+      getDocument(db, data.actors[1 - i], w, p, item.documentId),
+    );
+    await assert.rejects(
+      getConversation(db, data.actors[1 - i], w, p, item.conversationId),
     );
     const other = data.records[1 - i];
     await assert.rejects(readProject(db, actor, other.workspaceId, other.id));
@@ -389,16 +539,42 @@ try {
     "require('fs').writeFileSync('/synthetic/synthetic.txt','Atlas operational fixture; no PDF feature or private data.\\n')",
   ]);
   docker("wait", fileContainer);
+  docker(
+    "cp",
+    join(folder, "private-files") + "/.",
+    `${fileContainer}:/synthetic`,
+  );
   const snapshot = join(folder, "snapshot");
   mkdirSync(snapshot);
   docker("cp", `${fileContainer}:/synthetic`, join(snapshot, "files"));
+  function manifest(
+    root: string,
+    relative = "",
+  ): { name: string; bytes: number; sha256: string }[] {
+    return readdirSync(join(root, relative), { withFileTypes: true }).flatMap(
+      (e) =>
+        e.isDirectory()
+          ? manifest(root, join(relative, e.name))
+          : [
+              {
+                name: join(relative, e.name),
+                bytes: readFileSync(join(root, relative, e.name)).length,
+                sha256: createHash("sha256")
+                  .update(readFileSync(join(root, relative, e.name)))
+                  .digest("hex"),
+              },
+            ],
+    );
+  }
+  const allFiles = manifest(join(snapshot, "files"));
+  assert.equal(allFiles.filter((f) => f.name.endsWith(".pdf")).length, 2);
   const bytes = readFileSync(join(snapshot, "files", "synthetic.txt")),
     hash = createHash("sha256").update(bytes).digest("hex"),
     capturedAt = new Date().toISOString();
   writeFileSync(
     join(snapshot, "manifest.json"),
     JSON.stringify({
-      schema: "202611090004_operations",
+      schema: SCHEMA_REVISION,
       image: docker(
         "image",
         "inspect",
@@ -407,7 +583,7 @@ try {
         "{{.Id}}",
       ),
       capturedAt,
-      files: [{ name: "synthetic.txt", bytes: bytes.length, sha256: hash }],
+      files: allFiles,
     }),
   );
   const pgpass = join(folder, "backup.pgpass");
@@ -506,19 +682,35 @@ try {
     "sleep",
     "120",
   ]);
-  docker(
-    "cp",
-    join(snapshot, "files", "synthetic.txt"),
-    `${restoreHelper}:/synthetic/synthetic.txt`,
-  );
+  docker("cp", join(snapshot, "files") + "/.", `${restoreHelper}:/synthetic`);
+  docker("exec", restoreHelper, "chown", "-R", "1000:1000", "/synthetic");
   const restoredHash = docker(
     "exec",
+    "--user",
+    "1000",
     restoreHelper,
     "node",
     "-e",
     "process.stdout.write(require('crypto').createHash('sha256').update(require('fs').readFileSync('/synthetic/synthetic.txt')).digest('hex'))",
   );
   assert.equal(restoredHash, hash);
+  const restoredManifest = JSON.parse(
+    docker(
+      "exec",
+      "--user",
+      "1000",
+      restoreHelper,
+      "node",
+      "-e",
+      "const fs=require('fs'),path=require('path'),crypto=require('crypto');function walk(rel=''){return fs.readdirSync(path.join('/synthetic',rel),{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(rel,e.name)):[{name:path.join(rel,e.name),bytes:fs.readFileSync(path.join('/synthetic',rel,e.name)).length,sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join('/synthetic',rel,e.name))).digest('hex')}]);}process.stdout.write(JSON.stringify(walk()));",
+    ),
+  );
+  assert.deepEqual(
+    restoredManifest.sort((a: { name: string }, b: { name: string }) =>
+      a.name.localeCompare(b.name),
+    ),
+    allFiles.sort((a, b) => a.name.localeCompare(b.name)),
+  );
   startMail(restored.name, "restore");
   const restoredWeb = startWeb(restored.name, "restore");
   await waitReady(restoredWeb.origin);
@@ -557,7 +749,7 @@ try {
     JSON.stringify({
       result: "PASS",
       scope: "local synthetic operations only",
-      schema: "202611090004_operations",
+      schema: SCHEMA_REVISION,
       restoreMilliseconds: Date.now() - started,
       checks: [
         "rootless web/mail/migrator",
@@ -567,7 +759,8 @@ try {
         "backup-role pg_dump",
         "AES-GCM bundle roundtrip",
         "fresh-cluster restore with owners/policies",
-        "synthetic file SHA-256",
+        "synthetic PDFs and file-tree SHA-256",
+        "source/page evidence, private AI preview, document versions/citations, linked task/thread survive restore",
         "two-team RLS after restore",
         "compatible metadata-image rollback",
       ],

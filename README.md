@@ -2,7 +2,9 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Phase 04:** grounded-AI implementation, immutable evidence previews, private conversations, clickable locators, reviewed document proposals and usage reservations are squash merged in [PR #37](https://github.com/TerekliTahaBerk/atlas-research/pull/37) and deployed as `91a78f9` to the existing Coolify app; observed deployment evidence is recorded in the handoff. Calls remain **disabled**: the owner prohibits paid calls and has not selected a budget. Real-model G04 acceptance is OPEN; see the [Phase 04 handoff](docs/PHASE_04_HANDOFF.md) and [provider/accounting decision](docs/decisions/0006-grounded-ai.md). Email/S3 stay off; Phase 05 has not started.
+**Phase 05 preparation:** owner-authorized readiness/hardening is in progress; no participants or support owner are assigned, and closed-beta acceptance stays OPEN. See the [preparation handoff](docs/PHASE_05_HANDOFF.md) and [pilot kit](docs/pilot/README.md). Paid AI, email and S3 stay disabled.
+
+**Phase 04:** grounded-AI implementation, immutable evidence previews, private conversations, clickable locators, reviewed document proposals and usage reservations are squash merged in [PR #37](https://github.com/TerekliTahaBerk/atlas-research/pull/37) and deployed as `91a78f9` to the existing Coolify app; observed deployment evidence is recorded in the handoff. Calls remain **disabled**: the owner prohibits paid calls and has not selected a budget. Real-model G04 acceptance is OPEN; see the [Phase 04 handoff](docs/PHASE_04_HANDOFF.md) and [provider/accounting decision](docs/decisions/0006-grounded-ai.md). Email/S3 stay off; Phase 05 preparation now follows with its release gates open.
 
 **Phase 03:** source-linked math documents, acknowledged autosave/recovery/history, tasks, project discussions and recipient Inbox are squash merged in [PR #35](https://github.com/TerekliTahaBerk/atlas-research/pull/35) and deployed as `4a013d2`; [handoff and release evidence](docs/PHASE_03_HANDOFF.md). Email/S3 remain disabled.
 

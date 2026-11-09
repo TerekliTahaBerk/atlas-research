@@ -25,6 +25,11 @@ import { verifiedUser } from "../tests/helpers/identity";
 import { startMailServer } from "../tests/helpers/mail";
 import { syntheticPdf } from "../tests/helpers/pdf";
 import { asIdentity } from "../src/server/db/transaction";
+import {
+  createInvitation,
+  acceptInvitation,
+} from "../src/server/domain/invitations";
+import { revokeProjectMember } from "../src/server/domain/projects";
 import { MODEL } from "../src/server/ai/provider";
 if (
   process.env.NODE_ENV !== "test" ||
@@ -161,6 +166,9 @@ const server = spawn(
   { env: process.env, stdio: ["ignore", "ignore", "pipe"] },
 );
 server.stderr.on("data", () => {});
+const heartbeat = setInterval(() => {
+  void Promise.all([worker.heartbeat(), mail.heartbeat()]).catch(() => {});
+}, 5000);
 const browser = await chromium.launch({ headless: true }),
   context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -173,7 +181,9 @@ page.on("pageerror", (e) => errors.push(e.name));
 page.on("console", (e) => {
   if (
     e.type() === "error" &&
-    !/Failed to load resource|net::ERR_FAILED/.test(e.text())
+    !/Failed to load resource|net::ERR_FAILED|Executing inline (?:script|event handler) violates/.test(
+      e.text(),
+    )
   )
     errors.push("console-error");
 });
@@ -223,6 +233,26 @@ try {
       .isDisabled(),
     true,
   );
+  if (process.argv.includes("--beta")) {
+    stage = "unsent preview navigation recovery";
+    await panel.locator(".ai-preview summary").first().click();
+    await panel
+      .getByRole("link", { name: "Open exact version · page 1", exact: true })
+      .click();
+    await page.waitForURL("**/read?version=" + upload.versionId + "&page=1");
+    await page.getByRole("button", { name: "Restore unsent question" }).click();
+    assert.equal(
+      await page.getByLabel("Research question", { exact: true }).inputValue(),
+      "What stable source supports connected research?",
+    );
+    await page
+      .getByRole("button", { name: "Preview evidence", exact: true })
+      .click();
+    await page
+      .getByRole("heading", { name: "Review before sharing" })
+      .waitFor();
+    assert.equal(calls, 0);
+  }
   stage = "owner policy";
   await panel.getByRole("button", { name: "Usage & sharing" }).click();
   await panel
@@ -337,6 +367,227 @@ try {
   );
   assert.deepEqual(errors, []);
   assert.equal(calls, 1);
+  if (process.argv.includes("--beta")) {
+    stage = "CSP, help and responsive matrix";
+    const response1 = await context.request.get(origin + "/help"),
+      response2 = await context.request.get(origin + "/help");
+    const csp = response1.headers()["content-security-policy"];
+    assert.ok(csp.includes("'strict-dynamic'"));
+    assert.ok(!csp.includes("'unsafe-eval'"));
+    assert.notEqual(csp, response2.headers()["content-security-policy"]);
+    const html = await response1.text();
+    const nonce = /nonce-([^']+)/.exec(csp)![1];
+    assert.ok(html.includes('nonce="' + nonce + '"'));
+    for (const theme of ["light", "dark"]) {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      const changeTheme = page.getByRole("button", {
+        name: theme === "dark" ? "Dark theme" : "Light theme",
+        exact: true,
+      });
+      if (await changeTheme.isVisible()) await changeTheme.click();
+      for (const width of [390, 768, 1024, 1440, 320]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.goto(origin + "/help");
+        await page
+          .getByRole("heading", { name: "Pilot guide & support", exact: true })
+          .waitFor();
+        assert.ok(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        );
+        await page
+          .getByRole("button", { name: "Prepare safe diagnostics" })
+          .click();
+        const details = await page
+          .getByRole("textbox", {
+            name: "Technical details — no research or account data",
+          })
+          .inputValue();
+        assert.match(details, /Schema: 202611090007_grounded_ai/);
+        assert.ok(!details.includes(owner.email));
+        if (width === 390 || width === 1440)
+          await page.screenshot({
+            path: join(folder, `beta-help-${theme}-${width}.png`),
+          });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.evaluate(() => {
+      const button = document.createElement("button");
+      button.id = "csp-negative-fixture";
+      button.textContent = "CSP negative fixture";
+      button.setAttribute(
+        "onclick",
+        'document.documentElement.dataset.atlasUnsafeScript="executed"',
+      );
+      document.body.append(button);
+    });
+    await page.evaluate(() =>
+      document.getElementById("csp-negative-fixture")?.click(),
+    );
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.dataset.atlasUnsafeScript,
+      ),
+      undefined,
+    );
+    // The deliberate CSP rejection above is expected; all other app errors remain failures.
+    stage = "ten active local sessions, HTTP load and two-team isolation";
+    const users = [owner];
+    for (let n = 1; n < 10; n++)
+      users.push(await verifiedUser(auth, mail, smtp));
+    const actors = await Promise.all(
+      users.map((u) => requireIdentity(auth, u.headers)),
+    );
+    const w2 = (
+      await createSharedWorkspace(db, actors[5], {
+        name: "Second synthetic team",
+        requestId: randomUUID(),
+      })
+    ).id;
+    const teamP2 = (
+      await createProject(db, actors[5], w2, {
+        name: "Other team research",
+        requestId: randomUUID(),
+      })
+    ).id;
+    for (const n of [1, 2, 3, 4, 6, 7, 8, 9]) {
+      const ownerIndex = n < 5 ? 0 : 5;
+      await createInvitation(
+        db,
+        actors[ownerIndex],
+        mail,
+        origin,
+        n < 5 ? w : w2,
+        n < 5 ? p : teamP2,
+        { email: actors[n].email, role: "editor" },
+      );
+      await mail.flush();
+      await acceptInvitation(
+        db,
+        actors[n],
+        smtp
+          .latest(actors[n].email, "Your Atlas project invitation")
+          .pathname.split("/")
+          .at(-1)!,
+      );
+    }
+    const targets = await Promise.all(
+      actors.map((actor, n) =>
+        createDocument(db, actor, n < 5 ? w : w2, n < 5 ? p : teamP2, {
+          requestId: randomUUID(),
+          title: "Synthetic load document " + n,
+        }),
+      ),
+    );
+    const reads: number[] = [],
+      writes: number[] = [];
+    let negativeChecks = 0;
+    await Promise.all(
+      users.map(async (user, n) => {
+        const root = `/api/collaboration/${n < 5 ? w : w2}/${n < 5 ? p : teamP2}`;
+        let revision = 1;
+        for (let round = 0; round < 5; round++) {
+          const started = performance.now();
+          const result = await fetch(
+            origin + root + "/documents/" + targets[n].id,
+            { headers: user.headers },
+          );
+          assert.equal(result.status, 200);
+          await result.json();
+          reads.push(performance.now() - started);
+          const requestId = randomUUID(),
+            writeStart = performance.now();
+          const saved = await fetch(
+            origin + root + "/documents/" + targets[n].id,
+            {
+              method: "PATCH",
+              headers: {
+                cookie: user.headers.get("cookie")!,
+                origin,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                action: "save",
+                requestId,
+                revision,
+                title: targets[n].title,
+                body: {
+                  type: "doc",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Synthetic acknowledged write " + round,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              }),
+            },
+          );
+          assert.equal(saved.status, 200);
+          const data = await saved.json();
+          revision = data.revision ?? data.document?.revision;
+          assert.equal(revision, round + 2);
+          writes.push(performance.now() - writeStart);
+          const reloaded = await fetch(
+            origin + root + "/documents/" + targets[n].id,
+            { headers: user.headers },
+          );
+          assert.equal((await reloaded.json()).document.revision, revision);
+        }
+        const wrong = await fetch(
+          origin +
+            `/api/collaboration/${n < 5 ? w2 : w}/${n < 5 ? teamP2 : p}/documents/${targets[n < 5 ? 5 : 0].id}`,
+          { headers: user.headers },
+        );
+        assert.equal(wrong.status, 404);
+        negativeChecks++;
+      }),
+    );
+    await revokeProjectMember(db, a, w, p, actors[1].id);
+    assert.equal(
+      (
+        await fetch(
+          origin + `/api/collaboration/${w}/${p}/documents/${targets[1].id}`,
+          { headers: users[1].headers },
+        )
+      ).status,
+      404,
+    );
+    negativeChecks++;
+    const p95 = (v: number[]) =>
+      Math.round([...v].sort((a, b) => a - b)[Math.ceil(v.length * 0.95) - 1]);
+    console.log(
+      JSON.stringify({
+        scope: "local synthetic HTTP only; not live capacity or pilot evidence",
+        sessions: 10,
+        reads: reads.length,
+        acknowledgedWrites: writes.length,
+        negativeChecks,
+        readP95ms: p95(reads),
+        saveP95ms: p95(writes),
+        lostAcknowledgedEdits: 0,
+      }),
+    );
+    assert.ok(p95(reads) <= 1000);
+    assert.ok(p95(writes) <= 2000);
+    if (process.env.ATLAS_QA_ARTIFACT_DIR)
+      for (const theme of ["light", "dark"])
+        for (const width of [390, 1440])
+          copyFileSync(
+            join(folder, `beta-help-${theme}-${width}.png`),
+            join(
+              process.env.ATLAS_QA_ARTIFACT_DIR,
+              `atlas-phase05-help-${theme}-${width}.png`,
+            ),
+          );
+  }
   const artifacts = process.env.ATLAS_QA_ARTIFACT_DIR;
   if (artifacts)
     for (const f of [
@@ -382,6 +633,7 @@ try {
   });
   throw e;
 } finally {
+  clearInterval(heartbeat);
   await browser.close();
   server.kill("SIGTERM");
   await Promise.all([
