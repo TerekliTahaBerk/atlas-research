@@ -35,3 +35,5 @@ Manuscript/LaTeX, Experiments/notebook, Semantic Map, Knowledge graph, kurum SSO
 ## Implemented Phase 03 routes
 
 S10: `/w/:w/p/:p/docs` and `/docs/:id`; S11: `/tasks` and `/tasks/:id`; S12: `/discussions` and `/discussions/:id`; S13: `/inbox`. S17 document export is authorized Markdown on the document API. PDF citation locators reuse `/sources/:id/read?version=:v&page=:n&annotation=:a`. These extend the existing shell; historical suggested routes above are not duplicate endpoints.
+
+S14 update (10 November owner instruction): the shared application controller hosts compact composer, expanded floating, modal focus and 392 px docked presentations. All use the same conversation, context preview, history and run endpoints. A narrow viewport uses the same surface with modal focus and visual-viewport sizing.

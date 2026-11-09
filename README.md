@@ -18,6 +18,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Tasks experience:** title-only capture, persistent Board order, inline List editing, combined filters and source-linked task details with recipient Inbox. See the [Tasks delivery record](docs/implementation/TASKS_EXPERIENCE.md).
 
+**Dynamic AI island:** shared compact/floating/focus/docked conversation surface, authorized research context snapshots and reviewed proposals. See the [implementation and verification boundary](docs/implementation/AI_ISLAND.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

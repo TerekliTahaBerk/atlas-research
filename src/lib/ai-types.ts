@@ -1,3 +1,13 @@
+export type AiArtifactSnapshot = {
+  id: string;
+  title: string;
+  kind: string;
+  revision?: number;
+  versionId?: string;
+  page?: number;
+  text: string;
+  href: string;
+};
 export type AiVersion = {
   id: string;
   sourceId: string;
@@ -69,6 +79,7 @@ export type AiContextView = {
     question: string;
     conversationId: string;
     expiresAt: string;
+    artifacts?: AiArtifactSnapshot[];
   };
   evidence: EvidenceView[];
   warnings: string[];
@@ -80,11 +91,13 @@ export type AiConversationView = {
     id: string;
     title: string;
     versionIds: string[];
+    artifactIds?: string[];
     createdAt: string;
   };
   contexts: {
     id: string;
     question: string;
+    artifacts?: AiArtifactSnapshot[];
     createdAt: string;
     evidence: EvidenceView[];
     run: AiRunView | null;

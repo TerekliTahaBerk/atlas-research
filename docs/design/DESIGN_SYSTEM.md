@@ -75,7 +75,7 @@ Bu tablo uygulama kararıdır; tüm ekranların bu koşulları bugün sağladı�
 
 ## Tek AI etkileşim modeli
 
-Sağ panel tek konuşma yüzeyidir; dar ekranda aynı yüzey sheet olur. Prototipteki compact/floating/focus sunumları ayrı ürün modları yapılmaz. Inline “Ask Atlas”, seçili PDF pasajı veya doküman eylemi bu paneli açıp görünür context chip'i önerir. Göndermeden önce kullanıcı kapsamı görür.
+10 Kasım kullanıcı kararı: compact composer, expanded floating, focus ve docked aynı konuşmanın dört sunumudur. Ortak uygulama controller’ı konuşma, taslak, kapsam ve çalışan isteği sunumdan bağımsız tutar; görünüm değişimi yeni konuşma açmaz. Dar ekranda kullanılabilir sheet/focus karşılığı kullanılır. Inline “Ask Atlas”, seçili PDF pasajı veya doküman eylemi bu paneli açıp görünür context chip'i önerir. Göndermeden önce kullanıcı kapsamı görür.
 
 Konuşma tek projeye ve başlatırken seçilmiş source version listesine bağlıdır. Sadece “Project” yazmak yeterli değil: proje adı, seçilen kaynak sayısı ve genişletilebilir sürüm listesi görünür. “Tüm proje kaynakları” seçimi gönderim anında izinli hazır sürüm listesine dondurulur. Ekran değişimi scope'u kendiliğinden değiştirmez. Kaynak listesi değiştirilecekse yeni konuşma açılır. Proje değişince eski konuşma kapanır; başka proje verisi yeni panele taşınmaz. Bu, HTML'deki ekran geçişinde `aiCtx` değiştirme davranışının gerekli düzeltmesidir.
 

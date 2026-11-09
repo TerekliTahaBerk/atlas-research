@@ -335,6 +335,54 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
         documentId: doc.id,
         revision: 1,
       });
+    // Non-PDF context is quoted from an immutable authorized revision, never a fake PDF page.
+    const artifactContext = await ai.preview(db, a, w, p, {
+      conversationId: null,
+      versionIds: [],
+      artifactIds: [doc.id],
+      question: "Use this document as research context",
+    });
+    const artifactRun = await ai.startRun(db, a, w, p, {
+      contextId: artifactContext.context.id,
+      requestId: randomUUID(),
+      consent: true,
+    });
+    await executeRun(db, a, w, p, artifactRun.id, async (input) => ({
+      model: MODEL,
+      inputTokens: 100,
+      outputTokens: 70,
+      answer: {
+        status: "answered",
+        segments: [
+          {
+            text: "Controlled document context",
+            citations: [
+              {
+                evidenceId: doc.id,
+                quote: input.evidence[0].quote.slice(0, 24),
+              },
+            ],
+          },
+        ],
+        limitations: "Synthetic fixture only",
+      },
+    }));
+    const artifactTarget = await createDocument(db, a, w, p, {
+      requestId: randomUUID(),
+      title: "Artifact proposal target",
+    });
+    const artifactProposal = await proposal.createProposal(db, a, w, p, {
+      requestId: randomUUID(),
+      runId: artifactRun.id,
+      documentId: artifactTarget.id,
+      revision: 1,
+    });
+    await proposal.applyProposal(db, a, w, p, artifactProposal.id);
+    const artifactDocument = await getDocument(db, a, w, p, artifactTarget.id);
+    assert.ok(
+      JSON.stringify(artifactDocument.document.body).includes("revision 1"),
+    );
+    assert.ok(JSON.stringify(artifactDocument.document.body).includes(doc.id));
     assert.equal(
       (await getDocument(db, a, w, p, doc.id)).document.revision,
       1,
