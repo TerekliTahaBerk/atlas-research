@@ -2,7 +2,7 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Status:** Phase 00 and Phase 01 P01-1–5 are squash merged (PR #31 → `8c9f6d5`). Phase 02 research-library implementation is in progress on `feat/phase-02-research-library`; see the [Phase 02 handoff](docs/PHASE_02_HANDOFF.md). The existing Coolify **yula.co** preview keeps email/S3 disabled. Comprehensive G01/G02 acceptance is deferred [before the Phase 05 beta](docs/BETA_REVIEW_BACKLOG.md), not marked complete.
+**Status:** Phase 00 and Phase 01 P01-1–5 are squash merged (PR #31 → `8c9f6d5`). Phase 02 is squash merged (PR #32 → `d186819`) and deployed with real discovery, private PDF reading and persistent annotations; see the [Phase 02 handoff](docs/PHASE_02_HANDOFF.md). The existing Coolify **yula.co** preview keeps email/S3 disabled. Comprehensive G01/G02 acceptance is deferred [before the Phase 05 beta](docs/BETA_REVIEW_BACKLOG.md), not marked complete.
 
 ## Start here
 
@@ -34,7 +34,7 @@ Deploy with Docker on Coolify. Use self-hosted PostgreSQL as the application dat
 
 - `main`: canonical integration and release branch.
 - `feat/phase-00-foundation`: historical Phase 00 delivery branch (PR #26 merged).
-- `feat/phase-02-research-library`: integrated discovery, private PDF reading and annotation delivery branch; one PR targets main.
+- `feat/phase-02-research-library`: Phase 02 delivery branch; functional PR #32 is merged, with a documentation follow-up recording observed live evidence.
 - `archive/pre-restart-2026-11-09`: legacy source and every original branch tip.
 - Short-lived `feat/*`, `fix/*`, `chore/*` and `docs/*` branches merge through pull requests.
 - Old code, migrations, dependencies, workflows and reports are absent from the active tree. Git history remains recoverable.

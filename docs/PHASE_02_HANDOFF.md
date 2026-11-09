@@ -1,6 +1,6 @@
 # Faz 02 teslim kaydı
 
-Durum: uygulama ve kısa yerel doğrulama tamamlandı; PR birleştirme ve canlı dağıtım/doğrulama henüz bekliyor. Geniş G01/G02 kabulü [beta öncesi listede](BETA_REVIEW_BACKLOG.md) açık kalır. Faz 03 uygulanmadı.
+Durum: Faz 02 çalışan yolculuğu tamamlandı, PR #32 squash merge edildi ve mevcut Coolify Atlas uygulamasına dağıtıldı. Kısa gerçek-makale akışı hem yerelde hem canlıda doğrulandı. Geniş G01/G02 kabulü [beta öncesi listede](BETA_REVIEW_BACKLOG.md) açık kalır. Faz 03 uygulanmadı.
 
 ## Çalışan özellikler
 
@@ -22,15 +22,20 @@ Durum: uygulama ve kısa yerel doğrulama tamamlandı; PR birleştirme ve canlı
 | `node --import tsx scripts/test-integration.ts --library-browser` | PASS; production build + geçici DB/yerel kontrollü SMTP, gerçek Crossref araması ve açık lisanslı PDF; masaüstü 1440×1000, dar 390×900 |
 | Tarayıcı ana yolculuğu | Gerçek makale kaydetme/aynı DOI ikinci kayıt oluşturmama → PDF yükleme/render/metin seçimi → vurgu+açıklama ve sayfa notu → yenileme/yeniden girişte iki not, sayfa 2, zoom 125% → range 206, anonim 401, yanlış proje 404 → BibTeX/RIS DOI → etiket/koleksiyon → dar okuyucu/not dialog'u PASS |
 | Render sağlığı | Doğru başlık/route ve dolu içerik, framework overlay/page/console error yok; ekran görüntüleri incelendi; iki genişlikte sayfa taşması yok |
-| Canlı kısa yolculuk | NOT RUN — dağıtım sonrası ayrıca kaydedilecek; yerel test canlı kabulü yerine geçmez |
+| Canlı kısa yolculuk | PASS; mevcut hesapla ayrı kontrollü proje → gerçek Crossref/PLOS makalesi → PDF yükleme/render → seçili metin vurgusu+açıklama → PDF içi aramayla sayfa 2 → sayfa notu → yenileme/çıkış/yeniden girişte iki annotation, sayfa 2 ve 125% zoom |
+| Canlı ek kısa kontroller | DOI büyük/küçük harf tekrarı aynı kayda döndü; kütüphanede tek kaynak kaldı. BibTeX/RIS gerçek DOI içeriyor. Methods koleksiyonu/verification etiketi kaydedildi. Anonim range 401; mevcut oturumda farklı proje scope'uyla dosya yolu UNAVAILABLE. Files worker: 15 sayfa / ready. |
+| Canlı render | Chrome 1920×873 ve 390×900; dolu doğru route/başlık, PDF canvas/metin ve dar Notes dialog'u çalıştı; sayfa yatay taşması yok, ilgili app console/page error gözlenmedi; viewport override geri alındı |
+| Atlas-only yeniden dağıtım | PASS; aynı commit yeni container'lara alındıktan sonra PDF yeniden render edildi, iki annotation ve sayfa 2 korundu. Bu kısa kontrol bağımsız restore veya kapsamlı rollback denetimi değildir. |
 
 Browser plugin mevcut olmadığı için repo'nun Playwright Chromium yöntemi kullanıldı. Yerel görsel kanıt geçici `atlas-library-browser-coBC1m` dizinindedir; özel veri veya PDF repository'ye eklenmedi. Kullanılan kamu makalesi: Head et al. (2015), [The Extent and Consequences of P-Hacking in Science](https://doi.org/10.1371/journal.pbio.1002106), PLOS Biology, CC BY. Geçici test notları kontrol verisidir; kullanıcının araştırma verisi değildir. Kontrollü yerel SMTP, gerçek e-posta teslimi sayılmaz.
 
 ## Teslim ve operasyon
 
-- Branch: `feat/phase-02-research-library`; PR/main squash ve canlı SHA dağıtım tamamlanınca kaydedilecek.
+- Branch: `feat/phase-02-research-library`; [işlevsel PR #32](https://github.com/TerekliTahaBerk/atlas-research/pull/32) normal squash merge edildi. Canlı uygulama commit'i: [`d18681952936869d29f46521588ac0df8ac9e725`](https://github.com/TerekliTahaBerk/atlas-research/commit/d18681952936869d29f46521588ac0df8ac9e725). Sonraki belge PR'ı uygulama image'ını değiştirmez.
+- HTTPS `/health/ready`: 200 / ready, release tam olarak yukarıdaki SHA, schema `202611090005_library`. Bu uygulama sürümü/readiness kanıtıdır; gerçek image ID/digest denetimi değildir.
+- Coolify ilk dağıtım `2ttiizjkjd35i0s8heyx50ig`: 2026-11-09 13:47:19 UTC başlangıç, 1m38s / Success. Aynı-sürüm kalıcılık dağıtımı `rwrazmmnxw3l7yerswyyci5q`: 13:53:37 UTC başlangıç, Success; sonrasında PDF/notlar tekrar gözlendi.
 - Önceki PR [#31](https://github.com/TerekliTahaBerk/atlas-research/pull/31), kısa kontrollerle `8c9f6d5c7d393fdcc31c903fedebd6c901f31fd8` olarak birleştirildi; G01 kapanmış sayılmadı.
-- Mevcut [Atlas canlı adresi](https://om2lefhyk80lxthwkqe2qi3f.91.99.118.96.sslip.io). Coolify yula.co / production / Atlas Research uygulaması kullanılacak. PostgreSQL volume'u/kimlik sırları/hesap ve projeler korunacak; yalnız yeni Atlas özel dosya volume'u ve files service ekleniyor.
+- Mevcut [Atlas canlı adresi](https://om2lefhyk80lxthwkqe2qi3f.91.99.118.96.sslip.io). Coolify yula.co / production / Atlas Research uygulaması kullanıldı. Eski `lcj5rqwtuautouw34e5ldhva_atlas-postgres` mount'u `/var/lib/postgresql` olarak korundu; yeni `lcj5rqwtuautouw34e5ldhva_atlas-private-files` mount'u `/data/atlas-files`. Mevcut hesap/oturum ve önceden var olan proje erişimi korundu. Sunucu, proxy ve diğer kaynakların ayarları değiştirilmedi. MAIL_DELIVERY=disabled; S3/SMTP etkinleştirilmedi. Build args Dockerfile'da manuel, deploy manuel ve cross-resource network kapalı kaldı.
 - [Uygulama kaydı](implementation/P02.md), [güncel operasyon runbook'u](operations/COOLIFY_RUNBOOK.md), [ADR 0004 yeniden değerlendirmesi](decisions/0004-files-jobs-and-realtime.md).
 
 ## Sınırlamalar ve açık kabul

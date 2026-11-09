@@ -1,6 +1,6 @@
 # Faz 02 — Keşif, kaynak kütüphanesi ve okuma
 
-Durum: uygulama çalışması sürüyor; güncel kısa doğrulama ve dağıtım kaydı [Faz 02 tesliminde](../PHASE_02_HANDOFF.md). Aşağıdaki geniş matris tarihsel beta hedefidir.
+Durum: çalışan yolculuk PR #32 ile birleştirildi ve canlıda doğrulandı; güncel kısa doğrulama ve dağıtım kaydı [Faz 02 tesliminde](../PHASE_02_HANDOFF.md). Aşağıdaki geniş matris tarihsel beta hedefidir.
 
 9 Kasım 2026 kullanıcı kararı bu belgedeki eski G01 PASS ve her dilimde kapsamlı kabul önkoşulunu değiştirir: G01/G02'nin kapsamlı denetimleri [beta öncesi listeye](../BETA_REVIEW_BACKLOG.md) ertelenmiştir. Faz 02, mevcut hesap/projeleri koruyarak çalışan kaynak→PDF→kalıcı not yolculuğunu, son sürümde typecheck/lint/build ve kısa kritik veri/dosya erişimi kontrolleriyle teslim eder. E-posta ve S3 kapalı kalır. Aşağıdaki kapsamlı matris tarihsel hedef olarak korunur; yapılmamış kontroller PASS sayılmaz.
 

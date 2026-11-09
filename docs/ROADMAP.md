@@ -1,6 +1,6 @@
 # Atlas roadmap
 
-Status: Phase 00 and Phase 01 P01-1–5 are merged, including PR #31 squash `8c9f6d5`. Phase 02 is in implementation. The owner deferred comprehensive G01/G02 reviews to [before the Phase 05 beta](BETA_REVIEW_BACKLOG.md); email and independent backup remain open and do not block Phase 02. Current delivery evidence belongs in [the Phase 02 handoff](PHASE_02_HANDOFF.md). Detailed scope and historical gate definitions remain in the phase specifications.
+Status: Phase 00 and Phase 01 P01-1–5 are merged, including PR #31 squash `8c9f6d5`. Phase 02 is merged (PR #32, `d186819`) and its short real-paper journey is verified locally and on the existing Coolify app. The owner deferred comprehensive G01/G02 reviews to [before the Phase 05 beta](BETA_REVIEW_BACKLOG.md); email and independent backup remain open and do not block Phase 02. Current delivery evidence belongs in [the Phase 02 handoff](PHASE_02_HANDOFF.md). Detailed scope and historical gate definitions remain in the phase specifications.
 
 ## Product
 
