@@ -29,4 +29,4 @@ The completed source audit is in [REFERENCE_AUDIT](REFERENCE_AUDIT.md); measured
 
 Test the combined sidebar/content/AI-panel widths, focus/keyboard behavior, scroll containers, empty/loading/error states and context switching. Preserve the reference's character while documenting any necessary usability correction.
 
-No prototype rebuild or product implementation was performed. Source measurements are distinguished from browser observations and planned corrections; full accessibility and per-screen responsive testing remain future acceptance work.
+The paragraph above records Phase 00. Phase 02 now implements the Research/Library/Reader subset; its reference adaptations and verification are recorded in [P02](../implementation/P02.md). Source measurements are distinguished from browser observations and planned corrections; full accessibility and per-screen responsive testing remain future acceptance work.
