@@ -98,7 +98,14 @@ async function handle(
             a,
             w,
             p,
-            url.searchParams.get("archived") === "true",
+            url.searchParams.has("view")
+              ? c.taskListInput.parse({
+                  ...Object.fromEntries(url.searchParams),
+                  completed: url.searchParams.get("completed") !== "false",
+                  archived: url.searchParams.get("archived") === "true",
+                  page: Number(url.searchParams.get("page") ?? 0),
+                })
+              : url.searchParams.get("archived") === "true",
           );
         if (method === "POST")
           return c.createTask(
@@ -114,9 +121,19 @@ async function handle(
         if (method === "PATCH") {
           const input = await readMutation(
             request,
-            z.union([c.taskEditInput, c.archiveInput]),
+            z.union([
+              c.taskChangeInput,
+              c.taskMoveInput,
+              c.taskEditInput,
+              c.archiveInput,
+            ]),
             65536,
           );
+          if (
+            "action" in input &&
+            (input.action === "edit" || input.action === "move")
+          )
+            return c.changeTask(db, a, w, p, id, input);
           return "action" in input
             ? c.archiveArtifact(db, a, w, p, id, "task", input)
             : c.editTask(db, a, w, p, id, input);
@@ -158,7 +175,24 @@ async function handle(
         );
     }
     if (part[0] === "artifacts" && method === "GET") {
-      if (part.length === 1) return c.artifactOptions(db, a, w, p);
+      if (part.length === 1)
+        return c.artifactOptions(
+          db,
+          a,
+          w,
+          p,
+          url.searchParams.has("q")
+            ? z.string().max(200).parse(url.searchParams.get("q"))
+            : undefined,
+          url.searchParams.has("selected")
+            ? z
+                .array(z.uuid())
+                .max(30)
+                .parse(
+                  url.searchParams.get("selected")!.split(",").filter(Boolean),
+                )
+            : [],
+        );
       if (part.length === 3 && part[2] === "links")
         return c.getLinks(db, a, w, p, id);
     }

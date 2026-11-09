@@ -56,6 +56,9 @@ export type TaskData = {
   priority: string;
   assigneeId: string | null;
   dueDate: string | null;
+  position?: number;
+  createdAt?: string;
+  links?: ArtifactCard[];
   revision: number;
   archivedAt: string | null;
   updatedAt: string;

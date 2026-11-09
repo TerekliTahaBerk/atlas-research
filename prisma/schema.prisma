@@ -466,6 +466,7 @@ model Task {
  priority String @default("medium")
  assigneeId String?
  dueDate String?
+ position Float @default(0)
  revision Int @default(1)
  archivedAt DateTime?
  createdBy String
@@ -473,6 +474,19 @@ model Task {
  updatedAt DateTime @updatedAt
  @@unique([workspaceId,projectId,id])
  @@map("tasks")
+ @@schema("app")
+}
+model TaskWrite {
+ taskId String @db.Uuid
+ requestId String @db.Uuid
+ workspaceId String @db.Uuid
+ projectId String @db.Uuid
+ actorId String
+ hash String
+ revision Int
+ createdAt DateTime @default(now())
+ @@id([taskId,requestId])
+ @@map("task_writes")
  @@schema("app")
 }
 model Discussion {
