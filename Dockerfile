@@ -40,6 +40,8 @@ WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
+RUN mkdir -p /data/atlas-files && chown node:node /data/atlas-files
 COPY ops/probe.mjs ./ops/probe.mjs
 ARG ATLAS_SOURCE_COMMIT=local
 LABEL org.opencontainers.image.revision=$ATLAS_SOURCE_COMMIT
@@ -47,3 +49,18 @@ USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=8s --start-period=40s CMD ["node","ops/probe.mjs"]
 CMD ["node","server.js"]
+
+FROM base AS files
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist/worker ./dist/worker
+COPY --from=build --chown=node:node /app/package.json ./package.json
+COPY ops/files-probe.mjs ./ops/files-probe.mjs
+RUN mkdir -p /data/atlas-files && chown node:node /data/atlas-files
+ARG ATLAS_SOURCE_COMMIT=local
+LABEL org.opencontainers.image.revision=$ATLAS_SOURCE_COMMIT
+USER node
+HEALTHCHECK --interval=15s --timeout=8s --start-period=30s CMD ["node","ops/files-probe.mjs"]
+CMD ["node","dist/worker/files/run.js"]

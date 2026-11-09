@@ -27,7 +27,7 @@ try {
   run("npm", ["run", "verify"]);
   run("node", ["ops/validate-compose.mjs"]);
   const imageIds = {};
-  for (const target of ["web", "mail", "migrator"]) {
+  for (const target of ["web", "mail", "migrator", "files"]) {
     run("docker", [
       "build",
       "--target",

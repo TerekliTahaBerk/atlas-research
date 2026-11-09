@@ -42,7 +42,7 @@ try {
     overlay,
     JSON.stringify({
       services: Object.fromEntries(
-        ["postgres", "bootstrap", "migrate", "web", "mail"].map((name) => [
+        ["postgres", "bootstrap", "migrate", "web", "mail", "files"].map((name) => [
           name,
           { env_file: [envFile] },
         ]),
@@ -81,6 +81,7 @@ try {
     ),
   );
   const allowed = {
+    files: ["SERVICE_HEX_64_ATLASRUNTIME", "SERVICE_HEX_64_ATLASQUEUE"],
     postgres: ["SERVICE_HEX_64_ATLASPOSTGRES"],
     bootstrap: [
       "SERVICE_HEX_64_ATLASPOSTGRES",
