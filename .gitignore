@@ -25,6 +25,8 @@ test-results/
 .vscode/
 .turbo/
 .vercel/
+src/generated/
+.atlas-local/
 .tmp/
 tmp/
 

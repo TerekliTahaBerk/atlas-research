@@ -2,7 +2,7 @@
 
 Atlas is a connected workspace for individual researchers and small research teams.
 
-**Status:** Phase 00 product/design/architecture package completed on 9 November 2026 for PR review. See the [handoff and actual verification](docs/PHASE_00_HANDOFF.md). Phase 01 has not started. There is no application, installed application toolchain, database or deployment created by this work.
+**Status:** Phase 00 was squash merged in [PR #26](https://github.com/TerekliTahaBerk/atlas-research/pull/26). Phase 01 implementation has started in ordered PR slices. [P01-1](docs/implementation/P01-1.md) records the runtime baseline; G01 remains open until identity, tenancy, UI and the first Coolify deployment are verified.
 
 ## Start here
 
@@ -37,6 +37,7 @@ Deploy with Docker on Coolify. Use self-hosted PostgreSQL as the application dat
 - `archive/pre-restart-2026-11-09`: legacy source and every original branch tip.
 - Short-lived `feat/*`, `fix/*`, `chore/*` and `docs/*` branches merge through pull requests.
 - Old code, migrations, dependencies, workflows and reports are absent from the active tree. Git history remains recoverable.
-- This documentation/reference package has no application build or test commands. Run `python3 scripts/verify_phase00.py` and `git diff --check` for local documentation checks. The implementation toolchain and future tests are planned, not installed.
+- `npm ci` installs the pinned toolchain. `npm run verify` runs typecheck, lint, unit tests, disposable PostgreSQL integration and production build. Docker is required for integration tests; they never use your current database URL.
+- `python3 scripts/verify_phase00.py --historical` preserves the original Phase 00 checks against its frozen Git tree. Its no-app rule is not a Phase 01 gate.
 
 The repository remains public. Never commit private research data, credentials or proprietary design assets.
