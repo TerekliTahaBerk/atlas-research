@@ -1,6 +1,6 @@
 # Phase 05 preparation and hardening
 
-Status: preparation implementation is squash merged in [PR #39](https://github.com/TerekliTahaBerk/atlas-research/pull/39) and deployed as `73ec5e7`; scoped live rollback verification is in progress. The owner explicitly selected **preparation and hardening**, with no pilot participants or support/incident owner assigned. This is not a closed-beta launch or G05 PASS. Paid AI calls, email and S3 remain disabled. Existing Atlas Coolify settings and unrelated infrastructure must remain intact.
+Status: preparation implementation is squash merged in [PR #39](https://github.com/TerekliTahaBerk/atlas-research/pull/39) and is live as `33169e16ab0f8c420c5f560cd830fd5ace432f69` (documentation/source-label revision B of the same code). Preparation/hardening delivery is complete; exact-image rollback and closed-beta acceptance are not passed. The owner explicitly selected **preparation and hardening**, with no pilot participants or support/incident owner assigned. This is not a closed-beta launch or G05 PASS. Paid AI calls, email and S3 remain disabled. Existing Atlas Coolify settings and unrelated infrastructure must remain intact.
 
 ## Changes
 
@@ -21,8 +21,8 @@ Only observed results will be recorded here. Local synthetic evidence does not c
 | Ten concurrent synthetic sessions / HTTP load / isolation | PASS locally: 10 sessions in two teams; 50 detail reads, 50 acknowledged saves + reloads, 11 cross-team/revoked negative checks; read p95 81 ms, save p95 94 ms, zero lost acknowledged edits. Node 24.21.0 arm64, 10 host CPUs, 32 GiB RAM, local unconstrained web process and disposable PostgreSQL 18.6. Not live server capacity or pilot evidence. |
 | Current-image local encrypted DB+files recovery | PASS with candidate `6f71c06` web/mail/migrator images: encrypted backup → fresh cluster/files volume, file hashes readable as UID 1000, versions/citations/tasks/threads/private AI previews and two-team denial preserved. Local recovery/metadata rollback interval 5,498 ms; tiny synthetic set, not independent-target RPO/RTO. |
 | Existing Coolify deployment / HTTPS headers | PASS: deployment `ncyc5plu64fpjxmmuuyz4nru` (17:05:28 UTC / 20:05:28 Europe/Istanbul) reports Success; readiness `73ec5e71d6181806e3813c506eeff27069353ea9`, schema 007. Two HTTPS responses had different CSP nonces, matching script attributes, no production JS unsafe-eval, HSTS max-age=31536000 and DENY framing. Live guide/diagnostics rendered. |
-| Actual container image identities / PostgreSQL limits | Baseline `91a78f9` runtime image IDs and matching web/mail/files/migrator labels observed via Atlas-only docker inspect. PostgreSQL RepoDigest matches pinned `f1ea2a…`; actual cgroup memory.max=1073741824 and cpu.max=`100000 100000` (1 GiB / 1 CPU). First Phase 05 release audit also passed; exact IDs below. Final post-rollback audit pending. |
-| Live compatible 007 image rollback | Not yet observed |
+| Actual container image identities / PostgreSQL limits | Baseline `91a78f9` runtime image IDs and matching web/mail/files/migrator labels observed via Atlas-only docker inspect. PostgreSQL RepoDigest matches pinned `f1ea2a…`; actual cgroup memory.max=1073741824 and cpu.max=`100000 100000` (1 GiB / 1 CPU). First Phase 05 release audit also passed; exact IDs below. Final B source labels and exact runtime IDs were observed; see the final table. |
+| Live compatible 007 image rollback | **FAIL / OPEN for exact-image identity**: source A → B → A returned ready and preserved controlled data, but A images were rebuilt with different IDs. Coolify lists no retained rollback images. Source/schema compatibility is separate from restoring the original artifacts. Final B source restoration succeeded; this does not close the exact-image failure. |
 | Real pilot / support assignment / G01–G05 acceptance | OPEN; participants and owner unassigned, prior gates incomplete |
 | Real model / G04 | NOT RUN; paid calls prohibited, budget undecided |
 | Independent off-host backup/restore | NOT RUN; no destination selected, S3 off |
@@ -62,6 +62,41 @@ Observed runtime image IDs for release A (`73ec5e7`); each application image car
 
 PostgreSQL RepoDigest is the pinned `postgres@sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5`. Inspection was filtered to this Atlas resource; no environment values, database rows or unrelated containers were dumped.
 
-The following documentation-only revision is release B for a **same-code, same-schema** live image switch/rollback rehearsal. Both A and B retain nonce CSP/HSTS, disabled paid calls/email/S3, credential isolation and identical data contracts. Reverting to pre-hardening images would remove security headers and is deliberately not used. The planned sequence is A → B → A → B, with readiness, image/source labels and controlled PDF/document persistence observed at each relevant step. No database restore or volume replacement is involved. This tests the operational rollback path; it cannot certify arbitrary earlier application/schema compatibility. Actual outcomes are recorded in a final observation follow-up.
+The following documentation-only revision is release B for a **same-code, same-schema** live image switch/rollback rehearsal. Both A and B retain nonce CSP/HSTS, disabled paid calls/email/S3, credential isolation and identical data contracts. Reverting to pre-hardening images would remove security headers and is deliberately not used. The planned sequence is A → B → A → B, with readiness, image/source labels and controlled PDF/document persistence observed at each relevant step. No database restore or volume replacement is involved. This tests the operational rollback path; it cannot certify arbitrary earlier application/schema compatibility. Actual outcomes are recorded below; the source-only rollback is not an exact-image PASS.
 
 HTTPS audit used curl with normal system trust. The local Python installation lacked an issuer CA; its failed verification was not bypassed and neither client nor server trust settings were changed.
+
+## Live rollback observation — source rollback is not exact-image rollback
+
+- A deployment: `ncyc5plu64fpjxmmuuyz4nru`, 17:05:28 UTC (20:05:28 Istanbul), source `73ec5e7`.
+- B deployment: `dtmxdskwjtqmaylks9lkv9vn`, 17:11:45 UTC (20:11:45 Istanbul), documentation-only source `33169e16ab0f8c420c5f560cd830fd5ace432f69`. Readiness/schema and CSP/HSTS passed.
+- A source rollback: `imwk4evsmxcsya4pzsykjwdu`, 17:15:25 UTC (20:15:25 Istanbul), Success; readiness returned `73ec5e7` / 007. CSP/HSTS remained enforced.
+- Final B restoration: `aurh7ki8wxapiwrtqanggc0v`, started 17:20:41 UTC (20:20:41 Istanbul); Success observed; final readiness returned `33169e1` / 007, CSP/HSTS remained enforced.
+
+Before and after the A source rollback, the controlled document stayed Saved at revision 3, with its original source-linked sentence. Existing PDF version `fb759960-20ca-4e48-912b-d8992985b900` rendered at physical page 2 and its page-two note remained. Authenticated downloads before/after both hashed to `769d967609d464d2079e92a0c968ce8eb9d895bcfefd51256e097584eb050a4a`. The PDF is the prior public PLOS verification paper, not private pilot research. No document was edited and no DB/files restore or volume replacement was performed live.
+
+**The exact-image check failed.** Original A web ID was `59fb244e…`; rebuilt A web was `d35fddf8…`. Mail/files/migrate IDs also differed. Source labels alone did not establish identical binaries. Coolify's Rollback page said no previous application images were stored. Therefore the required immutable-artifact rollback gate remains OPEN; this rehearsal must not be reported as a successful exact-image rollback. Retained/pinned four-role artifacts and an observed restore of those IDs are needed before beta. No registry, retention setting, server cleanup or unrelated service was changed to conceal this limitation.
+
+The source-only transition is useful evidence: the same hardened code/schema runs both ways with stable committed data, while nonce CSP/HSTS, disabled model calls, email/S3 and credential isolation remain in force. It is not a guarantee about earlier code or incompatible schemas.
+
+After local verification, this task's three generated local image tags, three further unused task image records and one stopped failed-build container were removed without force. Only identifiers proven by the task build log/source label were eligible. No volume, running container or unrelated project was removed. Earlier cleanup had removed 21 task-created untagged records. The two public-paper browser downloads remain in the owner's Downloads directory; neither PDF nor screenshots are committed.
+
+## Final observed state
+
+Final running source: **B `33169e16ab0f8c420c5f560cd830fd5ace432f69`**, schema `202611090007_grounded_ai`. Deployment `aurh7ki8wxapiwrtqanggc0v` reports Success. Repeat HTTPS audit confirmed fresh CSP nonces bound to scripts, HSTS and DENY framing using normal curl TLS verification. Authenticated Chrome rendered `/help` and safe diagnostics without console errors/warnings (0 recorded). The previous controlled document remained Saved at revision 3 after final B. No application/schema code differs between A and B.
+
+Final runtime image IDs, all with the exact B source label and `Config.User=node` for application roles:
+
+| Role | Image ID (sha256) |
+| --- | --- |
+| web | `525b406d62251e606a59dfdf27dab646cdfa6329da863aa65c293adb33414284` |
+| mail | `0a04ba3dab8f24b94b03f2bd708c393a559b3366e445c647176b17c980b5bb45` |
+| files | `90d8209aaa214c07834fa1a304dbf6090bf6d4428728f8bd50da0e06dd5ad05b` |
+| migrate/bootstrap | `728eadf02427c64d15d866ace1857c96680419eca11cf5a8925a320d09f9d4d7` |
+| PostgreSQL | `b8a2015d6ceb378773f3407bca00ab7ac8e8e6d2c0e5f1a9295c40bff5c05f7e` |
+
+Only boolean runtime credential metadata was inspected: OpenAI key presence true in web, false in mail/files; paid-call flag false in all three; test endpoint and migration credential absent in all three. No key value or credential was displayed, copied or rotated. Key validity/provider access is NOT tested. Final PostgreSQL cgroup remained 1 GiB / 1 CPU. No proxy/server setting, resource limit, domain, volume or unrelated service was changed. Email/S3 stayed off; no real participant invitation or paid model call occurred.
+
+The final screenshot `atlas-phase05-live-guide.png` is local and uncommitted; it shows the guide and explicit no-pilot/closed-service state. Focused local screenshots cover guide light/dark at 390/1440; automated layout checks also covered 320/768/1024. Manual screen reader/native zoom, complete screen/state/engine coverage, actual live cookie attributes and controlled live two-team revocation remain NOT RUN. Automatic pilot event instrumentation, assigned support, recruited participants, real-model G04 and independent off-host recovery remain open. M1–M7 real pilot observations remain NOT RUN.
+
+The final documentation-only observation PR does not require another deployment. Keep the app pinned to B. A future beta decision requires the owner to review these explicit gaps; neither this delivery nor the source rollback is G05 PASS.

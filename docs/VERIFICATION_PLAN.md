@@ -2,7 +2,11 @@
 
 Durum dili: **PASS** gerçekten koşup beklenen sonucu verdi; **FAIL** koştu ve bekleneni vermedi; **NOT RUN** koşulmadı/uygulama yok. Planlanan test hiçbir zaman PASS yazılmaz. Faz 00 gerçek sonuçları [PHASE_00_HANDOFF](PHASE_00_HANDOFF.md), tasarım bulguları [REFERENCE_AUDIT](design/REFERENCE_AUDIT.md) içinde tutulur.
 
-## Güncel Faz 01 kapısı
+## Güncel hazırlık kaydı
+
+[Faz 05 hazırlık teslimi](PHASE_05_HANDOFF.md) yerel regresyon/yük/kurtarma ve canlı header/image/kaynak dönüş kanıtlarını ayırır. Tam beta/G05, gerçek pilot/model ve bağımsız geri dönüş açık kalır; kaynak commit’ine dönmek aynı image’a dönmek değildir.
+
+## Tarihsel Faz 01 kapısı
 
 `npm run verify` gerçek type/lint/unit/PostgreSQL/build/browser kapısıdır; `npm run verify:release` temiz commit için Docker/recovery kanıtını ekler. Sonuçlar ve kalan canlı kapılar [handoff](PHASE_01_HANDOFF.md) içindedir.
 
