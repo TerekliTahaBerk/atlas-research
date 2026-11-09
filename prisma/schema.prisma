@@ -21,6 +21,9 @@ model User {
   ownedPersonal Workspace? @relation("PersonalOwner")
   createdSpaces Workspace[] @relation("WorkspaceCreator")
   memberships WorkspaceMember[]
+  projectsCreated Project[]
+  invitationsCreated Invitation[] @relation("InvitationCreator")
+  invitationsAccepted Invitation[] @relation("InvitationAcceptor")
   @@map("users")
   @@schema("identity")
 }
@@ -51,6 +54,7 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   members WorkspaceMember[]
+  projects Project[]
   @@map("workspaces")
   @@schema("app")
 }
@@ -63,8 +67,77 @@ model WorkspaceMember {
   role String
   active Boolean @default(true)
   createdAt DateTime @default(now())
+  projectMemberships ProjectMember[]
   @@id([workspaceId, userId])
   @@map("workspace_members")
+  @@schema("app")
+}
+
+model Project {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  name String
+  description String @default("")
+  createdBy String
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  archivedAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members ProjectMember[]
+  invitations Invitation[]
+  @@unique([workspaceId, id])
+  @@map("projects")
+  @@schema("app")
+}
+
+model ProjectMember {
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  userId String
+  project Project @relation(fields: [workspaceId, projectId], references: [workspaceId, id], onDelete: Restrict)
+  workspaceMember WorkspaceMember @relation(fields: [workspaceId, userId], references: [workspaceId, userId], onDelete: Restrict)
+  role String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  @@id([workspaceId, projectId, userId])
+  @@map("project_members")
+  @@schema("app")
+}
+
+model Invitation {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields: [workspaceId, projectId], references: [workspaceId, id], onDelete: Restrict)
+  email String
+  role String
+  tokenHash String @unique
+  createdBy String
+  creator User @relation("InvitationCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  originSessionId String
+  expiresAt DateTime
+  acceptedAt DateTime?
+  acceptedBy String?
+  acceptor User? @relation("InvitationAcceptor", fields: [acceptedBy], references: [id], onDelete: Restrict)
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, projectId, email])
+  @@map("invitations")
+  @@schema("app")
+}
+
+model AuditEvent {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String? @db.Uuid
+  actorId String
+  event String
+  targetId String?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, projectId, createdAt])
+  @@map("audit_events")
   @@schema("app")
 }
 
