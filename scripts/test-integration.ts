@@ -44,7 +44,7 @@ try {
     for (const password of Object.values(passwords)) detail = detail.replaceAll(password, "[redacted]");
     throw new Error(`Migration failed (${migration.status}): ${detail.slice(0, 1500)}`);
   }
-  const files = readdirSync("tests/integration").filter(f => f.endsWith(".test.ts")).map(f => `tests/integration/${f}`);
+  const files = readdirSync("tests/integration").filter(f => f.endsWith(".test.ts")).sort().map(f => `tests/integration/${f}`);
   console.log("PostgreSQL 18.6: isolated migration/auth/runtime roles; loopback-only disposable container");
   const browserMode=process.argv.includes("--browser");
   const result = spawnSync(process.execPath, browserMode?["--import","tsx","scripts/browser-qa.ts"]:["--import", "tsx", "--test", "--test-concurrency=1", ...files], { env, stdio: "inherit" });

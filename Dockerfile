@@ -13,11 +13,11 @@ COPY . .
 RUN npm run typecheck && npm run lint && npm test && npm run build
 
 FROM deps AS migrator
-COPY ops/provision-db.mjs ./ops/provision-db.mjs
+COPY ops/provision-db.mjs ops/provision-initial-user.mjs ops/migrate.mjs ./ops/
 ARG ATLAS_SOURCE_COMMIT=local
 LABEL org.opencontainers.image.revision=$ATLAS_SOURCE_COMMIT
 USER node
-CMD ["npm","run","db:migrate"]
+CMD ["node","ops/migrate.mjs"]
 
 FROM deps AS production-deps
 RUN npm prune --omit=dev --ignore-scripts --loglevel=error

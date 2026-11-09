@@ -1,6 +1,6 @@
 # Phase 01 handoff
 
-Status: **G01 OPEN**. Application and local operations evidence exist; live Coolify acceptance is pending. Do not interpret this document as a production completion claim. The latest user instruction limits external changes to new Atlas resources in **yula.co** and forbids changes to existing server/other-project settings.
+Status: **G01 OPEN**. The owner-selected no-email preview is deployed in **yula.co / production**; full live acceptance remains open. Do not interpret this document as a production completion claim. External changes are limited to new Atlas resources; existing server/other-project settings remain unchanged.
 
 | Slice | Delivery | Evidence |
 | --- | --- | --- |
@@ -17,13 +17,15 @@ Exact runtime: Node 24.21.0, npm 11.19.0, Next/eslint-config-next 16.4.5, React/
 | Command / acceptance evidence | Result |
 | --- | --- |
 | `npm ci --loglevel=error --fetch-retries=1 --fetch-timeout=30000` | PASS; zero known audit vulnerabilities |
-| `npm run verify` | PASS; type/lint, 5 unit, 7 real PostgreSQL integration, production build, real Chromium/SMTP flows |
+| `npm run verify` | PASS on `a341d52`; type/lint, 5 unit, 7 real PostgreSQL integration, production build, real Chromium/SMTP flows; the added first-identity integration test also passes (8 total), full new-candidate gate pending |
 | `npm run format:check`, `git diff --check` | PASS on the verified application slice; repeat for final candidate |
 | `npm run verify:compose` | PASS; documented Coolify-only health keys normalized; no daemon mutation |
 | Docker web/mail/migrator builds | PASS locally, rootless ARM64; no build DB/secret |
 | `npm run test:operations` | PASS; restart, live/ready outage behavior, encrypted synthetic backup, fresh-cluster restore/file hash and compatible metadata-image rollback |
-| `npm run verify:release` | Final clean-candidate record written under ignored .atlas-local when run; not a live gate |
-| External SMTP/TLS/Coolify deployment/restart, independent remote backup/restore/live rollback | NOT RUN |
+| `npm run verify:release` | PASS on clean `a341d5267b6276a0ad629f00758e982383a2b904`, 2026-11-09 12:22:22 UTC; exact local image IDs in P01-5 |
+| Live Coolify deployment/TLS | PASS on `a341d52`; public `/health/live` and `/health/ready` 200 with revision `202611090004_operations`; capabilities report disabled mail |
+| Live anonymous/origin/disabled-mail smoke | PASS: private APIs 401, foreign-origin auth 403, registration/reset/resend 503; signup UI explicitly unavailable |
+| External SMTP, remote restart/persistence, independent backup/restore/live rollback | NOT RUN |
 | Screen reader/native 200% zoom, other browser engines | NOT RUN |
 
 G01 evidence mapping:
@@ -40,7 +42,9 @@ G01 evidence mapping:
 
 Known limits: SMTP at-least-once can duplicate after a crash; auth and encrypted enqueue are not claimed as one Better Auth transaction (invitations are atomic); old accepted invitations cannot undo revocation; pre-migration-004 app images are not approved rollback targets. No production PDF/file feature exists; the operations file fixture is a synthetic text only. Local restore timing is not a production capacity/RTO guarantee.
 
-Coolify target was confirmed read-only in the user's open Chrome. There were no shared variables at yula.co/environment/team scopes and zero S3 destinations. A new Atlas Research draft application was created and pinned to the candidate; it is not deployed. No existing server/proxy/other-project setting was changed. Domain, operational SMTP and independent backup must be resolved before promotion; never insert fake success/configuration. No new paid service is authorized.
+Coolify **Atlas Research** was deployed through the user's Chrome in yula.co/production. Read-only inventory observed ARM64, 8 CPU cores, 15.2 GB total memory, Docker 27.5.1 and Compose 2.32.4; this is not a measurement of spare capacity. Application build arguments are managed in the Dockerfile, builds use the Atlas custom parallel limit, automatic deployment is off and predefined cross-resource networking is off. No existing server/proxy/other-project setting was changed. There were no shared variables at project/environment/team scopes and zero S3 destinations. No SMTP credential was opened/copied and no paid service purchased.
+
+Preview URL: [Atlas Research](https://om2lefhyk80lxthwkqe2qi3f.91.99.118.96.sslip.io/sign-in). HTTPS validation succeeded in Chrome and the Node TLS client without an exception. Only web has a domain (internal port 3000); PostgreSQL has no host port. The owner subsequently requested an initial login without mail; the optional migration-only first-identity step is implemented and tested, with live provisioning pending. It creates a normal Better Auth credential using the library hash, only in an empty identity database, and never changes an existing password. Its operator assertion is distinct from email verification evidence. No personal address or password is recorded here.
 
 Next phase is only prepared: after G01 actually passes, Phase 02 can begin from its separate spec with source/version/citation identity and the same authorization tests. No discovery, PDF, editor, tasks, discussions, AI, embeddings, LaTeX or Python execution has been implemented.
 

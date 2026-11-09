@@ -43,6 +43,9 @@ services:
     image: atlas-research:migrator-${ATLAS_RELEASE}
     environment:
       MIGRATION_DATABASE_URL: postgresql://atlas_migrator:${SERVICE_HEX_64_ATLASMIGRATOR}@postgres:5432/atlas
+      ATLAS_INITIAL_USER_ACK: ${ATLAS_INITIAL_USER_ACK:-}
+      ATLAS_INITIAL_EMAIL: ${ATLAS_INITIAL_EMAIL:-}
+      ATLAS_INITIAL_PASSWORD: ${ATLAS_INITIAL_PASSWORD:-}
     networks: [backend]
     depends_on: { bootstrap: { condition: service_completed_successfully } }
     exclude_from_hc: true
