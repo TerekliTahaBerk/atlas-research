@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { api, ApiError, message } from "@/lib/api";
 export function Icon({
   name,
@@ -22,6 +23,28 @@ export function Icon({
     | "arrow"
     | "people"
     | "search"
+    | "chevron"
+    | "file"
+    | "library"
+    | "telescope"
+    | "new"
+    | "grid"
+    | "list"
+    | "logout"
+    | "check"
+    | "upload"
+    | "download"
+    | "book"
+    | "note"
+    | "panel"
+    | "sun"
+    | "moon"
+    | "tag"
+    | "bookmark"
+    | "filter"
+    | "options"
+    | "zoomIn"
+    | "zoomOut"
     | "close";
 }) {
   const paths = {
@@ -36,6 +59,28 @@ export function Icon({
       "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8m8 0a4 4 0 0 1 0 8",
     close: "m6 6 12 12M6 18 18 6",
     search: "M21 21l-5-5M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14",
+    chevron: "m7 10 5 5 5-5",
+    file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6",
+    library: "M4 6v14M8 6v14m4-16v16m4-16 4 15",
+    telescope: "m6 7 12-4 3 7-12 4ZM6 8 3 9l2 5 3-1m5 0-4 8m4-8 4 8",
+    new: "M12 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-7M15 3l6 6m-7 6-5 1 1-5 9-9 4 4Z",
+    grid: "M3 3h7v7H3Zm11 0h7v7h-7ZM3 14h7v7H3Zm11 0h7v7h-7Z",
+    list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+    logout: "M9 3H4v18h5m6-14 5 5-5 5m-7-5h12",
+    check: "m5 12 4 4L19 6",
+    upload: "M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5",
+    download: "M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4",
+    book: "M12 6C9 3 4 3 2 4v15c4-1 7-1 10 2m0-15c3-3 8-3 10-2v15c-4-1-7-1-10 2Zm0 0v15",
+    note: "M3 3h18v12l-6 6H3Zm12 18v-6h6M7 8h10M7 12h5",
+    panel: "M3 4h18v16H3Zm12 0v16",
+    sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5",
+    tag: "M20 13l-7 7a2 2 0 0 1-3 0l-8-8V3h9l9 8a2 2 0 0 1 0 2ZM7 7h.01",
+    bookmark: "M5 3h14v18l-7-4-7 4Z",
+    filter: "M3 6h18M7 12h10m-7 6h4",
+    options: "M12 5h.01M12 12h.01M12 19h.01",
+    zoomIn: "M21 21l-5-5M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M7 10h6m-3-3v6",
+    zoomOut: "M21 21l-5-5M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M7 10h6",
+    moon: "M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z",
   };
   return (
     <svg
@@ -229,7 +274,7 @@ function subscribeTheme(listener: () => void) {
   };
 }
 const themeSnapshot = () => document.documentElement.dataset.theme === "dark";
-export function ThemeControl() {
+export function ThemeControl({ compact = false }: { compact?: boolean }) {
   const dark = useSyncExternalStore(subscribeTheme, themeSnapshot, () => false);
   function toggle() {
     const next = !dark;
@@ -240,8 +285,31 @@ export function ThemeControl() {
     window.dispatchEvent(new Event("atlas-theme"));
   }
   return (
-    <button onClick={toggle} aria-pressed={dark}>
-      {dark ? "Light theme" : "Dark theme"}
+    <button
+      onClick={toggle}
+      aria-pressed={dark}
+      aria-label={dark ? "Light theme" : "Dark theme"}
+      className={compact ? "icon-button" : ""}
+    >
+      {compact ? (
+        <Icon name={dark ? "sun" : "moon"} />
+      ) : dark ? (
+        "Light theme"
+      ) : (
+        "Dark theme"
+      )}
     </button>
+  );
+}
+export function ToolbarActions({ children }: { children: ReactNode }) {
+  const [target, setTarget] = useState<HTMLElement | null>(null);
+  const mount = useCallback((node: HTMLSpanElement | null) => {
+    if (node) setTarget(document.getElementById("atlas-toolbar-actions"));
+  }, []);
+  return (
+    <>
+      <span hidden ref={mount} />
+      {target && createPortal(children, target)}
+    </>
   );
 }

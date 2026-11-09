@@ -38,7 +38,10 @@ export function ProjectScreen({
   section?: "overview" | "members";
 }) {
   return (
-    <WorkspaceShell title={section === "members" ? "Members" : "Overview"}>
+    <WorkspaceShell
+      surface={section}
+      title={section === "members" ? "Members" : "Overview"}
+    >
       {({ me, reload }) => (
         <ProjectBody
           key={`${w}/${p}/${section}`}
@@ -133,11 +136,6 @@ function ProjectBody({
   }
   return (
     <>
-      <div className="breadcrumbs">
-        <Link href="/home">{workspace.name}</Link>
-        <span>/</span>
-        <span>Project</span>
-      </div>
       <div className="page-heading">
         <div>
           <div className="project-symbol">
@@ -153,23 +151,6 @@ function ProjectBody({
           <button onClick={() => setModal("edit")}>Edit project</button>
         )}
       </div>
-      <nav className="page-tabs" aria-label="Project">
-        <Link
-          href={path}
-          aria-current={section === "overview" ? "page" : undefined}
-        >
-          Overview
-        </Link>
-        <Link href={`${path}/discover`}>Research</Link>
-        <Link href={`${path}/sources`}>Library</Link>
-        <Link
-          href={`${path}/members`}
-          aria-current={section === "members" ? "page" : undefined}
-        >
-          Members
-        </Link>
-        <span className="badge">{role}</span>
-      </nav>
       {archived && (
         <div className="notice" role="status">
           {project.deletedAt

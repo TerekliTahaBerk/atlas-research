@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -12,42 +12,21 @@ import type {
   DiscoveryItem,
 } from "@/lib/research-types";
 import { WorkspaceShell } from "./workspace-shell";
-import { Failure, InlineError, Loading, Modal, Icon, useResource } from "./ui";
+import {
+  Failure,
+  InlineError,
+  Loading,
+  Modal,
+  Icon,
+  ToolbarActions,
+  useResource,
+} from "./ui";
 const PdfReader = dynamic(
   () => import("./research-reader").then((m) => m.PdfReader),
   { ssr: false, loading: () => <Loading /> },
 );
 export const researchApi = (w: string, p: string) => `/api/research/${w}/${p}`;
 export const researchPath = (w: string, p: string) => `/w/${w}/p/${p}`;
-export function ResearchTabs({
-  w,
-  p,
-  active,
-}: {
-  w: string;
-  p: string;
-  active: string;
-}) {
-  const base = researchPath(w, p);
-  return (
-    <nav className="page-tabs research-tabs" aria-label="Project">
-      <Link href={base}>Overview</Link>
-      <Link
-        href={base + "/discover"}
-        aria-current={active === "discover" ? "page" : undefined}
-      >
-        Research
-      </Link>
-      <Link
-        href={base + "/sources"}
-        aria-current={active !== "discover" ? "page" : undefined}
-      >
-        Library
-      </Link>
-      <Link href={base + "/members"}>Members</Link>
-    </nav>
-  );
-}
 export function ResearchScreen({
   w,
   p,
@@ -59,13 +38,17 @@ export function ResearchScreen({
   mode: "library" | "discover" | "source" | "reader";
   sourceId?: string;
 }) {
+  const detail = useResource<ResearchDetail>(
+    sourceId ? `${researchApi(w, p)}/sources/${sourceId}` : null,
+  );
   return (
     <WorkspaceShell
+      surface={mode}
       title={
         mode === "discover"
           ? "Research"
           : mode === "reader"
-            ? "PDF Reader"
+            ? (detail.data?.source.title ?? "PDF Reader")
             : "Library"
       }
     >
@@ -77,6 +60,7 @@ export function ResearchScreen({
           mode={mode}
           sourceId={sourceId}
           userId={me.user.id}
+          detail={detail}
         />
       )}
     </WorkspaceShell>
@@ -88,12 +72,14 @@ function ResearchBody({
   mode,
   sourceId,
   userId,
+  detail,
 }: {
   w: string;
   p: string;
   mode: string;
   sourceId?: string;
   userId: string;
+  detail: { data?: ResearchDetail; error?: unknown; reload: () => void };
 }) {
   const router = useRouter();
   const base = researchApi(w, p),
@@ -113,13 +99,10 @@ function ResearchBody({
     [tag, setTag] = useState(""),
     [status, setStatus] = useState("");
   const library = useResource<ResearchLibrary>(
-      mode === "library"
-        ? `${base}/sources?${new URLSearchParams({ q: query, page: String(page), collection, tag, status })}`
-        : null,
-    ),
-    detail = useResource<ResearchDetail>(
-      sourceId ? `${base}/sources/${sourceId}` : null,
-    );
+    mode === "library" || mode === "source"
+      ? `${base}/sources?${new URLSearchParams({ q: query, page: String(page), collection, tag, status })}`
+      : null,
+  );
   const [add, setAdd] = useState(false),
     [edit, setEdit] = useState(false),
     [upload, setUpload] = useState(false),
@@ -129,6 +112,12 @@ function ResearchBody({
     library.reload();
     detail.reload();
   };
+  useEffect(() => {
+    if (library.data && location.hash === "#library-search") {
+      document.getElementById("library-search")?.focus();
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  }, [library.data]);
   if (project.error || library.error || detail.error)
     return (
       <Failure
@@ -141,7 +130,7 @@ function ResearchBody({
     );
   if (
     !project.data ||
-    (mode === "library" && !library.data) ||
+    (["library", "source"].includes(mode) && !library.data) ||
     (sourceId && !detail.data)
   )
     return <Loading />;
@@ -155,18 +144,45 @@ function ResearchBody({
     <div
       className={`research-surface ${mode === "reader" ? "reader-surface" : ""}`}
     >
-      <div className="breadcrumbs">
-        <Link href={path}>{project.data.project.name}</Link>
-        <span>/</span>
-        <span>{mode === "discover" ? "Research" : "Library"}</span>
-        {s && (
-          <>
-            <span>/</span>
-            <span className="truncate">{s.title}</span>
-          </>
-        )}
-      </div>
-      <ResearchTabs w={w} p={p} active={mode} />
+      {mode !== "reader" && (
+        <ToolbarActions>
+          {mode === "discover" ? (
+            <Link className="toolbar-button" href={path + "/sources"}>
+              <Icon name="library" />
+              Library
+            </Link>
+          ) : (
+            <details className="export-menu">
+              <summary className="toolbar-button">
+                <Icon name="download" />
+                <span>Export</span>
+              </summary>
+              <div>
+                <a href={`${base}/export?format=bib`}>BibTeX ↓</a>
+                <a href={`${base}/export?format=ris`}>RIS ↓</a>
+              </div>
+            </details>
+          )}
+          {canEdit && (
+            <>
+              <button
+                className="toolbar-button import-button"
+                onClick={() => setAdd(true)}
+              >
+                <Icon name="upload" />
+                Import PDF
+              </button>
+              <button
+                className="toolbar-button outlined"
+                onClick={() => setAdd(true)}
+              >
+                <Icon name="plus" />
+                Add paper
+              </button>
+            </>
+          )}
+        </ToolbarActions>
+      )}
       {mode === "reader" && detail.data ? (
         <PdfReader
           w={w}
@@ -178,54 +194,6 @@ function ResearchBody({
         />
       ) : (
         <>
-          <div className="page-heading research-heading">
-            <div>
-              <div className="eyebrow">
-                {mode === "discover"
-                  ? "Follow a research question"
-                  : s
-                    ? "Source details"
-                    : "Your project’s reading room"}
-              </div>
-              <h1>
-                {mode === "discover" ? "Research" : s ? s.title : "Library"}
-              </h1>
-              <p>
-                {mode === "discover"
-                  ? "Find a paper worth reading. Make it part of your work."
-                  : s
-                    ? authorLine(s)
-                    : "Papers, ideas, and the notes you keep along the way."}
-              </p>
-            </div>
-            <div className="actions">
-              {!s && (
-                <Link
-                  className="button"
-                  href={
-                    mode === "discover" ? path + "/sources" : path + "/discover"
-                  }
-                >
-                  {mode === "discover" ? "Open library" : "Find papers"}
-                </Link>
-              )}
-              {canEdit && (
-                <button
-                  className="primary"
-                  onClick={() => (s ? setEdit(true) : setAdd(true))}
-                >
-                  <Icon name="plus" />
-                  {s ? "Edit details" : "Add source"}
-                </button>
-              )}
-            </div>
-          </div>
-          {!canEdit && (
-            <p className="notice">
-              Read only · You can read sources, export references and update
-              your own reading status.
-            </p>
-          )}
           <InlineError error={error} />
           {mode === "discover" && (
             <Discovery
@@ -235,8 +203,8 @@ function ResearchBody({
               onManual={() => setAdd(true)}
             />
           )}
-          {mode === "library" && library.data && (
-            <div className="library-layout">
+          {library.data && (
+            <div className={`library-layout ${s ? "has-inspector" : ""}`}>
               <aside
                 className="collections-pane"
                 aria-label="Library collections"
@@ -250,33 +218,37 @@ function ResearchBody({
                     setPage(0);
                   }}
                 >
-                  <Icon name="folder" />
-                  All papers
+                  <Icon name="library" />
+                  <span>All papers</span>
                 </button>
                 <button
+                  className={status === "reading" ? "selected" : ""}
                   onClick={() => {
                     setStatus("reading");
                     setPage(0);
                   }}
                 >
-                  Currently reading
+                  <Icon name="book" />
+                  <span>Currently reading</span>
                 </button>
                 <button
+                  className={status === "unread" ? "selected" : ""}
                   onClick={() => {
                     setStatus("unread");
                     setPage(0);
                   }}
                 >
-                  To read
+                  <Icon name="bookmark" />
+                  <span>To read</span>
                 </button>
                 <div className="section-label">
-                  Collections{" "}
+                  Collections
                   {canEdit && (
                     <button
                       aria-label="Create collection"
                       onClick={() => setNewCollection(true)}
                     >
-                      +
+                      <Icon name="plus" />
                     </button>
                   )}
                 </div>
@@ -290,109 +262,140 @@ function ResearchBody({
                     }}
                   >
                     <Icon name="folder" />
-                    {c.name}
+                    <span>{c.name}</span>
                   </button>
                 ))}
                 <div className="section-label">Tags</div>
                 {library.data.tags.map((t) => (
                   <button
-                    className={tag === t ? "selected" : ""}
                     key={t}
+                    className={tag === t ? "selected" : ""}
                     onClick={() => {
                       setTag(tag === t ? "" : t);
                       setPage(0);
                     }}
                   >
-                    #{t}
+                    <Icon name="tag" />
+                    <span>#{t}</span>
                   </button>
                 ))}
               </aside>
-              <section className="library-main">
+              <section className="library-main" aria-label="Project library">
+                <h1 className="sr-only">Library</h1>
                 <div className="library-toolbar">
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      const f = new FormData(e.currentTarget);
-                      setQuery(String(f.get("q")));
+                      setQuery(String(new FormData(e.currentTarget).get("q")));
                       setPage(0);
                     }}
                   >
+                    <button aria-label="Search library">
+                      <Icon name="search" />
+                    </button>
                     <input
+                      id="library-search"
                       aria-label="Search library"
                       name="q"
-                      placeholder="Search title, author, DOI or tag…"
+                      placeholder="Filter by title, author, tag"
                       defaultValue={query}
                     />
-                    <button>Search</button>
                   </form>
-                  <label className="sr-only" htmlFor="reading-filter">
-                    Reading status
-                  </label>
-                  <select
-                    id="reading-filter"
-                    value={status}
-                    onChange={(e) => {
-                      setStatus(e.target.value);
-                      setPage(0);
-                    }}
+                  <div
+                    className="segmented reading-tabs"
+                    role="group"
+                    aria-label="Reading status"
                   >
-                    <option value="">All reading states</option>
-                    <option value="unread">To read</option>
-                    <option value="reading">Reading</option>
-                    <option value="done">Read</option>
-                  </select>
-                </div>
-                <div className="library-mobile-filters">
-                  <label>
-                    Collection
-                    <select
-                      value={collection}
-                      onChange={(e) => {
-                        setCollection(e.target.value);
-                        setPage(0);
-                      }}
-                    >
-                      <option value="">All collections</option>
-                      {library.data.collections.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {canEdit && (
-                    <button onClick={() => setNewCollection(true)}>
-                      New collection
-                    </button>
-                  )}
-                </div>
-                <div className="section-heading">
-                  <span className="muted">
-                    {library.data.items.length} sources on this page
-                  </span>
-                  <div className="actions">
-                    <a className="button" href={`${base}/export?format=bib`}>
-                      BibTeX ↓
-                    </a>
-                    <a className="button" href={`${base}/export?format=ris`}>
-                      RIS ↓
-                    </a>
+                    {[
+                      ["", "All"],
+                      ["unread", "To read"],
+                      ["reading", "Reading"],
+                      ["done", "Read"],
+                    ].map(([key, label]) => (
+                      <button
+                        key={key}
+                        aria-pressed={status === key}
+                        onClick={() => {
+                          setStatus(key);
+                          setPage(0);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
+                  <details className="library-filter-menu">
+                    <summary className="toolbar-button">
+                      <Icon name="filter" />
+                      Filters
+                    </summary>
+                    <div>
+                      <label>
+                        Collection
+                        <select
+                          value={collection}
+                          onChange={(e) => {
+                            setCollection(e.target.value);
+                            setPage(0);
+                          }}
+                        >
+                          <option value="">All collections</option>
+                          {library.data.collections.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Tag
+                        <select
+                          value={tag}
+                          onChange={(e) => {
+                            setTag(e.target.value);
+                            setPage(0);
+                          }}
+                        >
+                          <option value="">All tags</option>
+                          {library.data.tags.map((t) => (
+                            <option key={t}>{t}</option>
+                          ))}
+                        </select>
+                      </label>
+                      {canEdit && (
+                        <button onClick={() => setNewCollection(true)}>
+                          New collection
+                        </button>
+                      )}
+                    </div>
+                  </details>
                 </div>
+                <p className="sr-only">
+                  {library.data.items.length} sources on this page
+                </p>
                 {library.data.items.length === 0 ? (
                   <Empty
                     title={
                       query || collection || tag || status
                         ? "No matching sources"
-                        : "A good paper is a beginning"
+                        : "Your library is empty"
                     }
-                    text="Search the literature or add a source you already have."
+                    text="Upload a PDF, add a source, or save papers from Research."
                     action={
-                      canEdit ? (
-                        <button onClick={() => setAdd(true)}>
-                          Add your first source
-                        </button>
-                      ) : null
+                      <>
+                        {canEdit && (
+                          <button
+                            className="ink-button"
+                            onClick={() => setAdd(true)}
+                          >
+                            <Icon name="upload" />
+                            Import PDFs
+                          </button>
+                        )}
+                        <Link className="button" href={path + "/discover"}>
+                          Search literature
+                        </Link>
+                      </>
                     }
                   />
                 ) : (
@@ -405,10 +408,10 @@ function ResearchBody({
                           (r) => r.sourceId === source.id,
                         );
                       return (
-                        <article className="paper-row" key={source.id}>
-                          <div className="paper-glyph" aria-hidden="true">
-                            ▤
-                          </div>
+                        <article
+                          className={`paper-row ${s?.id === source.id ? "selected" : ""}`}
+                          key={source.id}
+                        >
                           <div className="paper-info">
                             <Link
                               className="paper-title"
@@ -416,9 +419,8 @@ function ResearchBody({
                             >
                               {source.title}
                             </Link>
-                            <p>{authorLine(source)}</p>
                             <div className="paper-meta">
-                              {source.doi && <span>DOI {source.doi}</span>}
+                              <span>{authorLine(source)}</span>
                               {source.tags.map((t) => (
                                 <button
                                   className="tag-chip"
@@ -434,56 +436,83 @@ function ResearchBody({
                             </div>
                           </div>
                           <div className="paper-actions">
-                            <span className="badge">
+                            {version && (
+                              <Link
+                                className="row-read"
+                                href={`${path}/sources/${source.id}/read`}
+                                title="Read PDF"
+                              >
+                                <Icon name="book" />
+                                <span className="sr-only">Read PDF</span>
+                              </Link>
+                            )}
+                            <span
+                              className={`reading-badge ${reading?.status ?? "unread"}`}
+                            >
+                              <i />
                               {reading?.status === "done"
                                 ? "Read"
                                 : reading?.status === "reading"
                                   ? "Reading"
                                   : "To read"}
                             </span>
-                            {version ? (
-                              <Link
-                                className="button"
-                                href={`${path}/sources/${source.id}/read`}
-                              >
-                                Read PDF
-                              </Link>
-                            ) : (
-                              <span className="muted">Metadata only</span>
-                            )}
                           </div>
                         </article>
                       );
                     })}
                   </div>
                 )}
-                <div className="pagination">
-                  <button
-                    disabled={!page}
-                    onClick={() => setPage((v) => v - 1)}
-                  >
-                    Previous
-                  </button>
-                  <span>Page {page + 1}</span>
-                  <button
-                    disabled={!library.data.hasMore}
-                    onClick={() => setPage((v) => v + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
+                {(page > 0 || library.data.hasMore) && (
+                  <div className="pagination">
+                    <button
+                      disabled={!page}
+                      onClick={() => setPage((v) => v - 1)}
+                    >
+                      Previous
+                    </button>
+                    <span>Page {page + 1}</span>
+                    <button
+                      disabled={!library.data.hasMore}
+                      onClick={() => setPage((v) => v + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </section>
+              {s && detail.data && (
+                <aside className="source-inspector" aria-label="Source details">
+                  <div className="inspector-heading">
+                    <span>Source details</span>
+                    <Link
+                      className="icon-button"
+                      href={path + "/sources"}
+                      aria-label="Close source details"
+                    >
+                      <Icon name="close" />
+                    </Link>
+                  </div>
+                  <h1>{s.title}</h1>
+                  <p className="source-authors">{authorLine(s)}</p>
+                  {canEdit && (
+                    <button
+                      className="toolbar-button outlined"
+                      onClick={() => setEdit(true)}
+                    >
+                      Edit details
+                    </button>
+                  )}
+                  <SourceDetails
+                    w={w}
+                    p={p}
+                    detail={detail.data}
+                    canEdit={canEdit}
+                    onUpload={() => setUpload(true)}
+                    reload={detail.reload}
+                  />
+                </aside>
+              )}
             </div>
-          )}
-          {s && detail.data && (
-            <SourceDetails
-              w={w}
-              p={p}
-              detail={detail.data}
-              canEdit={canEdit}
-              onUpload={() => setUpload(true)}
-              reload={detail.reload}
-            />
           )}
         </>
       )}
@@ -582,7 +611,9 @@ function Empty({
 }) {
   return (
     <div className="research-empty">
-      <span aria-hidden="true">▤</span>
+      <span aria-hidden="true">
+        <Icon name="library" />
+      </span>
       <h2>{title}</h2>
       <p>{text}</p>
       {action}
@@ -679,6 +710,7 @@ function Discovery({
     );
   return (
     <section className="discovery">
+      <h1>What are you researching?</h1>
       <form
         className="discovery-search"
         onSubmit={(e) => {
@@ -686,23 +718,30 @@ function Discovery({
           void search(0);
         }}
       >
-        <Icon name="search" />
-        <input
+        <textarea
+          rows={2}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Search academic papers"
-          placeholder="A question, a title, or an author…"
+          placeholder="Ask a question, paste a DOI, or describe a method"
           minLength={2}
           maxLength={200}
           required
         />
-        <button className="primary" disabled={busy}>
-          {busy ? "Searching…" : "Search papers"}
-        </button>
+        <div className="discovery-composer-footer">
+          <span className="mode-pill">Literature review</span>
+          <span className="provider-label">Crossref</span>
+          <button
+            className="search-submit ink-button"
+            aria-label="Search papers"
+            disabled={busy}
+          >
+            <Icon name="arrow" />
+          </button>
+        </div>
       </form>
-      <p className="muted">
-        Scholarly metadata from Crossref. Save what matters; add missing details
-        yourself.
+      <p className="provider-note">
+        Search scholarly metadata. Add missing details yourself.
       </p>
       <InlineError error={error} />
       {!!error && (
@@ -772,12 +811,7 @@ function Discovery({
             </button>
           </div>
         </>
-      ) : (
-        <Empty
-          title="Start with a question"
-          text="Search titles, authors and topics across the scholarly literature."
-        />
-      )}
+      ) : null}
       {selected && (
         <Modal title="Paper details" onClose={() => setSelected(null)}>
           <div className="source-summary">

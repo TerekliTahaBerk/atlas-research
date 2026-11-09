@@ -8,7 +8,7 @@ import type {
   ResearchDetail,
   ResearchVersion,
 } from "@/lib/research-types";
-import { InlineError, Modal } from "./ui";
+import { InlineError, Modal, Icon, ToolbarActions } from "./ui";
 
 type Props = {
   w: string;
@@ -100,6 +100,9 @@ function ReaderDocument({
     [note, setNote] = useState(""),
     [busy, setBusy] = useState(false),
     [notesOpen, setNotesOpen] = useState(false),
+    [panelOpen, setPanelOpen] = useState(true),
+    [composing, setComposing] = useState(false),
+    [color, setColor] = useState<"yellow" | "blue" | "green">("yellow"),
     [active, setActive] = useState<string | null>(initial.annotation);
   const canvas = useRef<HTMLCanvasElement>(null),
     text = useRef<HTMLDivElement>(null),
@@ -182,7 +185,7 @@ function ReaderDocument({
       const pdfPage = await pdf.getPage(page);
       if (cancelled) return;
       const base = pdfPage.getViewport({ scale: 1 }),
-        scale = Math.min(width / base.width, 1.4) * zoom,
+        scale = (Math.min(width, 650) / base.width) * zoom,
         viewport = pdfPage.getViewport({
           scale: Math.min(
             scale,
@@ -346,7 +349,7 @@ function ReaderDocument({
           quote: kind === "highlight" ? selection!.quote : "",
           rects: kind === "highlight" ? selection!.rects : [],
           body: note,
-          color: "yellow",
+          color,
         },
       );
       setNote("");
@@ -391,14 +394,56 @@ function ReaderDocument({
   }
   const notes = (
     <>
-      <div className="section-heading">
-        <h2>Notes & highlights</h2>
-        <span className="count">{annotations.length}</span>
+      <div className="reader-notes-header">
+        <h2>Notes</h2>
+        <button
+          className="toolbar-button"
+          onClick={() => setComposing((v) => !v)}
+          disabled={!canEdit}
+          aria-label="Add page note"
+        >
+          <Icon name="plus" />
+          <span className="note-add-label">Add note</span>
+        </button>
       </div>
-      <p className="muted">
-        Version {version.ordinal} · Notes stay with this PDF.
-      </p>
-      {canEdit ? (
+      <p className="notes-version">
+        Version {version.ordinal} · {annotations.length} notes & highlights
+      </p>{" "}
+      <div className="annotation-list">
+        {annotations.length === 0 ? (
+          <p className="muted">Your first observation belongs here.</p>
+        ) : (
+          annotations.map((a) => (
+            <AnnotationCard
+              key={`${a.id}/${a.revision}`}
+              annotation={a}
+              active={active === a.id}
+              canEdit={
+                canEdit &&
+                (a.authorId === userId ||
+                  ["owner", "admin"].includes(detail.role))
+              }
+              jump={() => {
+                navigate(a.page, a.id);
+                setNotesOpen(false);
+              }}
+              update={async (body) => {
+                try {
+                  await api(
+                    `${base}/annotations/${a.id}`,
+                    { ...body, revision: a.revision },
+                    "PATCH",
+                  );
+                  reload();
+                } catch (error) {
+                  setError(error);
+                }
+              }}
+            />
+          ))
+        )}
+      </div>
+      {canEdit && (selection || composing) ? (
         <form
           className="annotation-compose"
           onSubmit={(e) => {
@@ -440,107 +485,66 @@ function ReaderDocument({
             )}
           </div>
         </form>
-      ) : (
+      ) : !canEdit ? (
         <p className="notice">
           Read only · Your reading position is personal. Shared notes require an
           editor role.
         </p>
-      )}
-      <div className="annotation-list">
-        {annotations.length === 0 ? (
-          <p className="muted">Your first observation belongs here.</p>
-        ) : (
-          annotations.map((a) => (
-            <AnnotationCard
-              key={`${a.id}/${a.revision}`}
-              annotation={a}
-              active={active === a.id}
-              canEdit={
-                canEdit &&
-                (a.authorId === userId ||
-                  ["owner", "admin"].includes(detail.role))
-              }
-              jump={() => {
-                navigate(a.page, a.id);
-                setNotesOpen(false);
-              }}
-              update={async (body) => {
-                try {
-                  await api(
-                    `${base}/annotations/${a.id}`,
-                    { ...body, revision: a.revision },
-                    "PATCH",
-                  );
-                  reload();
-                } catch (error) {
-                  setError(error);
-                }
-              }}
-            />
-          ))
-        )}
-      </div>
+      ) : null}
     </>
   );
   return (
     <section className="pdf-reader">
-      <div className="reader-title">
-        <div>
-          <Link href={sourceUrl}>← Source details</Link>
-          <h1>{detail.source.title}</h1>
-        </div>
-        <label>
-          PDF version
-          <select
-            aria-label="PDF version"
-            value={version.id}
-            onChange={(e) => onVersion(e.target.value)}
-          >
-            {detail.versions
-              .filter((v) => v.fileId)
-              .map((v) => (
-                <option key={v.id} value={v.id}>
-                  Version {v.ordinal} ·{" "}
-                  {new Date(v.createdAt).toLocaleDateString()}
-                </option>
-              ))}
-          </select>
-        </label>
-      </div>
-      <div className="reader-toolbar">
-        <div className="reader-pages">
+      <h1 className="sr-only">{detail.source.title}</h1>
+      <ToolbarActions>
+        <form
+          className="pdf-search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void search();
+          }}
+        >
+          <Icon name="search" />
+          <input
+            aria-label="Search PDF text"
+            placeholder="Search in PDF"
+            value={query}
+            maxLength={200}
+            onChange={(e) => setQuery(e.target.value)}
+          />
           <button
-            aria-label="Previous page"
-            disabled={!pdf || page <= 1}
-            onClick={() => navigate(page - 1)}
+            aria-label="Find next"
+            className="icon-button"
+            disabled={!pdf || searching}
           >
-            ←
+            <Icon name="arrow" />
           </button>
-          <label>
-            Page
-            <input
-              aria-label="PDF page"
-              type="number"
-              min={1}
-              max={pdf?.numPages ?? 500}
-              value={page}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (n >= 1 && n <= (pdf?.numPages ?? 1)) navigate(n);
-              }}
+        </form>
+        <div
+          className="highlight-colors"
+          role="group"
+          aria-label="Highlight color"
+        >
+          {(["yellow", "blue", "green"] as const).map((value) => (
+            <button
+              key={value}
+              aria-label={`Highlight color ${value}`}
+              aria-pressed={color === value}
+              className={value}
+              onClick={() => setColor(value)}
             />
-          </label>
-          <span>/ {pdf?.numPages ?? "—"}</span>
-          <button
-            aria-label="Next page"
-            disabled={!pdf || page >= pdf.numPages}
-            onClick={() => navigate(page + 1)}
-          >
-            →
-          </button>
+          ))}
         </div>
+        <button
+          className="icon-button zoom-step"
+          aria-label="Zoom out"
+          disabled={zoom <= 0.5}
+          onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+        >
+          <Icon name="zoomOut" />
+        </button>
         <label className="reader-zoom">
-          Zoom
+          <span className="sr-only">Zoom</span>
           <select
             aria-label="PDF zoom"
             value={zoom}
@@ -548,101 +552,171 @@ function ReaderDocument({
           >
             {[0.5, 0.75, 1, 1.25, 1.5, 2, 2.5].map((z) => (
               <option value={z} key={z}>
-                {z === 1 ? "Fit width" : `${z * 100}%`}
+                {z * 100}%
               </option>
             ))}
           </select>
         </label>
-        <button className="notes-toggle" onClick={() => setNotesOpen(true)}>
-          Notes ({annotations.length})
+        <button
+          className="icon-button zoom-step"
+          aria-label="Zoom in"
+          disabled={zoom >= 2.5}
+          onClick={() => setZoom((z) => Math.min(2.5, z + 0.25))}
+        >
+          <Icon name="zoomIn" />
         </button>
-        <a className="button reader-download" href={fileUrl} download>
-          Download PDF
-        </a>
-      </div>
-      <form
-        className="pdf-search"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void search();
-        }}
-      >
-        <input
-          aria-label="Search PDF text"
-          placeholder="Find in this PDF…"
-          value={query}
-          maxLength={200}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button disabled={!pdf || searching}>
-          {searching ? "Searching…" : "Find next"}
+        <button
+          className="toolbar-button notes-toggle"
+          onClick={() => {
+            if (innerWidth < 1200) setNotesOpen(true);
+            else setPanelOpen((v) => !v);
+          }}
+          aria-label={`Notes (${annotations.length})`}
+        >
+          <Icon name="panel" />
+          <span>Notes ({annotations.length})</span>
         </button>
-        <span role="status">{searchResult}</span>
-      </form>
+      </ToolbarActions>
       <InlineError error={error} />
-      <p className="reader-status" role="status">
+      <p className="reader-status sr-only" role="status">
         {saved || "Your reading position is saved as you go."}
       </p>
-      <div className="reader-workspace">
-        <div
-          className="pdf-scroll"
-          ref={scroll}
-          onScroll={() => {
-            const node = scroll.current;
-            if (node && rendered) {
-              position.current =
-                node.scrollTop /
-                Math.max(1, node.scrollHeight - node.clientHeight);
-              savePosition();
-            }
-          }}
-          tabIndex={0}
-          aria-label="PDF document"
-          onMouseUp={selectText}
-          onKeyUp={selectText}
-          onTouchEnd={() => setTimeout(selectText, 50)}
-        >
-          {loadError ? (
-            <div className="pdf-error" role="alert">
-              <h2>PDF unavailable</h2>
-              <p>{loadError}</p>
-              <Link href={sourceUrl}>Back to source details</Link>
+      <div className={`reader-workspace ${panelOpen ? "" : "notes-hidden"}`}>
+        <div className="pdf-document">
+          {searchResult && (
+            <div className="reader-search-result" role="status">
+              {searchResult}
             </div>
-          ) : (
-            <>
-              {!rendered && (
-                <p className="pdf-loading" role="status">
-                  Rendering page…
-                </p>
-              )}
-              <div
-                className="pdf-paper"
-                ref={paper}
-                style={{ visibility: rendered ? "visible" : "hidden" }}
-              >
-                <canvas ref={canvas} aria-label={`PDF page ${page}`} />
-                <div className="textLayer" ref={text} />
-                <div className="highlight-layer" aria-hidden="true">
-                  {annotations
-                    .filter((a) => a.page === page && a.kind === "highlight")
-                    .flatMap((a) =>
-                      a.rects.map((r, i) => (
-                        <span
-                          key={`${a.id}/${i}`}
-                          className={`pdf-highlight ${a.color} ${active === a.id ? "active" : ""}`}
-                          style={{
-                            left: `${r[0] * 100}%`,
-                            top: `${r[1] * 100}%`,
-                            width: `${r[2] * 100}%`,
-                            height: `${r[3] * 100}%`,
-                          }}
-                        />
-                      )),
-                    )}
-                </div>
-              </div>
-            </>
           )}
+          <div
+            className="pdf-scroll"
+            ref={scroll}
+            onScroll={() => {
+              const node = scroll.current;
+              if (node && rendered) {
+                position.current =
+                  node.scrollTop /
+                  Math.max(1, node.scrollHeight - node.clientHeight);
+                savePosition();
+              }
+            }}
+            tabIndex={0}
+            aria-label="PDF document"
+            onMouseUp={selectText}
+            onKeyUp={selectText}
+            onTouchEnd={() => setTimeout(selectText, 50)}
+          >
+            {loadError ? (
+              <div className="pdf-error" role="alert">
+                <h2>PDF unavailable</h2>
+                <p>{loadError}</p>
+                <Link href={sourceUrl}>Back to source details</Link>
+              </div>
+            ) : (
+              <>
+                {!rendered && (
+                  <p className="pdf-loading" role="status">
+                    Rendering page…
+                  </p>
+                )}
+                <div
+                  className="pdf-paper"
+                  ref={paper}
+                  style={{ visibility: rendered ? "visible" : "hidden" }}
+                >
+                  <canvas ref={canvas} aria-label={`PDF page ${page}`} />
+                  <div className="textLayer" ref={text} />
+                  <div className="highlight-layer" aria-hidden="true">
+                    {annotations
+                      .filter((a) => a.page === page && a.kind === "highlight")
+                      .flatMap((a) =>
+                        a.rects.map((r, i) => (
+                          <span
+                            key={`${a.id}/${i}`}
+                            className={`pdf-highlight ${a.color} ${active === a.id ? "active" : ""}`}
+                            style={{
+                              left: `${r[0] * 100}%`,
+                              top: `${r[1] * 100}%`,
+                              width: `${r[2] * 100}%`,
+                              height: `${r[3] * 100}%`,
+                            }}
+                          />
+                        )),
+                      )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <footer className="pdf-pagebar">
+            <Link
+              className="icon-button"
+              href={sourceUrl}
+              aria-label="Source details"
+            >
+              <Icon name="arrow" />
+            </Link>
+            <div className="reader-pages">
+              <button
+                aria-label="Previous page"
+                disabled={!pdf || page <= 1}
+                onClick={() => navigate(page - 1)}
+              >
+                <Icon name="chevron" />
+              </button>
+              <label>
+                Page
+                <input
+                  aria-label="PDF page"
+                  type="number"
+                  min={1}
+                  max={pdf?.numPages ?? 500}
+                  value={page}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (n >= 1 && n <= (pdf?.numPages ?? 1)) navigate(n);
+                  }}
+                />
+              </label>
+              <span>of {pdf?.numPages ?? "—"}</span>
+              <button
+                aria-label="Next page"
+                disabled={!pdf || page >= pdf.numPages}
+                onClick={() => navigate(page + 1)}
+              >
+                <Icon name="chevron" />
+              </button>
+            </div>
+            <details className="reader-file-menu">
+              <summary className="icon-button" aria-label="PDF options">
+                <Icon name="options" />
+              </summary>
+              <div>
+                <label>
+                  PDF version
+                  <select
+                    aria-label="PDF version"
+                    value={version.id}
+                    onChange={(e) => onVersion(e.target.value)}
+                  >
+                    {detail.versions
+                      .filter((v) => v.fileId)
+                      .map((v) => (
+                        <option key={v.id} value={v.id}>
+                          Version {v.ordinal} ·{" "}
+                          {new Date(v.createdAt).toLocaleDateString()}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <a href={fileUrl} download>
+                  <Icon name="download" />
+                  Download PDF
+                </a>
+                <Link href={sourceUrl}>Source details</Link>
+              </div>
+            </details>
+          </footer>
         </div>
         <aside className="reader-notes">{notes}</aside>
       </div>
@@ -671,7 +745,10 @@ function AnnotationCard({
     [body, setBody] = useState(a.body),
     [busy, setBusy] = useState(false);
   return (
-    <article className={`annotation-card ${active ? "active" : ""}`}>
+    <article
+      data-color={a.color}
+      className={`annotation-card ${active ? "active" : ""}`}
+    >
       <button className="annotation-page" onClick={jump}>
         Page {a.page} ↗
       </button>

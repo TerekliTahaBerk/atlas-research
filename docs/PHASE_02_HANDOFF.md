@@ -1,5 +1,7 @@
 # Faz 02 teslim kaydı
 
+Görsel düzeltme: kullanıcı geri bildirimi sonrası [PR #34](https://github.com/TerekliTahaBerk/atlas-research/pull/34), aynı Atlas HTML referansının gerçek shell/library/reader geometrisini uygular. [Karşılaştırma kaydı](design/REFERENCE_AUDIT.md) güncel yerel UI kanıtını içerir; aşağıdaki `d186819` kaydı ilk işlevsel Faz 02 dağıtımının tarihidir. Son UI dağıtımının commit/readiness sonucu PR #34 teslim kaydına ayrıca eklenir.
+
 Durum: Faz 02 çalışan yolculuğu tamamlandı, PR #32 squash merge edildi ve mevcut Coolify Atlas uygulamasına dağıtıldı. Kısa gerçek-makale akışı hem yerelde hem canlıda doğrulandı. Geniş G01/G02 kabulü [beta öncesi listede](BETA_REVIEW_BACKLOG.md) açık kalır. Faz 03 uygulanmadı.
 
 ## Çalışan özellikler
