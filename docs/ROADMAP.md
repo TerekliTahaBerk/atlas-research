@@ -1,6 +1,6 @@
 # Atlas roadmap
 
-Status: Phase 04 implementation is squash merged ([PR #37](https://github.com/TerekliTahaBerk/atlas-research/pull/37)) and deployed as `91a78f9` to the existing Atlas Coolify app. Paid model calls are prohibited, the live daily budget is undecided, and the provider gate remains disabled. Real-model G04 is OPEN; [current release evidence](PHASE_04_HANDOFF.md). Phase 00–03 evidence remains in the earlier handoffs. Comprehensive G01/G02/G03, real email and independent backup/restore remain [before the Phase 05 beta](BETA_REVIEW_BACKLOG.md); they are not marked complete. Phase 05 preparation/hardening is now authorized with no real participants or support owner; [current preparation evidence](PHASE_05_HANDOFF.md). Closed-beta G05 remains OPEN.
+Status: Phase 04 implementation is squash merged ([PR #37](https://github.com/TerekliTahaBerk/atlas-research/pull/37)) and deployed as `91a78f9` to the existing Atlas Coolify app. Paid model calls are prohibited, the live daily budget is undecided, and the provider gate remains disabled. Real-model G04 is OPEN; [current release evidence](PHASE_04_HANDOFF.md). Phase 00–03 evidence remains in the earlier handoffs. Comprehensive G01/G02/G03, real email and independent backup/restore remain [before the Phase 05 beta](BETA_REVIEW_BACKLOG.md); they are not marked complete. Phase 05 preparation/hardening is merged in PR #39 and live as `33169e1`, with no real participants or support owner; [current preparation evidence](PHASE_05_HANDOFF.md). Closed-beta G05 remains OPEN.
 
 ## Product
 

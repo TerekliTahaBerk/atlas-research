@@ -1,6 +1,6 @@
 # Faz 05 — Kapalı beta sınırı
 
-Durum: kullanıcı Faz 05 hazırlık ve sağlamlaştırmasını yetkilendirdi; katılımcı ve destek/incident sorumlusu henüz yok. Gerçek pilot/beta yayını ve G05 açık kalır. Ücretli AI, e-posta ve S3 kapalı tutulur. [Güncel teslim kaydı](../PHASE_05_HANDOFF.md). Bu faz kapalı-beta release sınırıdır; sonraki sürüm backlog'u [ROADMAP](../ROADMAP.md) içindedir.
+Durum: kullanıcı Faz 05 hazırlık ve sağlamlaştırmasını yetkilendirdi; katılımcı ve destek/incident sorumlusu henüz yok. Hazırlık/sağlamlaştırma PR #39 ile uygulandı ve mevcut Atlas’ta `33169e1` olarak çalışıyor. Gerçek pilot/beta yayını ve G05 açık kalır; aynı kaynak sürümüne dönüş doğrulansa da aynı image kimliklerine dönüş gerçekleşmedi ve bu kapı FAIL/OPEN kaydedildi. Ücretli AI, e-posta ve S3 kapalı tutulur. [Güncel teslim kaydı](../PHASE_05_HANDOFF.md). Bu faz kapalı-beta release sınırıdır; sonraki sürüm backlog'u [ROADMAP](../ROADMAP.md) içindedir.
 
 ## Amaç
 
