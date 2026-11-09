@@ -2924,3 +2924,40 @@ textarea.document-title {
 #atlas-ai-toggle {
   flex-shrink: 0;
 }
+.pilot-guide {
+  max-width: 780px;
+  margin: 16px auto 80px;
+  padding: 0 16px;
+}
+.pilot-guide h1 {
+  font-size: 30px;
+  line-height: 1.25;
+  margin-bottom: 18px;
+}
+.pilot-guide h2 {
+  font-size: 17px;
+  margin-top: 32px;
+}
+.pilot-guide li {
+  margin: 12px 0;
+  line-height: 1.7;
+}
+.pilot-guide p {
+  line-height: 1.75;
+}
+.pilot-guide textarea {
+  width: 100%;
+  font: 12px/1.6 monospace;
+}
+.ai-unsent {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-unsent h3 {
+  font-size: 13px;
+  margin: 0;
+}

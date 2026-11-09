@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "evidence": "observed",
+  "participants": 0,
+  "teams": 0,
+  "supportAssigned": false,
+  "activationWindowComplete": false,
+  "returnWindowComplete": false,
+  "M1": {"observed": false, "numerator": 0, "denominator": 0},
+  "M2": {"observed": false, "numerator": 0, "denominator": 0},
+  "M3": {"observed": false, "numerator": 0, "denominator": 0},
+  "M4": {"observed": false, "numerator": 0, "denominator": 0},
+  "M5": {"observed": false, "numerator": 0, "denominator": 0},
+  "M6": {"observed": false, "numerator": 0, "denominator": 0},
+  "M7": {"observed": false, "papers": 0, "questions": 0, "locators": {"observed": false, "numerator": 0, "denominator": 0}, "claims": {"observed": false, "numerator": 0, "denominator": 0}, "abstentions": {"observed": false, "numerator": 0, "denominator": 0}, "leaks": 0}
+}

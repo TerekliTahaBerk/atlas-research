@@ -1,6 +1,6 @@
 # Faz 05 — Kapalı beta sınırı
 
-Durum: plan; pilot katılımcısı veya beta release yok. Bu faz kapalı-beta release sınırıdır; sonraki sürüm backlog'u [ROADMAP](../ROADMAP.md) içindedir.
+Durum: kullanıcı Faz 05 hazırlık ve sağlamlaştırmasını yetkilendirdi; katılımcı ve destek/incident sorumlusu henüz yok. Gerçek pilot/beta yayını ve G05 açık kalır. Ücretli AI, e-posta ve S3 kapalı tutulur. [Güncel teslim kaydı](../PHASE_05_HANDOFF.md). Bu faz kapalı-beta release sınırıdır; sonraki sürüm backlog'u [ROADMAP](../ROADMAP.md) içindedir.
 
 ## Amaç
 
@@ -16,7 +16,7 @@ Yeni LaTeX/notebook/graph/agent/kurum modülleri, kapsamlı Zotero/chat/co-editi
 
 ## Önkoşullar
 
-G01–G04 PASS; gerçek eval/restore raporları, kullanım/bütçe sınırları, bilinen açık kusurlar, destek sorumlusu ve veri paylaşımı/saklama açıklaması hazır. Pilot hipotezi 5–10 araştırmacı ve en az iki küçük ekip; gerçek recruitment sonucu sayı ayrı kaydedilir, doldurulmuş varsayılmaz.
+Kapalı beta yayını için G01–G04 PASS gereklidir. Kullanıcı eksik kapılar korunarak hazırlık/sağlamlaştırmanın ilerletilmesini istedi; bu karar önceki kapıları PASS yapmaz. Gerçek eval/restore raporları, kullanım/bütçe sınırları, bilinen açık kusurlar, destek sorumlusu ve veri paylaşımı/saklama açıklaması hazır. Pilot hipotezi 5–10 araştırmacı ve en az iki küçük ekip; gerçek recruitment sonucu sayı ayrı kaydedilir, doldurulmuş varsayılmaz.
 
 ## Görevler ve PR dilimleri
 
@@ -38,4 +38,4 @@ G01–G04 PASS; gerçek eval/restore raporları, kullanım/bütçe sınırları,
 
 ## Bitiş koşulları
 
-Ürün sahibi gerçek pilot/güvenlik/operasyon kanıtını gözden geçirir ve kapalı beta kararını kaydeder. G05 geçmiş olsa bile sonraki sürümler ayrı scope/karar/talimat ister. Bu Faz 00 çalışması P05 görevlerinin hiçbirini uygulamaz.
+Ürün sahibi gerçek pilot/güvenlik/operasyon kanıtını gözden geçirir ve kapalı beta kararını kaydeder. G05 geçmiş olsa bile sonraki sürümler ayrı scope/karar/talimat ister. Faz 00’daki plan ile bu fazın gözlemlenen uygulama sonuçları teslim kaydında ayrılır.
