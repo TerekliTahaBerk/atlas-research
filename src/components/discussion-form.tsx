@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { useSafeNavigation } from "./navigation-safety";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { DiscussionData, Member } from "@/lib/collaboration-types";
@@ -21,6 +22,7 @@ export function DiscussionCreateDialog({
   onClose: () => void;
 }) {
   const router = useRouter(),
+    navigate = useSafeNavigation(),
     [title, setTitle] = useState(""),
     [body, setBody] = useState(initialText),
     [links, setLinks] = useState<string[]>(
@@ -69,7 +71,8 @@ export function DiscussionCreateDialog({
               payload,
             );
             onClose();
-            router.push(`/w/${w}/p/${p}/discussions/${d.id}`);
+            const href = `/w/${w}/p/${p}/discussions/${d.id}`;
+            await navigate(href, () => router.push(href));
           } catch (e) {
             setError(e);
             const retry = !(

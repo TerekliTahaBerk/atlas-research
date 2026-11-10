@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState, useLayoutEffect } from "react";
+import { useSafeNavigation } from "./navigation-safety";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type { TaskData, Member, ArtifactCard } from "@/lib/collaboration-types";
@@ -372,7 +373,8 @@ export function TaskCreateDialog({
   origin?: { sourceId: string; annotationId?: string };
   onClose: () => void;
 }) {
-  const router = useRouter();
+  const router = useRouter(),
+    navigate = useSafeNavigation();
   return (
     <Modal title="New task" onClose={onClose}>
       <TaskComposer
@@ -382,9 +384,10 @@ export function TaskCreateDialog({
         originId={originId}
         origin={origin}
         onClose={onClose}
-        onCreated={(task) => {
+        onCreated={async (task) => {
           onClose();
-          router.push(`/w/${w}/p/${p}/tasks/${task.id}`);
+          const href = `/w/${w}/p/${p}/tasks/${task.id}`;
+          await navigate(href, () => router.push(href));
         }}
       />
     </Modal>

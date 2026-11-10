@@ -2,7 +2,7 @@
 import { HomeExperience } from "./home-experience";
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { WorkingTabs } from "./working-tabs";
 import { useWorkspaceIdentity } from "./workspace-context";
 import { api, ApiError } from "@/lib/api";
@@ -55,35 +55,33 @@ export function WorkspaceShell({
     contextProject?: Project;
   }) => ReactNode;
 }) {
-  const { me, workspaces, projects, inbox, collapsed, setCollapsed } =
-    useWorkspaceIdentity();
+  const {
+    me,
+    workspaces,
+    projects,
+    inbox,
+    collapsed,
+    setCollapsed,
+    selectedProject,
+    openSearch,
+  } = useWorkspaceIdentity();
   const [drawer, setDrawer] = useState(false),
     [switching, setSwitching] = useState(false),
     [projectQuery, setProjectQuery] = useState(""),
-    [rememberedProject, setRememberedProject] = useState(""),
     [create, setCreate] = useState<"project" | "workspace" | null>(null),
     [signOutError, setSignOutError] = useState<unknown>();
   const path = usePathname(),
     current = projects.data?.find((p) => path.startsWith(projectPath(p))),
-    contextProject =
-      current ??
-      projects.data?.find((p) => p.id === rememberedProject && !p.deletedAt) ??
-      projects.data?.find((p) => !p.archivedAt && !p.deletedAt),
+    contextProject = current ?? selectedProject,
     base = contextProject ? projectPath(contextProject) : null;
   useEffect(() => {
-    if (!me.data) return;
-    const key = `atlas-project:${me.data.user.id}`;
-    if (current) {
-      try {
-        sessionStorage.setItem(key, current.id);
-      } catch {}
-    } else {
-      try {
-        const id = sessionStorage.getItem(key);
-        if (id) queueMicrotask(() => setRememberedProject(id));
-      } catch {}
-    }
-  }, [me.data, current]);
+    const close = () => {
+      setSwitching(false);
+      setDrawer(false);
+    };
+    window.addEventListener("atlas-navigation-start", close);
+    return () => window.removeEventListener("atlas-navigation-start", close);
+  }, []);
   const sources = useResource<ResearchLibrary>(
     contextProject
       ? `/api/research/${contextProject.workspaceId}/${contextProject.id}/sources`
@@ -127,16 +125,9 @@ export function WorkspaceShell({
       setSignOutError(error);
     }
   }
-  const router = useRouter();
   useEffect(() => {
     function key(event: KeyboardEvent) {
       if (!(event.metaKey || event.ctrlKey)) return;
-      if (event.key.toLowerCase() === "k" && base) {
-        event.preventDefault();
-        const input = document.getElementById("library-search");
-        if (input) input.focus();
-        else router.push(base + "/sources#library-search");
-      }
       if (event.key === "\\") {
         event.preventDefault();
         if (innerWidth >= 900) setCollapsed((v) => !v);
@@ -145,7 +136,7 @@ export function WorkspaceShell({
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [base, router, setCollapsed]);
+  }, [setCollapsed]);
   const active =
     path === "/inbox"
       ? "inbox"
@@ -156,16 +147,18 @@ export function WorkspaceShell({
           : path.includes("/discussions")
             ? "discussions"
             : path.endsWith("/discover")
-              ? "discover"
+              ? "library"
               : path.includes("/sources")
                 ? "library"
                 : path.endsWith("/members")
                   ? "members"
-                  : current
-                    ? "overview"
-                    : path === "/home" || path === "/onboarding"
-                      ? "home"
-                      : "settings";
+                  : path.endsWith("/settings")
+                    ? "settings"
+                    : current
+                      ? "overview"
+                      : path === "/home" || path === "/onboarding"
+                        ? "home"
+                        : "settings";
   const nav = (
     <>
       <div className="sidebar-heading">
@@ -176,7 +169,15 @@ export function WorkspaceShell({
             setSwitching(true);
           }}
         >
-          <span className="truncate">{contextProject?.name ?? "Atlas"}</span>
+          <span className="scope-heading">
+            <strong>{current?.name ?? "Personal area"}</strong>
+            <small>
+              {current
+                ? workspaces.data?.find((w) => w.id === current.workspaceId)
+                    ?.name
+                : "Home · Inbox · Switch project"}
+            </small>
+          </span>
           <Icon name="chevron" />
         </button>
         <button
@@ -202,20 +203,22 @@ export function WorkspaceShell({
           <Icon name="new" />
           <span>New</span>
         </button>
-        {base && (
-          <Link
-            className="nav-item"
-            href={base + "/sources#library-search"}
-            onClick={() => setDrawer(false)}
-          >
-            <Icon name="search" />
-            <span>Search</span>
-            <kbd>⌘K</kbd>
-          </Link>
-        )}
+        <button
+          className="nav-item"
+          onClick={() => {
+            setDrawer(false);
+            openSearch();
+          }}
+        >
+          <Icon name="search" />
+          <span>Search</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <span className="nav-scope-label">Personal</span>
         <Link
-          className={`nav-item ${path === "/home" ? "selected" : ""}`}
+          className={`nav-item ${active === "home" ? "selected" : ""}`}
           href="/home"
+          aria-current={active === "home" ? "page" : undefined}
           onClick={() => setDrawer(false)}
         >
           <Icon name="home" />
@@ -224,14 +227,13 @@ export function WorkspaceShell({
         <Link
           className={`nav-item ${active === "inbox" ? "selected" : ""}`}
           href="/inbox"
+          aria-current={active === "inbox" ? "page" : undefined}
           onClick={() => setDrawer(false)}
         >
           <Icon name="inbox" />
           Inbox
           {!!inbox.data?.unread && (
-            <span className="nav-count">
-              {inbox.data.unread}
-            </span>
+            <span className="nav-count">{inbox.data.unread}</span>
           )}
         </Link>
         {base && (
@@ -240,8 +242,19 @@ export function WorkspaceShell({
               <Icon name="chevron" />
               Project
             </summary>
+            <div className="nav-project-context">
+              <strong>{contextProject?.name}</strong>
+              <small>
+                {
+                  workspaces.data?.find(
+                    (w) => w.id === contextProject?.workspaceId,
+                  )?.name
+                }
+              </small>
+            </div>
             <Link
               className={`nav-item ${active === "overview" ? "selected" : ""}`}
+              aria-current={active === "overview" ? "page" : undefined}
               href={base}
               onClick={() => setDrawer(false)}
             >
@@ -249,23 +262,17 @@ export function WorkspaceShell({
               Overview
             </Link>
             <Link
-              className={`nav-item ${active === "members" ? "selected" : ""}`}
-              href={base + "/members"}
+              className={`nav-item ${active === "library" ? "selected" : ""}`}
+              href={base + "/sources"}
               onClick={() => setDrawer(false)}
+              aria-current={active === "library" ? "page" : undefined}
             >
-              <Icon name="people" />
-              Members
-            </Link>
-            <Link
-              className={`nav-item ${active === "tasks" ? "selected" : ""}`}
-              href={base + "/tasks"}
-              onClick={() => setDrawer(false)}
-            >
-              <Icon name="check" />
-              Tasks
+              <Icon name="library" />
+              Library
             </Link>
             <Link
               className={`nav-item ${active === "documents" ? "selected" : ""}`}
+              aria-current={active === "documents" ? "page" : undefined}
               href={base + "/docs"}
               onClick={() => setDrawer(false)}
             >
@@ -273,7 +280,17 @@ export function WorkspaceShell({
               Documents
             </Link>
             <Link
+              className={`nav-item ${active === "tasks" ? "selected" : ""}`}
+              aria-current={active === "tasks" ? "page" : undefined}
+              href={base + "/tasks"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="check" />
+              Tasks
+            </Link>
+            <Link
               className={`nav-item ${active === "discussions" ? "selected" : ""}`}
+              aria-current={active === "discussions" ? "page" : undefined}
               href={base + "/discussions"}
               onClick={() => setDrawer(false)}
             >
@@ -282,40 +299,11 @@ export function WorkspaceShell({
             </Link>
           </details>
         )}
-        {base && (
-          <details className="nav-group" open>
-            <summary>
-              <Icon name="chevron" />
-              Sources
-              {sources.data && (
-                <span className="nav-count">{sources.data.total}</span>
-              )}
-            </summary>
-            {sources.data?.items.slice(0, 5).map((source) => (
-              <Link
-                key={source.id}
-                className={`nav-item source-nav ${path.includes(source.id) ? "selected" : ""}`}
-                title={source.title}
-                href={base + "/sources/" + source.id}
-                onClick={() => setDrawer(false)}
-              >
-                <Icon name="file" />
-                <span className="truncate">{source.title}</span>
-              </Link>
-            ))}
-            <Link
-              className={`nav-item nav-secondary ${active === "library" && !path.match(/sources\//) ? "selected" : ""}`}
-              href={base + "/sources"}
-              onClick={() => setDrawer(false)}
-            >
-              <Icon name="library" />
-              Library
-            </Link>
-          </details>
-        )}
         {!base && !!projects.data && (
           <div className="nav-hint">
-            Create a project to start your library.
+            {projects.data.length
+              ? "Choose a project to open its research."
+              : "Create a project to start your library."}
           </div>
         )}
       </div>
@@ -335,8 +323,14 @@ export function WorkspaceShell({
             </Link>
             <Link href="/settings">
               <Icon name="settings" />
-              Settings
+              Account settings
             </Link>
+            {base && (
+              <Link href={base + "/settings"}>
+                <Icon name="folder" />
+                Project settings
+              </Link>
+            )}
             {workspaces.data?.map((w) => (
               <Link key={w.id} href={`/w/${w.id}/settings`}>
                 <Icon name="folder" />
@@ -391,6 +385,7 @@ export function WorkspaceShell({
             path={path}
             title={title}
             allowedProjects={projects.data?.map(projectPath) ?? []}
+            projectBase={base}
           />
           <PopoverMenu className="action-menu">
             <summary className="icon-button toolbar-new" aria-label="Open page">
@@ -401,7 +396,7 @@ export function WorkspaceShell({
               <Link href="/inbox">Inbox</Link>
               {base && (
                 <>
-                  <Link href={base + "/sources?view=discover"}>Discover</Link>
+                  <Link href={base}>Overview</Link>
                   <Link href={base + "/sources"}>Library</Link>
                   <Link href={base + "/docs"}>Documents</Link>
                   <Link href={base + "/tasks"}>Tasks</Link>
@@ -414,7 +409,7 @@ export function WorkspaceShell({
             </div>
           </PopoverMenu>
           <div id="atlas-toolbar-actions" className="toolbar-actions" />
-          {current && <div id="atlas-ai-toggle" />}
+          {contextProject && <div id="atlas-ai-toggle" />}
         </header>
         <main id="main" tabIndex={-1} className="content">
           {error ? (

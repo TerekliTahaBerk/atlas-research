@@ -4,6 +4,7 @@ import { PopoverMenu } from "./ui";
 import { TaskCreateDialog, TaskFields } from "./task-form";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useSafeNavigation } from "./navigation-safety";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { ArtifactCard, Member } from "@/lib/collaboration-types";
@@ -117,6 +118,7 @@ function ArtifactDialog({
   onClose: () => void;
 }) {
   const router = useRouter(),
+    navigate = useSafeNavigation(),
     documents = useResource<{ items: { id: string; title: string }[] }>(
       kind === "document" && origin ? collabApi(w, p) + "/documents" : null,
     ),
@@ -159,16 +161,16 @@ function ArtifactDialog({
             : { requestId, title, body, links, mentions: [] };
       const r = await api<{ id: string }>(collabApi(w, p) + "/" + part, input);
       onClose();
-      router.push(
+      const target =
         collabPath(w, p) +
-          "/" +
-          (kind === "document" ? "docs" : part) +
-          "/" +
-          r.id +
-          (kind === "document" && returnQuery
-            ? "?documents=" + encodeURIComponent(returnQuery)
-            : ""),
-      );
+        "/" +
+        (kind === "document" ? "docs" : part) +
+        "/" +
+        r.id +
+        (kind === "document" && returnQuery
+          ? "?documents=" + encodeURIComponent(returnQuery)
+          : "");
+      await navigate(target, () => router.push(target));
     } catch (e) {
       setError(e);
     } finally {

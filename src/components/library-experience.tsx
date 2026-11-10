@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -54,7 +60,20 @@ export function LibraryExperience({
   initialSourceId?: string;
 }) {
   const narrow = useSyncExternalStore(subscribeNarrow, getNarrow, serverNarrow);
-  const params = useSearchParams(),
+  const urlParams = useSearchParams();
+  const [rememberedQuery, setRememberedQuery] = useState(() => {
+    try {
+      return location.search
+        ? ""
+        : (sessionStorage.getItem(`atlas-library:${userId}:${w}:${p}`) ?? "");
+    } catch {
+      return "";
+    }
+  });
+  const params = useMemo(
+      () => (urlParams.size ? urlParams : new URLSearchParams(rememberedQuery)),
+      [urlParams, rememberedQuery],
+    ),
     router = useRouter(),
     base = researchApi(w, p),
     path = researchPath(w, p) + "/sources";
@@ -126,7 +145,8 @@ export function LibraryExperience({
     hasDetail = !!detail.data;
   const filtersActive = !!(query || collection || tag || status || pdf || year);
   function update(values: Record<string, string>, reset = true) {
-    const next = new URLSearchParams(location.search);
+    const next = new URLSearchParams(params.toString());
+    setRememberedQuery("");
     if (reset) {
       next.delete("page");
       setSelected([]);

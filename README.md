@@ -26,6 +26,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Inbox and auxiliary Settings:** recipient updates have exact research targets, type filters, stable paged history and acknowledged read state; profile, browser appearance, in-app event preferences and scoped administration stay separate. See the [delivery and verification record](docs/implementation/INBOX_SETTINGS_EXPERIENCE.md).
 
+**Connected workspace:** identity-based work tabs, shared authorized search, acknowledged navigation saves and one scoped AI controller connect the research journey across pages and refreshes. See the [joined journey and delivery limits](docs/implementation/CONNECTED_WORKSPACE.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)
