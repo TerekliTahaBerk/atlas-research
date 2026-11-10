@@ -24,6 +24,8 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 **Home and Project Overview:** personal opened-work history, assigned/upcoming tasks and paged projects are separate from a project’s research purpose, content, priorities and recent changes. See the [delivery record and verification limits](docs/implementation/HOME_OVERVIEW_EXPERIENCE.md).
 
+**Inbox and auxiliary Settings:** recipient updates have exact research targets, type filters, stable paged history and acknowledged read state; profile, browser appearance, in-app event preferences and scoped administration stay separate. See the [delivery and verification record](docs/implementation/INBOX_SETTINGS_EXPERIENCE.md).
+
 ## Start here
 
 - [Agent contract](AGENTS.md)

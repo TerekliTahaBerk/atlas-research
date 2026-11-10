@@ -60,3 +60,7 @@ export function transferWorkspaceOwner(db: Database, actor: Identity, id: string
     await tx.workspaceMember.updateMany({ where: { workspaceId: id, userId: actor.id }, data: { role: "admin" } });
   });
 }
+
+export function readWorkspace(db:Database,actor:Identity,id:string) {
+ return asIdentity(db,actor,async tx=>{ const s=await workspaceLock(tx,actor,id);return {workspace:s.workspace,role:s.role}; });
+}

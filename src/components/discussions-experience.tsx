@@ -7,6 +7,7 @@ import {
   useCallback,
 } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import type {
   DiscussionData,
@@ -65,6 +66,7 @@ export function DiscussionsExperience({
   userId: string;
   id?: string;
 }) {
+  const focusTarget = useSearchParams().get("message");
   const key = `atlas-discussions:${userId}/${w}/${p}`;
   const [filter, setFilter] = useState<{
       q: string;
@@ -211,7 +213,7 @@ export function DiscussionsExperience({
       </aside>
       {id ? (
         <Thread
-          key={userId + id}
+          key={userId + id + (focusTarget ?? "")}
           w={w}
           p={p}
           id={id}
@@ -262,6 +264,7 @@ function Thread({
   back: string;
   topicChanged: () => void;
 }) {
+  const focusMessage = useSearchParams().get("message");
   const endpoint = `/api/collaboration/${w}/${p}/discussions/${id}`;
   const [data, setData] = useState<Detail>(),
     [error, setError] = useState<unknown>(),
@@ -287,7 +290,9 @@ function Thread({
           "?window=50" +
           (previous?.messages.length
             ? "&after=" + previous.messages.at(-1)!.id
-            : ""),
+            : focusMessage
+              ? "&focus=" + encodeURIComponent(focusMessage)
+              : ""),
       );
       let messages = previous
         ? mergeMessages(previous.messages, next.messages)
@@ -327,7 +332,7 @@ function Thread({
     } finally {
       requesting.current = false;
     }
-  }, [endpoint]);
+  }, [endpoint, focusMessage]);
   useEffect(() => {
     alive.current = true;
     void refresh();
@@ -348,14 +353,22 @@ function Thread({
     const node = scroller.current;
     if (!node || !data) return;
     if (initial.current) {
-      node.scrollTop = node.scrollHeight;
+      const focused = focusMessage
+        ? node.querySelector<HTMLElement>(
+            `[data-message="${CSS.escape(focusMessage)}"]`,
+          )
+        : null;
+      node.scrollTop = focused
+        ? focused.offsetTop - node.offsetTop
+        : node.scrollHeight;
+      focused?.setAttribute("data-inbox-focus", "true");
       initial.current = false;
     } else if (prepend.current) {
       node.scrollTop =
         prepend.current.top + node.scrollHeight - prepend.current.height;
       prepend.current = null;
     }
-  }, [data]);
+  }, [data, focusMessage]);
   const older = async () => {
     if (requesting.current || !data) return;
     requesting.current = true;

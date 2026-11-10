@@ -20,7 +20,7 @@ const Context = createContext<{
   me: Resource<Me>;
   workspaces: Resource<Workspace[]>;
   projects: Resource<Project[]>;
-  inbox: Resource<{ id: string; readAt: string | null }[]>;
+  inbox: Resource<{ unread: number }>;
   collapsed: boolean;
   setCollapsed: Dispatch<SetStateAction<boolean>>;
 } | null>(null);
@@ -43,8 +43,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const me = useResource<Me>(active ? "/api/me" : null),
     workspaces = useResource<Workspace[]>(active ? "/api/workspaces" : null),
     projects = useResource<Project[]>(active ? "/api/projects" : null),
-    inbox = useResource<{ id: string; readAt: string | null }[]>(
-      active ? "/api/collaboration/inbox" : null,
+    inbox = useResource<{ unread: number }>(
+      active ? "/api/collaboration/inbox?view=summary" : null,
     );
   const [collapsed, setCollapsed] = useState(false);
   const current = projects.data?.find(

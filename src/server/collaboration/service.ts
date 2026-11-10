@@ -854,8 +854,13 @@ async function notify(
   recipientId: string,
   event: "assignment" | "reply" | "mention",
   eventId: string,
+  actorId: string,
+  messageId: string | null = null,
 ) {
-  if (!(await eligible(tx, w, p, recipientId))) return;
+  const [preference] = await tx.$queryRaw<
+    { enabled: boolean }[]
+  >`SELECT app.notification_enabled(${w}::uuid,${p}::uuid,${recipientId},${event}) AS enabled`;
+  if (!preference?.enabled) return;
   await tx.notification.createMany({
     data: [
       {
@@ -866,6 +871,8 @@ async function notify(
         recipientId,
         event,
         eventId,
+        actorId,
+        messageId,
       },
     ],
     skipDuplicates: true,
@@ -1166,6 +1173,7 @@ export function changeTask(
         next.assigneeId,
         "assignment",
         `task:${id}:${next.revision}`,
+        a.id,
       );
     await tx.taskWrite.create({
       data: {
@@ -1222,6 +1230,7 @@ export function createTask(
         task.assigneeId,
         "assignment",
         `task:${task.id}:1`,
+        a.id,
       );
     return task;
   });
@@ -1288,6 +1297,7 @@ export function editTask(
         next.assigneeId,
         "assignment",
         `task:${id}:${next.revision}`,
+        a.id,
       );
     return next;
   });
@@ -1300,8 +1310,12 @@ export const discussionListInput = z
   })
   .strict();
 export const discussionPageInput = z
-  .object({ before: z.uuid().optional(), after: z.uuid().optional() })
-  .refine((v) => !(v.before && v.after));
+  .object({
+    before: z.uuid().optional(),
+    after: z.uuid().optional(),
+    focus: z.uuid().optional(),
+  })
+  .refine((v) => [v.before, v.after, v.focus].filter(Boolean).length <= 1);
 export const discussionEditInput = z
   .object({
     revision,
@@ -1461,6 +1475,8 @@ async function send(
         recipient,
         input.mentions.includes(recipient) ? "mention" : "reply",
         `message:${message.id}`,
+        a.id,
+        message.id,
       );
   return message;
 }
@@ -1513,7 +1529,7 @@ export function getDiscussion(
       where: { id, workspaceId: w, projectId: p },
     });
     if (!discussion) unavailable();
-    const anchorId = page?.before ?? page?.after;
+    const anchorId = page?.before ?? page?.after ?? page?.focus;
     const anchor = anchorId
       ? await tx.message.findFirst({
           where: {
@@ -1526,7 +1542,11 @@ export function getDiscussion(
       : null;
     if (anchorId && !anchor) unavailable();
     const newer = !!page?.after;
-    const comparison = newer ? Prisma.sql`>` : Prisma.sql`<`,
+    const comparison = newer
+        ? Prisma.sql`>`
+        : page?.focus
+          ? Prisma.sql`<=`
+          : Prisma.sql`<`,
       direction = page && !newer ? Prisma.sql`DESC` : Prisma.sql`ASC`;
     const picked = page
       ? await tx.$queryRaw<{ id: string; orderStamp: string }[]>(
@@ -1567,6 +1587,13 @@ export function getDiscussion(
           }
         : {}),
     }));
+    const focusHasAfter = page?.focus
+      ? (
+          await tx.$queryRaw<
+            { found: boolean }[]
+          >`SELECT EXISTS(SELECT 1 FROM app.messages WHERE "discussionId"=${id}::uuid AND ("createdAt",id)>(SELECT "createdAt",id FROM app.messages WHERE id=${page.focus}::uuid AND "discussionId"=${id}::uuid)) AS found`
+        )[0].found
+      : false;
     return {
       discussion,
       messages: withCards,
@@ -1574,7 +1601,11 @@ export function getDiscussion(
         where: { workspaceId: w, projectId: p, discussionId: id },
       }),
       hasMoreBefore: page ? !newer && hasMore : false,
-      hasMoreAfter: page ? newer && hasMore : false,
+      hasMoreAfter: page?.focus
+        ? focusHasAfter
+        : page
+          ? newer && hasMore
+          : false,
       links: await linked(tx, w, p, id),
       canEdit:
         ["owner", "admin", "editor"].includes(s.projectRole) &&
@@ -1728,11 +1759,17 @@ export function markNotification(
   read: boolean,
 ) {
   return asIdentity(db, a, async (tx) => {
-    const result = await tx.notification.updateMany({
-      where: { id, recipientId: a.id },
+    if (
+      !(await tx.notification.findFirst({
+        where: { id, recipientId: a.id },
+        select: { id: true },
+      }))
+    )
+      unavailable();
+    await tx.notification.updateMany({
+      where: { id, recipientId: a.id, ...(read ? { readAt: null } : {}) },
       data: { readAt: read ? new Date() : null },
     });
-    if (!result.count) unavailable();
     return { ok: true };
   });
 }

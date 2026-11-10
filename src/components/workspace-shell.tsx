@@ -228,10 +228,9 @@ export function WorkspaceShell({
         >
           <Icon name="inbox" />
           Inbox
-          {!!inbox.data?.filter((n) => !n.readAt).length && (
+          {!!inbox.data?.unread && (
             <span className="nav-count">
-              {inbox.data.filter((n) => !n.readAt).length}
-              {inbox.data.length === 100 ? "+" : ""}
+              {inbox.data.unread}
             </span>
           )}
         </Link>

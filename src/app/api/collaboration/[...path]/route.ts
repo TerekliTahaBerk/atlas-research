@@ -2,6 +2,8 @@ import { z } from "zod";
 import { entry, uuid } from "@/server/entry";
 import { readMutation } from "@/server/http";
 import { AppError } from "@/server/errors";
+import { getIdentityDatabase } from "@/server/auth";
+import { inboxInput, inboxPage, inboxSummary, markPageRead, pageReadInput } from "@/server/collaboration/inbox";
 import * as c from "@/server/collaboration/service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +16,12 @@ async function handle(
       method = request.method,
       url = new URL(request.url);
     if (path[0] === "inbox") {
-      if (path.length === 1 && method === "GET") return c.inbox(db, a);
+      if (path.length === 1 && method === "GET") {
+        if(url.searchParams.get("view")==="summary") return inboxSummary(db,a);
+        if(url.searchParams.get("view")==="paged") return inboxPage(db,getIdentityDatabase(),a,inboxInput.parse({status:url.searchParams.get("status")??"unread",event:url.searchParams.get("event")??"all",before:url.searchParams.get("before")??undefined,snapshot:url.searchParams.get("snapshot")??undefined,selected:url.searchParams.get("selected")??undefined}));
+        return c.inbox(db,a);
+      }
+      if(path.length===1 && method==="POST") return markPageRead(db,a,(await readMutation(request,pageReadInput)).ids);
       if (path.length === 2 && method === "PATCH") {
         const input = await readMutation(
           request,
@@ -175,6 +182,7 @@ async function handle(
           url.searchParams.has("window")
             ? c.discussionPageInput.parse({
                 before: url.searchParams.get("before") ?? undefined,
+                focus: url.searchParams.get("focus") ?? undefined,
                 after: url.searchParams.get("after") ?? undefined,
               })
             : undefined,
