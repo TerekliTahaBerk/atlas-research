@@ -218,7 +218,11 @@ export function PopoverMenu({
       name="atlas-popover"
       ref={ref}
       className={className}
-      onToggle={() => setOpen(ref.current?.open ?? false)}
+      onToggle={() => {
+        const opened = ref.current?.open ?? false;
+        setOpen(opened);
+        if (opened) window.dispatchEvent(new Event("atlas-menu-opened"));
+      }}
       onClickCapture={(event) => {
         if (
           (event.target as HTMLElement).closest("button,a") &&
@@ -312,6 +316,7 @@ export function Modal({
   useEffect(() => {
     const node = ref.current;
     const opener = document.activeElement;
+    window.dispatchEvent(new Event("atlas-modal-opened"));
     node?.showModal();
     return () => {
       node?.close();

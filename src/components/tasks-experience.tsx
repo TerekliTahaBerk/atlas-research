@@ -1,4 +1,5 @@
 "use client";
+import { useNavigationBlocker } from "./navigation-safety";
 import {
   useCallback,
   useEffect,
@@ -212,7 +213,7 @@ export function TasksExperience({
     [selected, setSelected] = useState<string | null>(
       pathname.startsWith(base + "/")
         ? pathname.slice(base.length + 1)
-        : initialId ?? query.get("task"),
+        : (initialId ?? query.get("task")),
     ),
     [today, setToday] = useState(calendarToday),
     [term, setTerm] = useState(filter.q),
@@ -1334,7 +1335,7 @@ function TaskEditor({
     return { ...fields, ...(links.length ? { links } : {}) };
   }
   async function save(extra?: Changes) {
-    if (sending.current) return;
+    if (sending.current) return false;
     sending.current = true;
     setBusy(true);
     setError(undefined);
@@ -1356,6 +1357,7 @@ function TaskEditor({
       pending.current = null;
       setStatus("Saved");
       await refresh();
+      return true;
     } catch (e) {
       setError(e);
       setUncertain(
@@ -1370,11 +1372,18 @@ function TaskEditor({
         if (latest) setRemote(latest);
       } else if (e instanceof ApiError && [400, 403, 404].includes(e.status))
         pending.current = null;
+      return false;
     } finally {
       sending.current = false;
       setBusy(false);
     }
   }
+  useNavigationBlocker({
+    label:
+      "Task changes are not saved. Stay to review or use the task's explicit discard action.",
+    pending: () => dirty || !!pending.current,
+    flush: async () => (await save()) === true,
+  });
   return (
     <div
       className="task-editor"

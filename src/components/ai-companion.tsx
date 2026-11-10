@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import katex from "katex";
 import { usePathname } from "next/navigation";
+import { useNavigationBlocker } from "./navigation-safety";
 import { TaskLinkPicker } from "./task-form";
 import { CreateArtifactDialog } from "./collaboration-shared";
 import { api, ApiError } from "@/lib/api";
@@ -51,6 +52,10 @@ export function AiCompanion({
         ? (saved().mode as Presentation)
         : "compact",
   );
+  useEffect(() => {
+    if (!["compact", "hidden"].includes(mode))
+      window.dispatchEvent(new Event("atlas-ai-refresh"));
+  }, [mode]);
   const [conversation, setConversation] = useState<string>(
     () => saved().id ?? "",
   );
@@ -84,12 +89,16 @@ export function AiCompanion({
     window.addEventListener("atlas-ai-open", launch);
     window.addEventListener("atlas-document-tools-open", writing);
     window.addEventListener("atlas-research-writing", writing);
+    window.addEventListener("atlas-modal-opened", writing);
+    window.addEventListener("atlas-menu-opened", writing);
     return () => {
       observer.disconnect();
       window.removeEventListener("keydown", keyboard);
       window.removeEventListener("atlas-ai-open", launch);
       window.removeEventListener("atlas-document-tools-open", writing);
       window.removeEventListener("atlas-research-writing", writing);
+      window.removeEventListener("atlas-modal-opened", writing);
+      window.removeEventListener("atlas-menu-opened", writing);
     };
   }, [key, w, p]);
   useEffect(() => {
@@ -354,6 +363,28 @@ function AiPanel({
     [policyOpen, setPolicyOpen] = useState(false),
     [earlierVersions, setEarlierVersions] = useState(false),
     [proposalRun, setProposalRun] = useState("");
+  useNavigationBlocker({
+    label: busy
+      ? "An AI request is awaiting acknowledgement. Stay until it completes; no duplicate request will be sent."
+      : "The unsent AI draft belongs to this project. Switching projects discards this in-memory draft.",
+    pending: (href) => {
+      const target = href.match(/\/w\/([^/]+)\/p\/([^/?#]+)/);
+      const workspace = href.match(/^\/w\/([^/]+)/)?.[1];
+      const leaving = target
+        ? target[1] !== w || target[2] !== p
+        : !!workspace && workspace !== w;
+      return leaving && (busy || !!question.trim() || !!passage.trim());
+    },
+    flush: async () => false,
+    ...(!busy
+      ? {
+          discard: () => {
+            setQuestion("");
+            setPassage("");
+          },
+        }
+      : {}),
+  });
   const heading = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     // The compact composer remains writable without stealing editor focus.
@@ -366,6 +397,18 @@ function AiPanel({
   const selected = selection ?? (seededVersion ? [seededVersion.id] : []);
   const reloadHistory = history.reload,
     reloadOptions = options.reload;
+  useEffect(() => {
+    const refresh = () => {
+      reloadOptions();
+      if (conversation) reloadHistory();
+    };
+    window.addEventListener("atlas-research-changed", refresh);
+    window.addEventListener("atlas-ai-refresh", refresh);
+    return () => {
+      window.removeEventListener("atlas-research-changed", refresh);
+      window.removeEventListener("atlas-ai-refresh", refresh);
+    };
+  }, [reloadOptions, reloadHistory, conversation]);
   const active = history.data?.contexts.some(
     (c) => c.run && ["queued", "running"].includes(c.run.state),
   );

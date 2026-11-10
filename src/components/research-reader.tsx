@@ -1,4 +1,5 @@
 "use client";
+import { useNavigationBlocker } from "./navigation-safety";
 import { WorkVisit } from "./work-visit";
 import {
   useCallback,
@@ -485,6 +486,15 @@ function ReaderDocument({
     },
     [base, detail.source.id, version.id, onPositionSaved],
   );
+  useNavigationBlocker({
+    label: "The latest PDF reading position has not been saved.",
+    pending: () =>
+      ready.current && JSON.stringify(current.current) !== lastSaved.current,
+    flush: async () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      return (await saveReading()) !== false;
+    },
+  });
   function queueSave() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => void saveReading(), 800);

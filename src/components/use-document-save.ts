@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigationBlocker } from "./navigation-safety";
 import { api, ApiError } from "@/lib/api";
 import { cleanDocument, type DocNode } from "@/lib/document-model";
 import type { DocumentData, DocumentDetail } from "@/lib/collaboration-types";
@@ -308,6 +309,25 @@ export function useDocumentSave(
       clearLocal();
     }
   }
+  useNavigationBlocker({
+    label:
+      "Document changes are not saved. Review the editor or keep the existing private recovery draft.",
+    pending: () => changed() || !!pending.current,
+    flush: () => flush(),
+    recover: () => {
+      remember();
+      try {
+        const raw = JSON.parse(sessionStorage.getItem(key) ?? "null");
+        return (
+          raw?.at > Date.now() - 60000 &&
+          raw.title === current.current.title &&
+          JSON.stringify(raw.body) === JSON.stringify(current.current.body)
+        );
+      } catch {
+        return false;
+      }
+    },
+  });
   return {
     draft,
     status,
