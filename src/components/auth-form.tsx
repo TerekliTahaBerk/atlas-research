@@ -1,10 +1,11 @@
 "use client";
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useId, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, safeReturn } from "@/lib/api";
 import { Failure, InlineError, Loading, ThemeControl, useResource } from "./ui";
 import type { Capabilities } from "@/lib/capabilities";
+import { AtlasCompass, PublicBrand } from "./public-brand";
 type Mode = "sign-in" | "sign-up" | "reset" | "reset-new" | "verify";
 export function AuthForm({ mode }: { mode: Mode }) {
   return (
@@ -14,6 +15,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   );
 }
 function AuthFormInner({ mode }: { mode: Mode }) {
+  const passwordId = useId();
   const needsMail = ["sign-up", "reset", "verify"].includes(mode),
     capabilities = useResource<Capabilities>(
       needsMail ? "/api/capabilities" : null,
@@ -21,6 +23,7 @@ function AuthFormInner({ mode }: { mode: Mode }) {
   const search = useSearchParams(),
     next = safeReturn(search.get("next"));
   const [busy, setBusy] = useState(false),
+    [showPassword, setShowPassword] = useState(false),
     [error, setError] = useState<unknown>(),
     [notice, setNotice] = useState("");
   const titles = {
@@ -94,137 +97,175 @@ function AuthFormInner({ mode }: { mode: Mode }) {
     }
   }
   return (
-    <div className="auth-page">
+    <div className="auth-page public-auth">
+      <div className="public-terrain" aria-hidden="true" />
       <header>
-        <Link href="/home" className="wordmark">
-          Atlas<span>Research</span>
-        </Link>
+        <PublicBrand />
         <ThemeControl />
       </header>
-      <main className="auth-card">
-        <div className="eyebrow">A place for your next question</div>
-        <h1>
-          {needsMail && capabilities.data?.emailDelivery === "disabled"
-            ? "This service is unavailable"
-            : titles[mode]}
-        </h1>
-        <p>
-          {needsMail && capabilities.data?.emailDelivery === "disabled"
-            ? "Sign in with an existing account to continue your research."
-            : mode === "sign-up"
-              ? "A personal research space, with room to work together. Any email address is welcome."
-              : "Continue your research in Atlas."}
-        </p>
-        {needsMail && !capabilities.data ? (
-          capabilities.error ? (
-            <Failure error={capabilities.error} retry={capabilities.reload} />
-          ) : (
-            <Loading />
-          )
-        ) : needsMail && capabilities.data?.emailDelivery === "disabled" ? (
-          <div className="notice" role="status">
-            <h2>Email delivery is currently unavailable</h2>
-            <p>
-              New registration, verification emails and password recovery are
-              unavailable in this installation. Contact your workspace
-              administrator.
-            </p>
-          </div>
-        ) : notice ? (
-          <div role="status" className="notice">
-            <p>{notice}</p>
-            <Link
-              className="button primary"
-              href={`/sign-in?next=${encodeURIComponent(next)}`}
-            >
-              Go to sign in
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={submit} aria-busy={busy}>
-            {mode === "sign-up" && (
-              <label>
-                Name
-                <input
-                  name="name"
-                  autoComplete="name"
-                  required
-                  maxLength={80}
-                />
-              </label>
-            )}
-            {mode !== "reset-new" && (
-              <label>
-                Email
-                <input
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  required
-                  maxLength={254}
-                />
-              </label>
-            )}
-            {["sign-in", "sign-up", "reset-new"].includes(mode) && (
-              <label>
-                Password
-                <input
-                  type="password"
-                  aria-label="Password"
-                  name="password"
-                  autoComplete={
-                    mode === "sign-in" ? "current-password" : "new-password"
-                  }
-                  required
-                  minLength={mode === "sign-in" ? 1 : 12}
-                  maxLength={128}
-                />
-                {mode !== "sign-in" && (
-                  <small>Use at least 12 characters.</small>
-                )}
-              </label>
-            )}
-            <InlineError error={error} />
-            <button className="primary" disabled={busy}>
-              {busy
-                ? "Please wait…"
-                : mode === "sign-in"
-                  ? "Sign in"
-                  : mode === "sign-up"
-                    ? "Create account"
-                    : mode === "reset-new"
-                      ? "Save new password"
-                      : mode === "verify"
-                        ? "Resend verification email"
-                        : "Send reset link"}
-            </button>
-          </form>
-        )}
-        <div className="auth-links">
-          {mode === "sign-in" ? (
-            <>
-              <Link href="/reset">Forgot password?</Link>
-              <Link href={`/sign-up?next=${encodeURIComponent(next)}`}>
-                Create an account
-              </Link>
-              <Link href={`/verify?next=${encodeURIComponent(next)}`}>
-                Resend verification
-              </Link>
-            </>
-          ) : (
-            <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>
-              Back to sign in
-            </Link>
-          )}
-        </div>
-        {mode === "sign-up" &&
-          capabilities.data?.emailDelivery !== "disabled" && (
-            <p className="footnote">
-              Your account starts with an empty, private workspace.
+      <div className="public-auth-stage">
+        <main className="auth-card">
+          <AtlasCompass className="auth-compass" />
+          <h1>
+            {needsMail && capabilities.data?.emailDelivery === "disabled"
+              ? "This service is unavailable"
+              : titles[mode]}
+          </h1>
+          {mode !== "sign-in" && (
+            <p className="auth-description">
+              {needsMail && capabilities.data?.emailDelivery === "disabled"
+                ? "Sign in with an existing account to continue your research."
+                : mode === "sign-up"
+                  ? "A personal research space, with room to work together. Any email address is welcome."
+                  : "Continue your research in Atlas."}
             </p>
           )}
-      </main>
-      <footer>Atlas Research · Built for thoughtful work</footer>
+          {needsMail && !capabilities.data ? (
+            capabilities.error ? (
+              <Failure error={capabilities.error} retry={capabilities.reload} />
+            ) : (
+              <Loading />
+            )
+          ) : needsMail && capabilities.data?.emailDelivery === "disabled" ? (
+            <div className="notice" role="status">
+              <h2>Email delivery is currently unavailable</h2>
+              <p>
+                New registration, verification emails and password recovery are
+                unavailable in this installation. Contact your workspace
+                administrator.
+              </p>
+            </div>
+          ) : notice ? (
+            <div role="status" className="notice">
+              <p>{notice}</p>
+              <Link
+                className="button primary"
+                href={`/sign-in?next=${encodeURIComponent(next)}`}
+              >
+                Go to sign in
+              </Link>
+            </div>
+          ) : (
+            <form onSubmit={submit} aria-busy={busy}>
+              {mode === "sign-up" && (
+                <label>
+                  Name
+                  <input
+                    name="name"
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    required
+                    maxLength={80}
+                  />
+                </label>
+              )}
+              {mode !== "reset-new" && (
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    name="email"
+                    autoComplete="email"
+                    required
+                    maxLength={254}
+                  />
+                </label>
+              )}
+              {["sign-in", "sign-up", "reset-new"].includes(mode) && (
+                <div className="auth-password-group">
+                  <label htmlFor={passwordId}>Password</label>
+                  <span className="auth-password-field">
+                    <input
+                      id={passwordId}
+                      type={showPassword ? "text" : "password"}
+                      placeholder={
+                        mode === "sign-in"
+                          ? "Enter your password"
+                          : "Choose a password"
+                      }
+                      aria-label="Password"
+                      name="password"
+                      autoComplete={
+                        mode === "sign-in" ? "current-password" : "new-password"
+                      }
+                      required
+                      minLength={mode === "sign-in" ? 1 : 12}
+                      maxLength={128}
+                    />
+                    <button
+                      type="button"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      aria-pressed={showPassword}
+                      onClick={() => setShowPassword((v) => !v)}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        aria-hidden="true"
+                      >
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                        <circle cx="12" cy="12" r="3" />
+                        {showPassword && <path d="m3 3 18 18" />}
+                      </svg>
+                    </button>
+                  </span>
+                  {mode !== "sign-in" && (
+                    <small>Use at least 12 characters.</small>
+                  )}
+                </div>
+              )}
+              <InlineError error={error} />
+              <button className="primary" disabled={busy}>
+                {busy
+                  ? "Please wait…"
+                  : mode === "sign-in"
+                    ? "Sign in"
+                    : mode === "sign-up"
+                      ? "Create account"
+                      : mode === "reset-new"
+                        ? "Save new password"
+                        : mode === "verify"
+                          ? "Resend verification email"
+                          : "Send reset link"}
+              </button>
+            </form>
+          )}
+          <div className="auth-links">
+            {mode === "sign-in" ? (
+              <>
+                <Link href="/reset">Forgot password?</Link>
+                <Link href={`/sign-up?next=${encodeURIComponent(next)}`}>
+                  Create an account
+                </Link>
+                <Link href={`/verify?next=${encodeURIComponent(next)}`}>
+                  Resend verification
+                </Link>
+              </>
+            ) : (
+              <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>
+                Back to sign in
+              </Link>
+            )}
+          </div>
+          {mode === "sign-up" &&
+            capabilities.data?.emailDelivery !== "disabled" && (
+              <p className="footnote">
+                Your account starts with an empty, private workspace.
+              </p>
+            )}
+        </main>
+      </div>
+      <footer>
+        <Link href="/">Back to Atlas</Link>
+        <span>Research, with the source in sight.</span>
+      </footer>
     </div>
   );
 }

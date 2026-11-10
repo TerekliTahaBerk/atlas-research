@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import type { Metadata } from "next";
 import "./globals.css";
 import "./workspace.css";
+import "./public.css";
 import { WorkspaceProvider } from "@/components/workspace-context";
 
 export const metadata: Metadata = {
