@@ -1,31 +1,33 @@
 # Public landing and authentication entry
 
-10 November 2026 owner-requested visual increment, based on the supplied screenshots (11:08:03 landing, 11:08:13–11:09:24 downstream sections, 11:09:35 account form). These references guide the public surfaces; the research workspace and beta scope stay intact. No screenshot, personal identity, testimonial portrait or private reference asset is shipped.
+10 November 2026 owner-requested second visual increment. The first centered landing and terrain-backed authentication design was rejected. This revision follows a source-led editorial direction: a split hero, one interactive workspace example, sage and paper-yellow accents, compact explanatory sections and a split desktop sign-in page. It adapts the supplied references without claiming pixel parity or expanding the beta boundary.
 
-`/` is now a public landing page instead of an unconditional `/home` redirect. `/home` remains the authenticated research home. Landing actions lead to the existing sign-in route. Native anchor navigation and FAQ disclosure work without a separate public-site service. The source-linked writing/reading previews are code-native, explicitly illustrative examples, with no simulated account/session/model state.
+## Plan and resulting design
 
-Sign-in, registration, verification and recovery share an open 384px form, compass mark, subdued terrain and restrained black/white controls. Existing APIs, safe return routing, verification requirements, disabled-delivery gate and recovery behavior remain in use. Password visibility is an explicit button outside its input label; fields keep autocomplete and meaningful names. There is no new OAuth provider, identity bypass, SMTP provisioning, payment or new module.
+1. Lead with the research task: “A clearer path from paper to insight.” A single Read / Write / Plan example shows the connection between a paper, source-linked writing and next steps.
+2. Use native radio inputs, labels and checkboxes for a working, keyboard-accessible presentation. Example content is visibly labelled; preview changes do not persist or represent real user data.
+3. Share the source-to-note illustration between the public page and authentication story. On narrow screens the story disappears and the actual form takes priority. Light and dark follow the existing app preference.
+4. Publish a private Sites presentation and reuse the same React component/CSS in the existing Next.js Atlas deployment. Authentication stays in the existing Atlas service.
 
-## Visual contract and comparison
+`/` is public; `/home` remains authenticated. Real sign-in, registration, verification and recovery APIs, return routing, email-verification requirements, visibility controls and disabled-delivery gates are preserved. No OAuth, new provider, payment, infrastructure migration or AI configuration is introduced. Unconfigured email services remain visibly unavailable.
 
-The supplied references and a generated concept were inspected with `view_image`, then compared with production-browser renders at 1440px and narrow widths. IAB was used first for navigation, desktop/390px layout and theme controls; the repeatable release test uses production Playwright and disposable PostgreSQL/local SMTP. The installed Browser plugin is unavailable. This is a reference adaptation, not pixel-parity with the third-party site.
+## Sites source and delivery
 
-| Point | Reference / intentional adaptation | Render verification |
-| --- | --- | --- |
-| Background | True-white public canvas with faint pastel terrain; dark follows the existing preference | Removed the white-image rectangle in dark mode using an inverted contour blend; inspected both themes |
-| Typography | System sans body, large two-line heading, serif Atlas wordmark | 64px desktop / responsive 33–46px hero; 25px auth heading; 13–14px form labels/controls, 16px mobile inputs |
-| Container model | Open hero/auth layout; thin borders only on preview, fields and section panels | Auth card border/padding removed; centered 384px form; no boxed landing hero |
-| Navigation / actions | Compact logo, About / Workflow / FAQ and Log in / Start researching | All destinations exist; anchor and FAQ interaction passed; mobile retains entry actions and footer navigation |
-| Illustration / icons | Compass and lightweight icons; pastel product frames | Shared SVG mark and existing icon family; actual UI text stays HTML; generated terrain is a 43KiB WebP |
-| Responsive flow | Full reading/writing preview on desktop; readable single-column continuation | 320/390/768/1024/1440px × light/dark passed overflow and overlay checks |
-| Above-fold copy | `Atlas`, `About`, `Workflow`, `FAQ`, `Log in`, `Start researching`, `Your research, connected to its sources.`, and the agreed reading/evidence subtitle | No invented proof badge, price, user count or institution endorsement; preview is visibly labelled as example content |
+Private preview: https://atlas-entry-redesign.tterekli9.chatgpt.site
 
-The original reference's advanced maps, Google login, paid plans, university logos, 10,000-user statement, testimonials and compliance badges are not claims or configured features of this Atlas installation. The page describes the implemented PDF/notes/documents/tasks/discussions flow. The generated concept's fictional river-restoration findings were replaced with clearly illustrative paper/note content; no generated scientific result is presented as evidence. Existing recovery/verification links and the theme control are retained usability adaptations.
+Project: `appgprj_6af2de263bcc8191b71fc9355bf9bf11`. Native publication returned `succeeded` for source commit `dd12089591748b323ae25ff3a46c3d38b1a28bac`. Its normal ChatGPT owner-access gate remains enabled. The IAB visit reached that sign-in gate; remote authenticated rendering is not claimed.
 
-Built-in ImageGen produced the concept and a separate production background. Background prompt: “Create a standalone decorative background asset for the Atlas landing and login website: an extremely faint pastel topographic contour map on pure white. Meandering irregular islands of pale mint, baby blue, blush pink, pale butter yellow and lavender surround a large white empty central oval. Thin organic concentric elevation contour lines, softened almost to white; no text, logos, UI, symbols, people, perspective, 3D or shadow. Flat overhead paper map; pure-white edges fade seamlessly.” Asset: `public/images/atlas-terrain.webp`; the source PNG and concept remain outside Git.
+`scripts/export-public-site.ts` renders the shared `PublicSite` component and copies its stylesheet to a buildless static source checkout. It takes explicit `--out` and `--app-origin` arguments. Sites entry links point to the existing HTTPS Atlas service; no credential form, secret or authentication proxy is exported. Source-helper credentials remain in session memory and hidden stdin. The nested Sites checkout is ignored in the Atlas repository.
 
-## Observed validation and limits
+## Observed validation
 
-PASS: typecheck, lint, 10 unit tests and production build. `node --import tsx scripts/test-integration.ts --public-browser` verifies landing → FAQ → login, keyboard field order, real registration → local SMTP verification → authenticated Home, password visibility, recovery → changed-password sign-in, invalid-credential error, five widths/two themes and disabled registration/recovery/verification with no form. No external email, paid model request or live user record is used by this test. Screenshots are outside Git.
+PASS: production build including TypeScript, lint, and all 10 unit tests. Production `node --import tsx scripts/test-integration.ts --public-browser` passed:
 
-The older generic `--browser` script reached authenticated Home but stopped on its pre-existing `Good morning/afternoon/evening` greeting expectation, while the current Home says `Welcome back`. Its full workspace suite is not claimed to pass here; this increment adds a focused auth/public release gate rather than rewriting unrelated workspace expectations. Safari/Firefox, OAuth and actual external email delivery are not verified. Email, paid AI, independent backup and the broader beta gates retain their existing status. Live release SHA, readiness and fresh live screenshots are recorded in the delivery conversation.
+- Landing, FAQ, entry links, Read/Write/Plan switching, task checkbox and native radio keyboard navigation.
+- Actual registration → local SMTP verification → authenticated Home; password visibility; recovery → changed-password sign-in; invalid-credential error.
+- Landing, sign-in, registration and recovery at 320/390/768/1024/1440px in both themes; no horizontal overflow, development overlay or browser exception.
+- Disabled registration, recovery and verification expose the unavailable state and no form.
+
+IAB reviewed the recognizable static Sites preview and example interactions before publishing. Production-browser screenshot output was visually inspected for desktop sign-in and the complete landing page. All fixtures are synthetic; test PostgreSQL and SMTP are disposable and local. No live user record, external email or paid model call is used. Screenshots remain outside Git.
+
+The older generic `--browser` suite has a pre-existing Home greeting mismatch (`Good morning/afternoon/evening` versus current `Welcome back`); its entire workspace flow is not claimed to pass. Safari, Firefox, OAuth and external email are not verified. Paid AI, mail, independent backup and broader beta gates retain their existing status. Exact merged/live release and fresh live screenshots are recorded in the delivery conversation.
