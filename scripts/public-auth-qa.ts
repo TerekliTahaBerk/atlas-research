@@ -83,11 +83,27 @@ try {
   assert.equal(await page.title(), "Atlas Research");
   await page
     .getByRole("heading", {
-      name: "Your research, connected to its sources.",
+      name: "A clearer path from paper to insight.",
       exact: true,
     })
     .waitFor();
   assert.equal(await page.getByRole("main").count(), 1);
+  await page.locator('label[for="demo-write"]').click();
+  await page
+    .getByRole("heading", { name: "Making sense of attention.", exact: true })
+    .waitFor();
+  await page.locator('label[for="demo-plan"]').click();
+  const exampleTask = page.getByRole("checkbox", {
+    name: /Compare attention and recurrence/,
+  });
+  await exampleTask.check();
+  assert.equal(await exampleTask.isChecked(), true);
+  await page.getByRole("radio", { name: "Read", exact: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(
+    await page.getByRole("radio", { name: "Write", exact: true }).isChecked(),
+    true,
+  );
   await page.getByRole("link", { name: "FAQ", exact: true }).first().click();
   await page.getByText("What can I do with Atlas?", { exact: true }).click();
   assert.notEqual(
