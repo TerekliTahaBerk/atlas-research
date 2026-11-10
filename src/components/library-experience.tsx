@@ -848,7 +848,12 @@ export function LibraryExperience({
                                   </button>
                                 ))}
                                 {cs.length > 2 && (
-                                  <span>+{cs.length - 2} collections</span>
+                                  <span>
+                                    +{cs.length - 2}{" "}
+                                    {cs.length - 2 === 1
+                                      ? "collection"
+                                      : "collections"}
+                                  </span>
                                 )}
                                 {s.tags.slice(0, 3).map((t) => (
                                   <button

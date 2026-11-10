@@ -48,13 +48,18 @@ export function AiCompanion({
     (_: Presentation, next: Presentation) => next,
     "compact",
     () =>
-      ["compact", "floating", "docked"].includes(saved().mode)
+      ["compact", "floating", "docked", "hidden"].includes(saved().mode)
         ? (saved().mode as Presentation)
         : "compact",
   );
   useEffect(() => {
     if (!["compact", "hidden"].includes(mode))
       window.dispatchEvent(new Event("atlas-ai-refresh"));
+    if (mode === "docked") window.dispatchEvent(new Event("atlas-ai-docked"));
+  }, [mode]);
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    modeRef.current = mode;
   }, [mode]);
   const [conversation, setConversation] = useState<string>(
     () => saved().id ?? "",
@@ -62,6 +67,7 @@ export function AiCompanion({
   const [seed, setSeed] = useState<Seed>();
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [activity, setActivity] = useState(false);
+  const [scopeCount, setScopeCount] = useState(0);
   const surface = useRef<HTMLElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -75,7 +81,8 @@ export function AiCompanion({
       setSeed(data);
       dispatch("floating");
     };
-    const writing = () => dispatch("compact");
+    const writing = () =>
+      dispatch(modeRef.current === "hidden" ? "hidden" : "compact");
     const keyboard = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
         e.preventDefault();
@@ -250,7 +257,20 @@ export function AiCompanion({
               {activity ? "Request in progress" : "Private research"}
             </small>
           </strong>
+          <span
+            className="ai-compact-scope"
+            title={`${projectName} · ${scopeCount} selected research items`}
+          >
+            {projectName} · {scopeCount} selected
+          </span>
           <nav aria-label="AI presentation">
+            <button
+              aria-label="Hide AI"
+              title="Hide AI"
+              onClick={() => present("hidden")}
+            >
+              <Icon name="close" />
+            </button>
             <button aria-label="Compact AI" onClick={() => present("compact")}>
               −
             </button>
@@ -286,6 +306,7 @@ export function AiCompanion({
           seed={seed}
           projectName={projectName}
           onActivity={setActivity}
+          onScopeCount={setScopeCount}
           expand={() => present("floating")}
         />
       </aside>
@@ -334,9 +355,11 @@ function AiPanel({
   seed,
   projectName,
   onActivity,
+  onScopeCount,
   expand,
 }: {
   onActivity: (active: boolean) => void;
+  onScopeCount: (count: number) => void;
   expand: () => void;
   w: string;
   p: string;
@@ -422,6 +445,10 @@ function AiPanel({
   }, [active, reloadHistory, reloadOptions]);
   const policy = options.data?.policy,
     ids = history.data?.conversation.versionIds ?? selected;
+  const researchCount =
+    ids.length +
+    (history.data?.conversation.artifactIds?.length ?? artifactIds.length);
+  useEffect(() => onScopeCount(researchCount), [researchCount, onScopeCount]);
   async function act(fn: () => Promise<void>) {
     setBusy(true);
     setError(undefined);
@@ -514,44 +541,47 @@ function AiPanel({
               LOCAL SYNTHETIC TEST · no real model answer
             </p>
           )}
-          <div className="actions">
-            <button
-              onClick={() => {
-                choose("");
-                setSelected([]);
-                setArtifacts([]);
-                setPreview(undefined);
-                setQuestion("");
-                setConsent(false);
-              }}
-            >
-              New conversation
-            </button>
-            <button onClick={() => history.reload()}>Refresh history</button>
-            <button onClick={() => setPolicyOpen((v) => !v)}>
-              Usage & sharing
-            </button>
-          </div>
-          <label>
-            Private history
-            <select
-              aria-label="Private AI history"
-              value={conversation}
-              onChange={(e) => {
-                choose(e.target.value);
-                setPreview(undefined);
-                setQuestion("");
-                setConsent(false);
-              }}
-            >
-              <option value="">New conversation</option>
-              {options.data.conversations.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-          </label>
+          <details className="ai-conversation-tools">
+            <summary>Conversation options</summary>
+            <div className="actions">
+              <button
+                onClick={() => {
+                  choose("");
+                  setSelected([]);
+                  setArtifacts([]);
+                  setPreview(undefined);
+                  setQuestion("");
+                  setConsent(false);
+                }}
+              >
+                New conversation
+              </button>
+              <button onClick={() => history.reload()}>Refresh history</button>
+              <button onClick={() => setPolicyOpen((v) => !v)}>
+                Usage & sharing
+              </button>
+            </div>
+            <label>
+              Private history
+              <select
+                aria-label="Private AI history"
+                value={conversation}
+                onChange={(e) => {
+                  choose(e.target.value);
+                  setPreview(undefined);
+                  setQuestion("");
+                  setConsent(false);
+                }}
+              >
+                <option value="">New conversation</option>
+                {options.data.conversations.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </details>
           {policy && (
             <>
               {policyOpen && (
@@ -1039,7 +1069,7 @@ function AiPanel({
                   setPreview(undefined);
                   setConsent(false);
                 }}
-                placeholder="Ask Atlas… (@ to choose sources)"
+                placeholder="Ask Atlas…"
               />
             </label>
             <button

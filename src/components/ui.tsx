@@ -1,6 +1,7 @@
 "use client";
 import {
   useCallback,
+  useLayoutEffect,
   useEffect,
   useId,
   useRef,
@@ -91,7 +92,8 @@ export function Icon({
     tag: "M20 13l-7 7a2 2 0 0 1-3 0l-8-8V3h9l9 8a2 2 0 0 1 0 2ZM7 7h.01",
     bookmark: "M5 3h14v18l-7-4-7 4Z",
     filter: "M3 6h18M7 12h10m-7 6h4",
-    options: "M12 5h.01M12 12h.01M12 19h.01",
+    options:
+      "M11 5a1 1 0 1 0 2 0 1 1 0 0 0-2 0M11 12a1 1 0 1 0 2 0 1 1 0 0 0-2 0M11 19a1 1 0 1 0 2 0 1 1 0 0 0-2 0",
     zoomIn: "M21 21l-5-5M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M7 10h6m-3-3v6",
     zoomOut: "M21 21l-5-5M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14M7 10h6",
     moon: "M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z",
@@ -192,6 +194,31 @@ export function PopoverMenu({
 }) {
   const ref = useRef<HTMLDetailsElement>(null),
     [open, setOpen] = useState(false);
+  const place = useCallback(() => {
+    const panel = ref.current?.querySelector<HTMLElement>(":scope > div");
+    const anchor = ref.current?.querySelector("summary");
+    if (!panel || !anchor) return;
+    const a = anchor.getBoundingClientRect();
+    panel.style.position = "fixed";
+    panel.style.maxWidth = "calc(100vw - 24px)";
+    panel.style.minWidth = "min(180px, calc(100vw - 24px))";
+    panel.style.right = "auto";
+    const width = panel.getBoundingClientRect().width;
+    panel.style.left = `${Math.max(12, Math.min(a.right - width, innerWidth - width - 12))}px`;
+    const space = Math.max(120, innerHeight - a.bottom - 20);
+    panel.style.maxHeight = `${Math.min(innerHeight * 0.65, space)}px`;
+    panel.style.top = `${Math.min(a.bottom + 6, innerHeight - 132)}px`;
+  }, []);
+  useLayoutEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, place]);
   useEffect(() => {
     if (!open) return;
     const dismiss = (event: PointerEvent) => {
@@ -224,6 +251,17 @@ export function PopoverMenu({
         if (opened) window.dispatchEvent(new Event("atlas-menu-opened"));
       }}
       onClickCapture={(event) => {
+        if (
+          (event.target as HTMLElement).closest("summary") ===
+          ref.current?.querySelector("summary")
+        ) {
+          event.preventDefault();
+          const next = !ref.current!.open;
+          ref.current!.open = next;
+          setOpen(next);
+          if (next) place();
+          return;
+        }
         if (
           (event.target as HTMLElement).closest("button,a") &&
           !(event.target as HTMLElement).closest("summary")
@@ -318,6 +356,11 @@ export function Modal({
     const opener = document.activeElement;
     window.dispatchEvent(new Event("atlas-modal-opened"));
     node?.showModal();
+    node
+      ?.querySelector<HTMLElement>(
+        "input:not([type=checkbox]):not([type=hidden]),textarea,select",
+      )
+      ?.focus();
     return () => {
       node?.close();
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
@@ -362,7 +405,7 @@ export function Modal({
           </button>
         )}
       </div>
-      {children}
+      <div className="dialog-body">{children}</div>
     </dialog>
   );
 }

@@ -72,7 +72,10 @@ function InvitationBody({ token, email }: { token: string; email: string }) {
             : "Accept invitation"}
       </button>
       <p className="footnote">
-        Expires {new Date(preview.data.expiresAt).toLocaleDateString()}
+        Expires{" "}
+        {new Date(preview.data.expiresAt).toLocaleDateString("en-GB", {
+          dateStyle: "medium",
+        })}
       </p>
     </section>
   );

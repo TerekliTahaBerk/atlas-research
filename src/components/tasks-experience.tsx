@@ -1546,10 +1546,17 @@ function TaskEditor({
         <small>
           Created{" "}
           {detail.task.createdAt
-            ? new Date(detail.task.createdAt).toLocaleString()
+            ? new Date(detail.task.createdAt).toLocaleString("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
             : "—"}
           <br />
-          Edited {new Date(detail.task.updatedAt).toLocaleString()}
+          Edited{" "}
+          {new Date(detail.task.updatedAt).toLocaleString("en-GB", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
         </small>
         <Link href={`/w/${w}/p/${p}/tasks/${detail.task.id}`}>
           Permanent task link

@@ -139,7 +139,13 @@ function ProjectBody({
   }
   return (
     <>
-      <nav className="settings-scope-links" aria-label="Project settings navigation"><Link href={`/w/${w}/p/${p}/settings`}>Project settings</Link><Link href={`/w/${w}/settings`}>Workspace settings</Link></nav>
+      <nav
+        className="settings-scope-links"
+        aria-label="Project settings navigation"
+      >
+        <Link href={`/w/${w}/p/${p}/settings`}>Project settings</Link>
+        <Link href={`/w/${w}/settings`}>Workspace settings</Link>
+      </nav>
       <div className="page-heading">
         <div>
           <div className="project-symbol">
@@ -260,7 +266,9 @@ function ProjectBody({
                       <strong>{i.email}</strong>
                       <span>
                         {i.role} · Expires{" "}
-                        {new Date(i.expiresAt).toLocaleDateString()}
+                        {new Date(i.expiresAt).toLocaleDateString("en-GB", {
+                          dateStyle: "medium",
+                        })}
                       </span>
                     </div>
                     {(role === "owner" || i.role !== "admin") && (

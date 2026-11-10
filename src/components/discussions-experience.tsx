@@ -165,7 +165,12 @@ export function DiscussionsExperience({
               <span>
                 <strong>{d.title}</strong>
                 <small>
-                  Updated {new Date(d.updatedAt).toLocaleDateString()}
+                  Updated{" "}
+                  {new Date(d.updatedAt).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
                 </small>
               </span>
             </Link>
@@ -832,7 +837,14 @@ function Message({
           })}
         </time>
         {m.editedAt && (
-          <small title={new Date(m.editedAt).toLocaleString()}>Edited</small>
+          <small
+            title={new Date(m.editedAt).toLocaleString("en-GB", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          >
+            Edited
+          </small>
         )}
         {canEdit && !editing && (
           <button

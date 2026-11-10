@@ -384,8 +384,10 @@ function PersonalHome({
                       <small>{p.workspaceName}</small>
                       {p.description && <p>{p.description}</p>}
                       <small>
-                        {p.counts.sources} sources · {p.counts.documents}{" "}
-                        documents · {p.counts.tasks} active tasks
+                        {p.counts.sources}{" "}
+                        {p.counts.sources === 1 ? "source" : "sources"} ·{" "}
+                        {p.counts.documents} documents · {p.counts.tasks} active
+                        tasks
                       </small>
                       <small>Details updated {displayDate(p.updatedAt)}</small>
                     </span>
