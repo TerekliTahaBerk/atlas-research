@@ -240,6 +240,13 @@ function ReaderDocument({
     selectionRef = useRef<PdfSelection | null>(null),
     positionReady = useRef(false);
   useEffect(() => {
+    const close = () => setPanelOpen(false);
+    window.addEventListener("atlas-ai-docked", close);
+    if (document.querySelector('.ai-island[data-presentation="docked"]'))
+      close();
+    return () => window.removeEventListener("atlas-ai-docked", close);
+  }, []);
+  useEffect(() => {
     readingStatus.current =
       detail.reading?.status === "done" ? "done" : "reading";
   }, [detail.reading?.status]);
@@ -541,6 +548,7 @@ function ReaderDocument({
     window.dispatchEvent(new Event("atlas-location-changed"));
   }
   function focusAnnotation(a: ResearchAnnotation) {
+    window.dispatchEvent(new Event("atlas-document-tools-open"));
     clearSelection();
     setActive(a.id);
     navigate(a.page, a, Math.max(0, (a.rects[0]?.[1] ?? 0) - 0.15));
@@ -842,6 +850,7 @@ function ReaderDocument({
     }
   }
   function showPanel(next: "notes" | "outline" | "source") {
+    window.dispatchEvent(new Event("atlas-document-tools-open"));
     setPanel(next);
     if (next === "outline") void loadOutline();
     if (narrow) setSheet(true);
@@ -1226,6 +1235,8 @@ function ReaderDocument({
           aria-label={`Notes (${annotations.length})`}
           aria-pressed={narrow ? sheet : panelOpen}
           onClick={() => {
+            if (!(narrow ? sheet : panelOpen))
+              window.dispatchEvent(new Event("atlas-document-tools-open"));
             if (narrow) setSheet((v) => !v);
             else setPanelOpen((v) => !v);
           }}
@@ -1258,7 +1269,9 @@ function ReaderDocument({
                   .map((v) => (
                     <option key={v.id} value={v.id}>
                       Version {v.ordinal} ·{" "}
-                      {new Date(v.createdAt).toLocaleDateString()}
+                      {new Date(v.createdAt).toLocaleDateString("en-GB", {
+                        dateStyle: "medium",
+                      })}
                     </option>
                   ))}
               </select>

@@ -265,10 +265,20 @@ function DocumentList({
                     <span>
                       <strong>{d.title}</strong>
                       <span className="document-excerpt">
-                        {d.preview || "No writing yet"}
+                        {d.preview
+                          ?.replaceAll("[reference]", "")
+                          .replace(/\s+/g, " ")
+                          .trim() || "No writing yet"}
                       </span>
                       <small>
-                        Edited {new Date(d.updatedAt).toLocaleString()}
+                        Edited{" "}
+                        {new Date(d.updatedAt).toLocaleString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </small>
                     </span>
                   </Link>
@@ -294,6 +304,7 @@ function DocumentList({
                         )}
                         {data.data?.canManage && (
                           <button
+                            className={filter.archived ? undefined : "danger"}
                             disabled={busy}
                             onClick={() => void archive(d)}
                           >
@@ -841,7 +852,10 @@ function DocumentWriting({
                 >
                   Revision {v.revision}
                   <small>
-                    {new Date(v.createdAt).toLocaleString()}
+                    {new Date(v.createdAt).toLocaleString("en-GB", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
                     {v.createdBy
                       ? " · " +
                         (v.createdBy === userId
@@ -939,6 +953,8 @@ function DocumentWriting({
         ))}
         <button
           className="toolbar-button document-export"
+          aria-label="Export Markdown"
+          title="Export Markdown"
           disabled={exporting}
           onClick={() => void exportMarkdown()}
         >
@@ -997,7 +1013,10 @@ function DocumentWriting({
               </>
             )}
             {detail.canManage && (
-              <button onClick={() => void archive()}>
+              <button
+                className={detail.document.archivedAt ? undefined : "danger"}
+                onClick={() => void archive()}
+              >
                 {detail.document.archivedAt
                   ? "Restore document"
                   : "Archive document"}

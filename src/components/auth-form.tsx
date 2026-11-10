@@ -103,11 +103,17 @@ function AuthFormInner({ mode }: { mode: Mode }) {
       </header>
       <main className="auth-card">
         <div className="eyebrow">A place for your next question</div>
-        <h1>{titles[mode]}</h1>
+        <h1>
+          {needsMail && capabilities.data?.emailDelivery === "disabled"
+            ? "This service is unavailable"
+            : titles[mode]}
+        </h1>
         <p>
-          {mode === "sign-up"
-            ? "A personal research space, with room to work together. Any email address is welcome."
-            : "Continue your research in Atlas."}
+          {needsMail && capabilities.data?.emailDelivery === "disabled"
+            ? "Sign in with an existing account to continue your research."
+            : mode === "sign-up"
+              ? "A personal research space, with room to work together. Any email address is welcome."
+              : "Continue your research in Atlas."}
         </p>
         {needsMail && !capabilities.data ? (
           capabilities.error ? (
@@ -123,7 +129,6 @@ function AuthFormInner({ mode }: { mode: Mode }) {
               unavailable in this installation. Contact your workspace
               administrator.
             </p>
-            <Link href="/sign-in">Back to sign in</Link>
           </div>
         ) : notice ? (
           <div role="status" className="notice">
@@ -212,9 +217,12 @@ function AuthFormInner({ mode }: { mode: Mode }) {
             </Link>
           )}
         </div>
-        <p className="footnote">
-          Your account starts with an empty, private workspace.
-        </p>
+        {mode === "sign-up" &&
+          capabilities.data?.emailDelivery !== "disabled" && (
+            <p className="footnote">
+              Your account starts with an empty, private workspace.
+            </p>
+          )}
       </main>
       <footer>Atlas Research · Built for thoughtful work</footer>
     </div>

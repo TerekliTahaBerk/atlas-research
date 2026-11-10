@@ -105,6 +105,7 @@ export function ProjectOverview({
                 !d.workspace.archivedAt &&
                 !d.project.deletedAt && (
                   <button
+                    className={d.project.archivedAt ? undefined : "danger"}
                     disabled={busy}
                     onClick={() =>
                       void manage({ archived: !d.project.archivedAt })
@@ -125,7 +126,11 @@ export function ProjectOverview({
                     Restore project
                   </button>
                 ) : (
-                  <button disabled={busy} onClick={() => setDeleting(true)}>
+                  <button
+                    className="danger"
+                    disabled={busy}
+                    onClick={() => setDeleting(true)}
+                  >
                     Request project deletion
                   </button>
                 ))}
@@ -408,7 +413,7 @@ export function EditProject({
   close,
   saved,
 }: {
-  data: Pick<OverviewDashboard,"project">;
+  data: Pick<OverviewDashboard, "project">;
   w: string;
   p: string;
   close: () => void;

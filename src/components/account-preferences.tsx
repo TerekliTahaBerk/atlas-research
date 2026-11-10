@@ -221,7 +221,11 @@ function NotificationForm({ initial }: { initial: Preferences }) {
           {dirty
             ? "Unsaved changes"
             : saved.updatedAt
-              ? "Saved " + new Date(saved.updatedAt).toLocaleString()
+              ? "Saved " +
+                new Date(saved.updatedAt).toLocaleString("en-GB", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })
               : "Default preferences"}
         </small>
       </div>

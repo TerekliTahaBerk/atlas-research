@@ -185,6 +185,7 @@ try {
     .click();
   const found = await discovery;
   console.log("Live Crossref lookup HTTP " + found.status());
+  const discoveryPayload = await found.json();
   // arXiv preprints are outside guaranteed Crossref DOI coverage. The real paper
   // is added explicitly with its arXiv URL and matching PDF, not a different DOI.
   await page
@@ -283,6 +284,8 @@ try {
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Dock AI", exact: true }).click();
   await page.getByRole("button", { name: "Compact AI", exact: true }).click();
+  if (!(await page.locator(".annotation-card").first().isVisible()))
+    await page.getByRole("button", { name: /^Notes \(/ }).click();
   await page.screenshot({ path: join(folder, "reader-connected.png") });
   await page
     .locator(".annotation-card")
@@ -727,6 +730,186 @@ try {
     ),
   );
   await page.screenshot({ path: join(folder, "return-reader-narrow.png") });
+  stage =
+    "UI audit regressions: responsive menus, discovery, focus, AI and forms";
+  await page.route("**/discover?**", (route) =>
+    route.fulfill({ json: discoveryPayload }),
+  );
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(origin + path + "/sources?view=discover");
+    await page
+      .getByLabel("Search academic papers", { exact: true })
+      .fill(paper);
+    await page
+      .getByRole("button", { name: "Search papers", exact: true })
+      .click();
+    await page.locator(".discovery-row").first().waitFor();
+    await page
+      .getByRole("textbox", { name: "Research question", exact: true })
+      .waitFor();
+    const infoWidth = await page
+      .locator(".discovery-row .paper-info")
+      .first()
+      .evaluate((e) => e.getBoundingClientRect().width);
+    assert.ok(infoWidth > 100, `Discovery readable at ${width}: ${infoWidth}`);
+    await page.screenshot({ path: join(folder, `ui-discover-${width}.png`) });
+    await page.getByLabel("Switch open page", { exact: true }).click();
+    const row = page.locator(".tab-menu-row").first();
+    assert.ok(
+      await row.evaluate((e) => e.scrollWidth <= e.clientWidth + 2),
+      `Tab row fits at ${width}`,
+    );
+    await page.screenshot({ path: join(folder, `ui-tabs-${width}.png`) });
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("ControlOrMeta+k");
+    assert.ok(
+      await page
+        .getByRole("searchbox", { name: "Search projects and research" })
+        .evaluate((e) => e === document.activeElement),
+    );
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "My Library", exact: true }).click();
+    if (width === 390 || width === 1440) {
+      await page
+        .getByRole("region", { name: "Project library" })
+        .getByRole("link", { name: paper, exact: true })
+        .click();
+      await page
+        .getByRole("button", {
+          name: "Edit details, tags & collections",
+          exact: true,
+        })
+        .click();
+      const save = await page
+        .getByRole("button", { name: "Save source details", exact: true })
+        .boundingBox();
+      assert.ok(
+        save && save.y >= 0 && save.y + save.height <= 900,
+        `Source save stays visible at ${width}`,
+      );
+      await page.screenshot({
+        path: join(folder, `ui-source-form-${width}.png`),
+      });
+      await page
+        .getByRole("button", { name: "Close dialog", exact: true })
+        .click();
+      await page
+        .getByRole("link", { name: "Close source details", exact: true })
+        .click();
+    }
+    await page.getByText("Filters", { exact: true }).click();
+    const filter = await page
+      .getByLabel("Reading status", { exact: true })
+      .boundingBox();
+    assert.ok(
+      filter && filter.x >= 0 && filter.x + filter.width <= width,
+      `Filters fit at ${width}`,
+    );
+    await page.screenshot({ path: join(folder, `ui-filters-${width}.png`) });
+    await page.keyboard.press("Escape");
+    await page.goto(origin + path + "/docs/" + docId);
+    await page
+      .getByRole("textbox", { name: "Document body", exact: true })
+      .waitFor();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Export Markdown", exact: true })
+        .count(),
+      1,
+    );
+    const textarea = page.getByRole("textbox", {
+      name: "Research question",
+      exact: true,
+    });
+    await textarea.fill("");
+    assert.ok(
+      await textarea.evaluate((e) => e.scrollHeight <= e.clientHeight + 2),
+      `Empty composer fits at ${width}`,
+    );
+    await page.screenshot({ path: join(folder, `ui-document-${width}.png`) });
+  }
+  await page.getByRole("button", { name: "Hide AI", exact: true }).click();
+  await page.reload();
+  await page
+    .getByRole("textbox", { name: "Document body", exact: true })
+    .waitFor();
+  assert.equal(
+    await page.locator('.ai-island[data-presentation="hidden"]').count(),
+    1,
+  );
+  await page.getByRole("button", { name: "Ask Atlas", exact: true }).click();
+  await page.getByRole("button", { name: "Dock AI", exact: true }).click();
+  await page.goto(
+    origin + path + `/sources/${source.id}/read?version=${version.id}&page=2`,
+  );
+  await page.getByLabel("PDF page", { exact: true }).waitFor();
+  await page.locator('.ai-island[data-presentation="docked"]').waitFor();
+  await page.locator(".reader-notes").waitFor({ state: "hidden" });
+  assert.equal(await page.locator(".reader-notes:visible").count(), 0);
+  assert.equal(
+    await page
+      .locator(".content")
+      .evaluate((e) => getComputedStyle(e).paddingBottom),
+    "0px",
+  );
+  await page.screenshot({ path: join(folder, "ui-reader-docked.png") });
+  await page.getByRole("button", { name: "Compact AI", exact: true }).click();
+  await page.goto(origin + "/settings?tab=notifications");
+  await page
+    .getByRole("heading", { name: "Notifications", exact: true })
+    .waitFor();
+  assert.equal(await page.getByRole("main").count(), 1);
+  await page.goto(origin + path + "/tasks");
+  await page
+    .getByRole("button", { name: "New task", exact: true })
+    .first()
+    .click();
+  assert.ok(
+    await page
+      .getByLabel("Task title", { exact: true })
+      .evaluate((e) => e === document.activeElement),
+  );
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.goto(origin + "/settings?tab=appearance");
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.goto(origin + path + "/sources?view=discover");
+  await page.getByLabel("Search academic papers", { exact: true }).fill(paper);
+  await page
+    .getByRole("button", { name: "Search papers", exact: true })
+    .click();
+  await page.locator(".discovery-row").first().waitFor();
+  await page.screenshot({ path: join(folder, "ui-discover-dark.png") });
+  const anon = await browser.newContext(),
+    authPage = await anon.newPage();
+  for (const authPath of ["/sign-up", "/reset"]) {
+    await authPage.goto(origin + authPath);
+    await authPage
+      .getByRole("heading", {
+        name: "This service is unavailable",
+        exact: true,
+      })
+      .waitFor();
+    assert.equal(
+      await authPage
+        .getByRole("link", { name: "Back to sign in", exact: true })
+        .count(),
+      1,
+    );
+    assert.equal(
+      await authPage
+        .getByText("Your account starts with an empty, private workspace.", {
+          exact: true,
+        })
+        .count(),
+      0,
+    );
+  }
+  await authPage.screenshot({ path: join(folder, "ui-reset-disabled.png") });
+  await anon.close();
+  console.log(
+    "PASS UI audit: five widths; readable Discover, bounded menus/filters, initial focus, labelled export, empty AI composer, persistent hide, single settings landmark, dock reading area.",
+  );
   assert.equal(runCount, 0);
   assert.equal(previewCount, 1);
   assert.deepEqual(errors, []);

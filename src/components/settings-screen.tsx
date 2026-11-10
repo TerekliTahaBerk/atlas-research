@@ -90,7 +90,7 @@ function AccountSettings({
           </Link>
         ))}
       </nav>
-      <main className="settings-body">
+      <section className="settings-body" aria-label="Account settings content">
         <header>
           <small>Personal account</small>
           <h1>Account settings</h1>
@@ -121,7 +121,7 @@ function AccountSettings({
             </div>
           </section>
         )}
-      </main>
+      </section>
     </div>
   );
 }
@@ -249,8 +249,15 @@ function SecuritySessions() {
                   {s.current ? "This session" : "Another session"}
                 </strong>
                 <span>
-                  Started {new Date(s.createdAt).toLocaleString()} · Expires{" "}
-                  {new Date(s.expiresAt).toLocaleDateString()}
+                  Started{" "}
+                  {new Date(s.createdAt).toLocaleString("en-GB", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}{" "}
+                  · Expires{" "}
+                  {new Date(s.expiresAt).toLocaleDateString("en-GB", {
+                    dateStyle: "medium",
+                  })}
                 </span>
               </div>
               <button
