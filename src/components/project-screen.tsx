@@ -1,6 +1,7 @@
 "use client";
 import { ProjectOverview } from "./project-overview";
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Capabilities } from "@/lib/capabilities";
 import { Failure, Icon, InlineError, Loading, Modal, useResource } from "./ui";
@@ -138,6 +139,7 @@ function ProjectBody({
   }
   return (
     <>
+      <nav className="settings-scope-links" aria-label="Project settings navigation"><Link href={`/w/${w}/p/${p}/settings`}>Project settings</Link><Link href={`/w/${w}/settings`}>Workspace settings</Link></nav>
       <div className="page-heading">
         <div>
           <div className="project-symbol">

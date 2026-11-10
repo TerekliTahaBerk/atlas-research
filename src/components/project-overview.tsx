@@ -99,6 +99,7 @@ export function ProjectOverview({
               <Icon name="options" />
             </summary>
             <div>
+              <Link href={path + "/settings"}>Project settings</Link>
               <Link href={path + "/members"}>Project members</Link>
               {d.canManage &&
                 !d.workspace.archivedAt &&
@@ -400,14 +401,14 @@ export function ProjectOverview({
     </div>
   );
 }
-function EditProject({
+export function EditProject({
   data,
   w,
   p,
   close,
   saved,
 }: {
-  data: OverviewDashboard;
+  data: Pick<OverviewDashboard,"project">;
   w: string;
   p: string;
   close: () => void;

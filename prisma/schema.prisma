@@ -521,6 +521,8 @@ model Message {
  @@schema("app")
 }
 model Notification {
+ actorId String?
+ messageId String? @db.Uuid
  id String @id @db.Uuid
  workspaceId String @db.Uuid
  projectId String @db.Uuid
@@ -692,5 +694,16 @@ model WorkVisit {
  openedAt DateTime @default(now())
  @@id([actorId,artifactId])
  @@map("work_visits")
+ @@schema("app")
+}
+
+model UserPreference {
+ actorId String @id
+ assignment Boolean @default(true)
+ reply Boolean @default(true)
+ mention Boolean @default(true)
+ revision Int @default(1)
+ updatedAt DateTime @default(now()) @updatedAt
+ @@map("user_preferences")
  @@schema("app")
 }
