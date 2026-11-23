@@ -49,6 +49,9 @@ export type AiRunView = {
   result: AiAnswer | null;
   reservedMicros: number;
   chargedMicros: number;
+  reservedCredits: number;
+  chargedCredits: number;
+  providerCostState: string;
   inputTokens: number | null;
   outputTokens: number | null;
   createdAt: string;
@@ -60,6 +63,15 @@ export type AiUsage = {
   spentMicros: number;
   heldMicros: number;
 };
+export type FoundingAiBudget = {
+  capMicros: number;
+  actualMicros: number;
+  uncertainMicros: number;
+  heldMicros: number;
+  warning: boolean;
+  allowed: boolean;
+};
+export type FoundingBudgetGate = Pick<FoundingAiBudget, "warning" | "allowed">;
 export type AiPolicyView = {
   enabled: boolean;
   dailyBudgetMicros: number;
@@ -68,6 +80,10 @@ export type AiPolicyView = {
   canManage: boolean;
   callsEnabled: boolean;
   keyConfigured: boolean;
+  pricingAvailable: boolean;
+  creditsEnforced: boolean;
+  dailyOperationLimit: number;
+  foundingBudget: FoundingBudgetGate | null;
   model: string;
   terms: string;
   testing: boolean;
@@ -84,6 +100,8 @@ export type AiContextView = {
   evidence: EvidenceView[];
   warnings: string[];
   reservedMicros: number;
+  maxCredits: number;
+  pricingVersion: string | null;
   policy: AiPolicyView;
 };
 export type AiConversationView = {
@@ -105,4 +123,33 @@ export type AiConversationView = {
   }[];
   versions: AiVersion[];
   canEdit: boolean;
+};
+
+export type AiCostReport = {
+  periodStart: string;
+  founding: FoundingAiBudget;
+  models: Array<{
+    provider: string;
+    model: string;
+    pricingVersion: string;
+    runs: number;
+    actualMicros: number;
+    uncertainMicros: number;
+    heldMicros: number;
+    credits: number;
+    inputTokens: number;
+    outputTokens: number;
+    cachedInputTokens: number;
+    cacheWrite30mTokens: number;
+    cacheWrite12hTokens: number;
+  }>;
+  highCostRuns: Array<{
+    id: string;
+    workspaceId: string;
+    model: string;
+    actualMicros: number;
+    heldMicros: number;
+    costState: string;
+    createdAt: string;
+  }>;
 };

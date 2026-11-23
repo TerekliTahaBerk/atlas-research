@@ -27,6 +27,7 @@ const origin = `http://127.0.0.1:${port}`,
   smtp = await startMailServer();
 process.env.APP_ORIGIN = origin;
 process.env.SMTP_PORT = String(smtp.port);
+process.env.ATLAS_FOUNDING_INTAKE_ENABLED = "1";
 const mail = createMailQueue(getEnv()),
   folder = mkdtempSync(join(tmpdir(), "atlas-browser-qa-"));
 function startServer(delivery: "smtp" | "disabled" = "smtp") {
@@ -156,24 +157,139 @@ try {
       (url) =>
         url.pathname === "/sign-in" && url.searchParams.get("verified") === "1",
     );
+    stage = "browser verified sign-in";
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page.waitForURL("**/home");
     await page
       .getByRole("heading", {
-        name: new RegExp(
-          `Good (morning|afternoon|evening), ${name.split(" ")[0]}`,
-        ),
+        name: `Welcome back, ${name.split(" ")[0]}`,
         exact: true,
       })
       .waitFor();
-    assert.equal(await page.locator(".project-card").count(), 0);
+    await page
+      .getByText("No active projects in this workspace scope.", { exact: true })
+      .waitFor();
+    assert.equal(await page.locator(".home-project-card").count(), 0);
     return { email, password };
   }
+  stage = "public pricing comparison";
+  const pricing = await a.newPage();
+  observe(pricing);
+  await pricing.setViewportSize({ width: 1440, height: 1000 });
+  await pricing.goto(origin + "/pricing", { waitUntil: "networkidle" });
+  assert.equal(await pricing.title(), "Pricing · Atlas Research");
+  await pricing
+    .getByRole("heading", { name: "Plans for your research" })
+    .waitFor();
+  const teamPlan = pricing.getByRole("region", { name: "Team", exact: true });
+  const teamEstimate = teamPlan.getByRole("status");
+  assert.match(await teamEstimate.innerText(), /\$45 \/ month for 3 seats/);
+  await pricing.getByText("Yearly", { exact: true }).click();
+  assert.equal(
+    await pricing.getByRole("radio", { name: "Yearly" }).isChecked(),
+    true,
+  );
+  await teamPlan.getByRole("spinbutton", { name: "Seats" }).fill("5");
+  await teamPlan
+    .getByText("$750 / year for 5 seats", { exact: true })
+    .waitFor();
+  assert.match(await teamPlan.innerText(), /150 active projects/);
+  assert.match(
+    await pricing.getByRole("region", { name: "Student pricing" }).innerText(),
+    /\$4\.50 \/ month/,
+  );
+  await pricing.screenshot({ path: join(folder, "pricing-desktop.png") });
+  await pricing.setViewportSize({ width: 390, height: 844 });
+  await pricing.getByText("Monthly", { exact: true }).click();
+  assert.equal(
+    await pricing.getByRole("radio", { name: "Monthly" }).isChecked(),
+    true,
+  );
+  await teamPlan
+    .getByText("$75 / month for 5 seats", { exact: true })
+    .waitFor();
+  assert.equal(
+    await pricing.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
+  await pricing.screenshot({ path: join(folder, "pricing-mobile.png") });
+  await pricing.close();
+  stage = "Founding Access application";
+  const founding = await a.newPage();
+  observe(founding);
+  await founding.setViewportSize({ width: 390, height: 844 });
+  await founding.goto(origin + "/early-access");
+  await founding
+    .getByRole("heading", { name: "Founding Researcher Access" })
+    .waitFor();
+  await founding.getByLabel("Full name").fill("Synthetic researcher");
+  await founding
+    .getByLabel("Email", { exact: true })
+    .fill("founding-browser@example.invalid");
+  await founding.getByLabel("Research area").fill("Research reproducibility");
+  await founding.getByLabel("Research profile").selectOption("independent");
+  await founding.getByLabel("PDF", { exact: true }).check();
+  await founding
+    .getByLabel("How would you use Atlas in your pilot?")
+    .fill("Compare a synthetic research paper and its source notes.");
+  const mailBeforeApplication = smtp.messages.length;
+  await founding.getByRole("button", { name: "Submit application" }).click();
+  await founding
+    .getByRole("status")
+    .getByText("We received your application.", { exact: false })
+    .waitFor();
+  assert.equal(smtp.messages.length, mailBeforeApplication);
+  assert.equal(
+    await founding.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
+  await founding.screenshot({ path: join(folder, "founding-mobile.png") });
+  await founding.close();
+
   const ua = await account(pa, "Researcher A"),
     ub = await account(pb, "Researcher B");
   await account(pc, "Researcher C");
+  stage = "personal usage and student pricing";
+  const usage = await a.newPage();
+  observe(usage);
+  await usage.setViewportSize({ width: 390, height: 844 });
+  await usage.goto(origin + "/settings?tab=usage");
+  await usage
+    .getByRole("heading", { name: "Personal workspace capacity" })
+    .waitFor();
+  await usage.getByRole("heading", { name: "Free", exact: true }).waitFor();
+  assert.match(
+    await usage
+      .locator(".billing-meter")
+      .filter({ hasText: "Active projects" })
+      .innerText(),
+    /0\s*\/\s*3/,
+  );
+  assert.equal(
+    await usage.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
+  await usage.screenshot({ path: join(folder, "usage-mobile.png") });
+  await usage.getByRole("link", { name: "Subscription", exact: true }).click();
+  await usage.getByRole("heading", { name: "Plan and renewal" }).waitFor();
+  await usage
+    .getByRole("button", { name: "Request verification", exact: true })
+    .waitFor();
+  assert.equal(
+    await usage
+      .getByRole("textbox", { name: "University email domain" })
+      .inputValue(),
+    "example.invalid",
+  );
+  await usage.close();
   stage = "workspace creation";
   console.log(
     "PASS: three browser registrations, SMTP verification, sign-in and empty personal workspaces.",
@@ -215,11 +331,32 @@ try {
     .click();
   await pa.waitForURL("**/p/*");
   const projectUrl = pa.url();
+  stage = "shared workspace usage";
+  const workspaceUsage = await a.newPage();
+  observe(workspaceUsage);
+  const sharedUsagePath =
+    new URL(projectUrl).pathname.split("/p/")[0] + "/usage";
+  await workspaceUsage.goto(origin + sharedUsagePath);
+  await workspaceUsage
+    .getByRole("heading", { name: "Shared workspace capacity" })
+    .waitFor();
+  await workspaceUsage
+    .getByRole("heading", { name: "Free", exact: true })
+    .waitFor();
+  assert.equal(
+    await workspaceUsage
+      .getByRole("button", { name: "Save member limit" })
+      .count(),
+    0,
+  );
+  await workspaceUsage.screenshot({ path: join(folder, "usage-shared.png") });
+  await workspaceUsage.close();
   stage = "project invitation";
   await pa
     .getByRole("heading", { name: "Synthetic study", exact: true })
     .waitFor();
-  await pa.getByRole("link", { name: "Members", exact: true }).click();
+  await pa.getByLabel("Project actions", { exact: true }).click();
+  await pa.getByRole("link", { name: "Project members", exact: true }).click();
   await pa.getByRole("button", { name: "Invite member", exact: true }).click();
   await pa
     .getByRole("dialog")
@@ -319,7 +456,7 @@ try {
   await pa.goto(origin + "/home");
   await pa
     .getByRole("heading", {
-      name: /Good (morning|afternoon|evening), Researcher/,
+      name: "Welcome back, Researcher",
       exact: true,
     })
     .waitFor();
@@ -428,7 +565,7 @@ try {
   await pb.getByLabel("Password", { exact: true }).fill(password);
   await pb.getByRole("button", { name: "Sign in", exact: true }).click();
   await pb.waitForURL("**/home");
-  await pa.reload();
+  await pa.goto(origin + "/settings?tab=security");
   await pa.getByRole("button", { name: "Revoke session", exact: true }).click();
   await pa.waitForURL("**/sign-in");
   stage = "anonymous and retry state";
@@ -447,7 +584,7 @@ try {
   await pc.getByRole("button", { name: "Try again", exact: true }).click();
   await pc
     .getByRole("heading", {
-      name: /Good (morning|afternoon|evening), Researcher/,
+      name: "Welcome back, Researcher",
       exact: true,
     })
     .waitFor();
@@ -468,7 +605,7 @@ try {
   release();
   await pc
     .getByRole("heading", {
-      name: /Good (morning|afternoon|evening), Researcher/,
+      name: "Welcome back, Researcher",
       exact: true,
     })
     .waitFor();
@@ -557,8 +694,12 @@ try {
   console.log(`Synthetic screenshot evidence: ${folder}`);
 } catch (error) {
   if (errors.length) console.error({ browserErrorClasses: errors });
+  const sourceLine =
+    error instanceof Error
+      ? error.stack?.match(/browser-qa\.ts:(\d+):\d+/)?.[1]
+      : undefined;
   console.error(
-    `FAIL: browser QA at ${stage}; ${error instanceof Error ? error.name : "Error"}. Raw URLs, tokens and credentials omitted.`,
+    `FAIL: browser QA at ${stage}; ${error instanceof Error ? error.name : "Error"}${sourceLine ? ` (test line ${sourceLine})` : ""}. Raw URLs, tokens and credentials omitted.`,
   );
   for (const [index, page] of browser
     .contexts()

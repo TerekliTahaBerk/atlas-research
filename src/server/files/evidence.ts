@@ -28,6 +28,20 @@ export function splitPages(text: string, pageCount: number) {
     return { page: i + 1, text, sha256: sha(text), chunks };
   });
 }
+export type IndexedPage = ReturnType<typeof splitPages>[number];
+
+export function indexBytes(pages: IndexedPage[]) {
+  return pages.reduce(
+    (total, { chunks }) =>
+      total +
+      chunks.reduce(
+        (size, { text }) => size + Buffer.byteLength(text, "utf8"),
+        0,
+      ),
+    0,
+  );
+}
+
 export async function indexPages(
   c: PoolClient,
   scope: {
@@ -37,11 +51,9 @@ export async function indexPages(
     sourceId: string;
     fileSha256: string;
   },
-  text: string,
-  pageCount: number,
+  pages: IndexedPage[],
   extractor: string,
 ) {
-  const pages = splitPages(text, pageCount);
   for (const p of pages) {
     const id = randomUUID();
     await c.query(
@@ -82,7 +94,12 @@ export async function indexPages(
       );
   }
   await c.query(
-    'UPDATE app.source_versions SET "indexRevision"=$2 WHERE id=$1',
+    `DELETE FROM app.source_chunks ch USING app.source_pages sp
+      WHERE ch."pageId"=sp.id AND sp."versionId"=$1 AND sp.extractor<>$2`,
     [scope.versionId, extractor],
+  );
+  await c.query(
+    'UPDATE app.source_versions SET "indexRevision"=$2,"indexedBytes"=$3 WHERE id=$1',
+    [scope.versionId, extractor, indexBytes(pages)],
   );
 }

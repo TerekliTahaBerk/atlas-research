@@ -4,10 +4,10 @@ import nodemailer from "nodemailer";
 import type { MailEnv } from "../env.js";
 import { SCHEMA_REVISION } from "../release.ts";
 
-export type Mail = { to: string; subject: string; text: string; authorization?: { actorId: string; sessionId: string; workspaceId: string; projectId: string; invitationId: string } };
+export type Mail = { to: string; subject: string; text: string; authorization?: { actorId: string; sessionId: string; workspaceId: string; projectId: string; invitationId: string }; foundingAuthorization?: { actorId: string; sessionId: string; applicationId: string; tokenHash: string } };
 export function createMailQueue(env: MailEnv) {
-  const pool = new pg.Pool({ connectionString: env.QUEUE_DATABASE_URL, max: 2, connectionTimeoutMillis: 5_000 });
-  const runtime = new pg.Pool({ connectionString: env.DATABASE_URL, max: 2, connectionTimeoutMillis: 5_000 });
+  const pool = new pg.Pool({ connectionString: env.QUEUE_DATABASE_URL, max: 2, options: "-c TimeZone=UTC", connectionTimeoutMillis: 5_000 });
+  const runtime = new pg.Pool({ connectionString: env.DATABASE_URL, max: 2, options: "-c TimeZone=UTC", connectionTimeoutMillis: 5_000 });
   const key = createHash("sha256").update("atlas-mail-v1\0").update(env.BETTER_AUTH_SECRET).digest();
   const transport = nodemailer.createTransport({
     host: env.SMTP_HOST, port: env.SMTP_PORT, secure: env.SMTP_SECURE,
@@ -58,6 +58,17 @@ export function createMailQueue(env: MailEnv) {
               const result = await client.query(`SELECT 1 FROM app.invitations WHERE id=$1 AND "workspaceId"=$2 AND "projectId"=$3
                 AND "acceptedAt" IS NULL AND "revokedAt" IS NULL AND "expiresAt">now() AND app.can_invite("workspaceId","projectId",role)`, [a.invitationId,a.workspaceId,a.projectId]);
               allowed = result.rowCount === 1;
+              await client.query("COMMIT");
+            } catch (error) { await client.query("ROLLBACK"); throw error; }
+            finally { client.release(); }
+          }
+          if (allowed && mail.foundingAuthorization) {
+            const a = mail.foundingAuthorization, client = await runtime.connect();
+            try {
+              await client.query("BEGIN");
+              await client.query("SELECT set_config('app.user_id',$1,true),set_config('app.session_id',$2,true)", [a.actorId,a.sessionId]);
+              const result = await client.query<{ allowed: boolean }>("SELECT app.founding_invitation_sendable($1,$2) AS allowed", [a.applicationId,a.tokenHash]);
+              allowed = result.rows[0]?.allowed === true;
               await client.query("COMMIT");
             } catch (error) { await client.query("ROLLBACK"); throw error; }
             finally { client.release(); }

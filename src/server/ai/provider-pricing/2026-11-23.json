@@ -1,0 +1,17 @@
+{
+  "version": "openai-standard-global-2026-11-23",
+  "provider": "openai",
+  "defaultModel": "gpt-6-luna",
+  "source": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+  "models": {
+    "gpt-6-luna": {
+      "inputNanoUsdPerToken": 100,
+      "cachedNanoUsdPerToken": 10,
+      "write30mNanoUsdPerToken": 125,
+      "write12hNanoUsdPerToken": 250,
+      "outputNanoUsdPerToken": 500,
+      "maxInputTokens": 60000,
+      "maxOutputTokens": 2000
+    }
+  }
+}

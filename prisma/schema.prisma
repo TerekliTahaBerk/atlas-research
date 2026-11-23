@@ -24,6 +24,8 @@ model User {
   projectsCreated Project[]
   invitationsCreated Invitation[] @relation("InvitationCreator")
   invitationsAccepted Invitation[] @relation("InvitationAcceptor")
+  billingOperator BillingOperator?
+  academicEligibility AcademicEligibility?
   @@map("users")
   @@schema("identity")
 }
@@ -55,6 +57,12 @@ model Workspace {
   updatedAt DateTime @updatedAt
   members WorkspaceMember[]
   projects Project[]
+  commercialSubscription BillingSubscription?
+  commercialSettings BillingWorkspaceSetting?
+  commercialGrants BillingResourceGrant[]
+  commercialReservations BillingUsageReservation[]
+  commercialEvents BillingEvent[]
+  foundingGrant FoundingGrant?
   @@map("workspaces")
   @@schema("app")
 }
@@ -260,6 +268,7 @@ model SourceVersion {
   textCharacters Int?
   extractedAt DateTime?
   indexRevision String?
+  indexedBytes Int @default(0)
   createdAt DateTime @default(now())
   @@unique([workspaceId, projectId, id])
   @@unique([workspaceId, projectId, sourceId, id])
@@ -275,6 +284,7 @@ model FileObject {
   sha256 String
   bytes Int
   createdBy String
+  deletedAt DateTime? @db.Timestamptz
   createdAt DateTime @default(now())
   @@unique([workspaceId, projectId, id])
   @@map("file_objects")
@@ -380,6 +390,8 @@ model FileJob {
   error String?
   nextAttemptAt DateTime @default(now())
   leaseUntil DateTime?
+  reservedIndexBytes Int @default(0)
+  reservationExpiresAt DateTime? @db.Timestamptz
   createdAt DateTime @default(now())
   @@index([state, nextAttemptAt])
   @@map("file_jobs")
@@ -637,9 +649,17 @@ model AiRun {
  state String @default("queued")
  error String?
  model String
+ pricingVersion String?
  reservedMicros Int
+ reservedCredits Int @default(0)
+ chargedCredits Int @default(0)
+ providerCostState String @default("legacy")
+ founding Boolean @default(false)
  chargedMicros Int @default(0)
  inputTokens Int?
+ cachedInputTokens Int?
+ cacheWrite30mTokens Int?
+ cacheWrite12hTokens Int?
  outputTokens Int?
  result Json?
  dispatchedAt DateTime?
@@ -706,4 +726,190 @@ model UserPreference {
  updatedAt DateTime @default(now()) @updatedAt
  @@map("user_preferences")
  @@schema("app")
+}
+
+model BillingSubscription {
+  workspaceId String @id @db.Uuid
+  provider String
+  providerId String @unique
+  planCode String
+  planVersion String
+  status String
+  interval String
+  seats Int
+  currency String @default("USD")
+  unitAmountMinor Int
+  periodStart DateTime @db.Timestamptz(3)
+  periodEnd DateTime @db.Timestamptz(3)
+  cancelAtPeriodEnd Boolean @default(false)
+  revision Int
+  updatedAt DateTime @db.Timestamptz(3)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@map("billing_subscriptions")
+  @@schema("app")
+}
+
+model BillingWorkspaceSetting {
+  workspaceId String @id @db.Uuid
+  memberAiPercent Int @default(40)
+  legacySeats Int @default(1)
+  quotaOverrides Json @default("{}")
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@map("billing_workspace_settings")
+  @@schema("app")
+}
+
+model BillingResourceGrant {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  resource String
+  quantity BigInt
+  sourceKey String @unique
+  validFrom DateTime @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([workspaceId, resource, expiresAt])
+  @@map("billing_resource_grants")
+  @@schema("app")
+}
+
+model BillingUsageReservation {
+  workspaceId String @db.Uuid
+  operationId String @db.Uuid
+  resource String
+  actorId String
+  requested BigInt
+  charged BigInt @default(0)
+  status String @default("held")
+  allocations Json
+  periodStart DateTime @db.Timestamptz(3)
+  periodEnd DateTime @db.Timestamptz(3)
+  createdAt DateTime @db.Timestamptz(3) @default(now())
+  closedAt DateTime? @db.Timestamptz(3)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ledger BillingUsageEntry[]
+  @@id([workspaceId, operationId, resource])
+  @@index([workspaceId, resource, periodStart])
+  @@index([workspaceId, resource, actorId, createdAt])
+  @@map("billing_usage_reservations")
+  @@schema("app")
+}
+
+model BillingUsageEntry {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  operationId String @db.Uuid
+  resource String
+  actorId String
+  action String
+  quantity BigInt
+  createdAt DateTime @db.Timestamptz(3) @default(now())
+  reservation BillingUsageReservation @relation(fields: [workspaceId, operationId, resource], references: [workspaceId, operationId, resource], onDelete: Restrict, onUpdate: NoAction)
+  @@unique([workspaceId, operationId, resource, action])
+  @@index([workspaceId, createdAt])
+  @@map("billing_usage_entries")
+  @@schema("app")
+}
+
+model BillingEvent {
+  provider String
+  eventId String
+  digest String
+  workspaceId String @db.Uuid
+  kind String
+  result String
+  createdAt DateTime @db.Timestamptz(3) @default(now())
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@id([provider, eventId])
+  @@index([workspaceId, createdAt])
+  @@map("billing_events")
+  @@schema("app")
+}
+
+model BillingOperator {
+  actorId String @id
+  createdAt DateTime @db.Timestamptz(3) @default(now())
+  operator User @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@map("billing_operators")
+  @@schema("ops")
+}
+
+model BillingAudit {
+  id String @id @db.Uuid
+  actorId String
+  workspaceId String? @db.Uuid
+  kind String
+  targetId String
+  details Json @default("{}")
+  createdAt DateTime @db.Timestamptz(3) @default(now())
+  @@index([createdAt])
+  @@map("billing_audit")
+  @@schema("ops")
+}
+
+model FoundingApplication {
+  id String @id @db.Uuid
+  email String @unique
+  name String
+  institution String?
+  researchArea String
+  applicantType String
+  teamSize Int
+  tools String[]
+  motivation String
+  status String @default("pending")
+  note String?
+  profile String?
+  tokenHash String? @unique
+  tokenExpiresAt DateTime? @db.Timestamptz(3)
+  queueId String? @db.Uuid
+  overrides Json @default("{}")
+  createdAt DateTime @db.Timestamptz(3) @default(now())
+  updatedAt DateTime @db.Timestamptz(3)
+  redeemedGrant FoundingGrant?
+  @@index([status, createdAt])
+  @@map("founding_applications")
+  @@schema("ops")
+}
+
+model FoundingGrant {
+  workspaceId String @id @db.Uuid
+  applicationId String @unique @db.Uuid
+  profile String
+  seats Int
+  emailOwnerId String
+  quotaOverrides Json @default("{}")
+  startedAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  extensionDays Int @default(0)
+  revokedAt DateTime? @db.Timestamptz(3)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  application FoundingApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([profile, endsAt])
+  @@map("founding_grants")
+  @@schema("app")
+}
+
+model AcademicInstitution {
+  domain String @id
+  name String
+  verificationUrl String
+  active Boolean @default(true)
+  applicants AcademicEligibility[]
+  @@map("academic_institutions")
+  @@schema("ops")
+}
+
+model AcademicEligibility {
+  actorId String @id
+  institutionDomain String
+  status String @default("pending")
+  requestedAt DateTime @db.Timestamptz(3)
+  verifiedAt DateTime? @db.Timestamptz(3)
+  expiresAt DateTime? @db.Timestamptz(3)
+  account User @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  institution AcademicInstitution @relation(fields: [institutionDomain], references: [domain], onDelete: Restrict, onUpdate: NoAction)
+  @@map("academic_eligibility")
+  @@schema("app")
 }

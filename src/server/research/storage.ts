@@ -7,8 +7,11 @@ import type { Database } from "../db/client";
 import type { Identity } from "../auth/identity";
 import type { Prisma } from "../../generated/prisma/client";
 import { AppError } from "../errors";
+import { resourceLimitsEnabled } from "../billing/entitlements";
 import { getEnv } from "../env";
-import { research, sourceRow, enqueueFile } from "./library";
+import { research, sourceRow, enqueueFile, removeIndexRows } from "./library";
+import { audit, requireRole } from "../domain/access";
+import { lockedWorkspaceUsage } from "./resource-usage";
 export const MAX_PDF_BYTES = 25 * 1024 * 1024,
   PROJECT_FILE_QUOTA = 250 * 1024 * 1024;
 export function storageRoot() {
@@ -37,7 +40,10 @@ export async function uploadPdf(
   const expected = Number(request.headers.get("content-length"));
   if (!Number.isInteger(expected) || expected < 1)
     throw new AppError("INVALID_INPUT", 411);
-  if (expected > MAX_PDF_BYTES) throw new AppError("FILE_TOO_LARGE", 413);
+  const metered = resourceLimitsEnabled();
+  const uploadCeiling = metered ? 100 * 1024 * 1024 : MAX_PDF_BYTES;
+  if (expected > uploadCeiling) throw new AppError("FILE_TOO_LARGE", 413);
+  if (!request.body) throw new AppError("INVALID_PDF", 415);
   const root = storageRoot();
   await mkdir(root, { recursive: true });
   const disk = await statfs(root);
@@ -67,62 +73,62 @@ export async function uploadPdf(
       if (existing.state === "completed") return existing;
       throw new AppError("UPLOAD_IN_PROGRESS", 409);
     }
-    const [files, reserved, active] = await Promise.all([
-      tx.fileObject.aggregate({
-        where: { workspaceId: w, projectId: p },
-        _sum: { bytes: true },
-      }),
-      tx.uploadIntent.aggregate({
-        where: {
-          workspaceId: w,
-          projectId: p,
-          state: "uploading",
-          expiresAt: { gt: new Date() },
-        },
-        _sum: { expectedBytes: true },
-      }),
-      tx.uploadIntent.count({
-        where: {
-          workspaceId: w,
-          projectId: p,
-          createdBy: actor.id,
-          state: "uploading",
-          expiresAt: { gt: new Date() },
-        },
-      }),
-    ]);
-    if (active >= 2) throw new AppError("UPLOAD_IN_PROGRESS", 409);
-    if (
-      (files._sum.bytes ?? 0) + (reserved._sum.expectedBytes ?? 0) + expected >
-      PROJECT_FILE_QUOTA
-    )
-      throw new AppError("STORAGE_QUOTA", 413);
-    return tx.uploadIntent.create({
-      data: {
-        id: uploadId,
-        workspaceId: w,
-        projectId: p,
-        sourceId: s,
-        fileId: randomUUID(),
-        createdBy: actor.id,
-        expectedBytes: expected,
-        expiresAt: new Date(Date.now() + 3600000),
-      },
-    });
+    if (metered) {
+      const { limits, usage } = await lockedWorkspaceUsage(tx, w);
+      if (expected > limits.maxFileBytes)
+        throw new AppError("FILE_TOO_LARGE", 413);
+      if (
+        usage.storageBytes + usage.storageReservedBytes + expected >
+        limits.storageBytes
+      )
+        throw new AppError("STORAGE_QUOTA", 413);
+      if (
+        usage.monthlyUploads + usage.monthlyUploadReservations >=
+        limits.monthlyUploads
+      )
+        throw new AppError("UPLOAD_QUOTA", 409);
+    } else {
+      const [files, [reservation]] = await Promise.all([
+        tx.fileObject.aggregate({
+          where: { workspaceId: w, projectId: p, deletedAt: null },
+          _sum: { bytes: true },
+        }),
+        tx.$queryRaw<{ bytes: bigint }[]>`
+          SELECT coalesce(sum("expectedBytes"),0) AS bytes
+          FROM app.upload_intents WHERE "workspaceId"=${w}::uuid AND "projectId"=${p}::uuid
+            AND state='uploading' AND "expiresAt">now()
+        `,
+      ]);
+      if (
+        (files._sum.bytes ?? 0) + Number(reservation?.bytes ?? 0n) + expected >
+        PROJECT_FILE_QUOTA
+      )
+        throw new AppError("STORAGE_QUOTA", 413);
+    }
+    const [active] = await tx.$queryRaw<{ count: bigint }[]>`
+      SELECT count(*) AS count FROM app.upload_intents
+      WHERE "workspaceId"=${w}::uuid AND (${metered} OR "projectId"=${p}::uuid)
+        AND "createdBy"=${actor.id} AND state='uploading' AND "expiresAt">now()
+    `;
+    if (Number(active?.count ?? 0n) >= 2)
+      throw new AppError("UPLOAD_IN_PROGRESS", 409);
+    const fileId = randomUUID();
+    await tx.$executeRaw`
+      INSERT INTO app.upload_intents(id,"workspaceId","projectId","sourceId","fileId","createdBy","expectedBytes","expiresAt")
+      VALUES(${uploadId}::uuid,${w}::uuid,${p}::uuid,${s}::uuid,${fileId}::uuid,${actor.id},${expected}::integer,now()+interval '1 hour')
+    `;
+    return tx.uploadIntent.findUniqueOrThrow({ where: { id: uploadId } });
   });
   if (intent.state === "completed")
     return { versionId: intent.versionId, duplicate: true };
   const final = objectPath(root, w, p, intent.fileId),
     folder = join(root, w, p),
     staging = join(folder, `.${intent.fileId}.part`);
-  await mkdir(folder, { recursive: true, mode: 0o700 });
-  let linked = false,
-    committed = false;
   let handle: Awaited<ReturnType<typeof open>> | undefined;
-  const reader = request.body?.getReader();
-  if (!reader) throw new AppError("INVALID_PDF");
+  const reader = request.body.getReader();
   const timer = setTimeout(() => void reader.cancel().catch(() => {}), 120000);
   try {
+    await mkdir(folder, { recursive: true, mode: 0o700 });
     handle = await open(staging, "wx", 0o600);
     const hash = createHash("sha256");
     let size = 0,
@@ -133,7 +139,7 @@ export async function uploadPdf(
       if (done) break;
       if (request.signal.aborted) throw new Error();
       size += value.byteLength;
-      if (size > expected || size > MAX_PDF_BYTES)
+      if (size > expected || size > uploadCeiling)
         throw new AppError("FILE_TOO_LARGE", 413);
       const chunk = Buffer.from(value);
       if (first.length < 8)
@@ -154,7 +160,6 @@ export async function uploadPdf(
     await handle.close();
     handle = undefined;
     await link(staging, final);
-    linked = true;
     const result = await research(db, actor, w, p, true, async (tx) => {
       const source = await sourceRow(tx, w, p, s),
         prior = await tx.sourceVersion.findMany({
@@ -162,10 +167,32 @@ export async function uploadPdf(
           orderBy: { ordinal: "desc" },
         });
       if (source.archivedAt) throw new AppError("ARCHIVED", 409);
+      const [active] = await tx.$queryRaw<{ fileId: string }[]>`
+        SELECT "fileId" FROM app.upload_intents
+        WHERE id=${uploadId}::uuid AND state='uploading' AND "expiresAt">now()
+      `;
+      if (!active || active.fileId !== intent.fileId)
+        throw new AppError("UPLOAD_FAILED", 409);
+      if (metered) {
+        const { limits, usage } = await lockedWorkspaceUsage(tx, w);
+        if (size > limits.maxFileBytes)
+          throw new AppError("FILE_TOO_LARGE", 413);
+        if (
+          usage.storageBytes + usage.storageReservedBytes >
+          limits.storageBytes
+        )
+          throw new AppError("STORAGE_QUOTA", 413);
+        if (
+          usage.monthlyUploads + usage.monthlyUploadReservations >
+          limits.monthlyUploads
+        )
+          throw new AppError("UPLOAD_QUOTA", 409);
+      }
       const same = await tx.fileObject.findFirst({
         where: {
           id: { in: prior.flatMap((v) => (v.fileId ? [v.fileId] : [])) },
           sha256,
+          deletedAt: null,
         },
       });
       if (same) {
@@ -209,18 +236,17 @@ export async function uploadPdf(
             ordinal: (prior[0]?.ordinal ?? 0) + 1,
             fileId: intent.fileId,
             metadata,
-            extractionStatus: "queued",
+            extractionStatus: metered ? "metadata_only" : "queued",
           },
         ],
       });
-      await enqueueFile(tx, actor, w, p, id);
+      if (!metered) await enqueueFile(tx, actor, w, p, id);
       await tx.uploadIntent.update({
         where: { id: uploadId },
         data: { state: "completed", versionId: id },
       });
       return { versionId: id, duplicate: false };
     });
-    committed = !result.duplicate;
     if (result.duplicate) await unlink(final).catch(() => {});
     return result;
   } catch (error) {
@@ -237,7 +263,8 @@ export async function uploadPdf(
     await handle?.close().catch(() => {});
     await reader.cancel().catch(() => {});
     await unlink(staging).catch(() => {});
-    if (linked && !committed) await unlink(final).catch(() => {});
+    // A connection can fail after database commit. The worker proves that a
+    // final object is unreferenced before it unlinks it.
   }
 }
 export async function servePdf(
@@ -255,7 +282,12 @@ export async function servePdf(
     });
     if (!version?.fileId) throw new AppError("UNAVAILABLE", 404);
     const f = await tx.fileObject.findFirst({
-      where: { id: version.fileId, workspaceId: w, projectId: p },
+      where: {
+        id: version.fileId,
+        workspaceId: w,
+        projectId: p,
+        deletedAt: null,
+      },
     });
     if (!f) throw new AppError("UNAVAILABLE", 404);
     return f;
@@ -316,4 +348,37 @@ export async function servePdf(
         ) as ReadableStream),
     { status, headers },
   );
+}
+
+export function removePdf(
+  db: Database,
+  actor: Identity,
+  w: string,
+  p: string,
+  s: string,
+  v: string,
+) {
+  if (!resourceLimitsEnabled()) throw new AppError("UNAVAILABLE", 404);
+  return research(db, actor, w, p, true, async (tx, scope) => {
+    requireRole(scope.projectRole, ["owner", "admin"]);
+    const version = await tx.sourceVersion.findFirst({
+      where: { id: v, sourceId: s, workspaceId: w, projectId: p },
+    });
+    if (!version?.fileId) throw new AppError("UNAVAILABLE", 404);
+    await lockedWorkspaceUsage(tx, w);
+    const removed = await tx.fileObject.updateMany({
+      where: {
+        id: version.fileId,
+        workspaceId: w,
+        projectId: p,
+        deletedAt: null,
+      },
+      data: { deletedAt: new Date() },
+    });
+    if (removed.count) {
+      await removeIndexRows(tx, w, p, v);
+      await audit(tx, actor, w, p, "pdf_removed", v);
+    }
+    return { removed: true };
+  });
 }

@@ -10,6 +10,7 @@ import { requireIdentity } from "../../src/server/auth/identity";
 import { createMailQueue } from "../../src/server/mail/outbox";
 import { getEnv } from "../../src/server/env";
 import { asIdentity } from "../../src/server/db/transaction";
+import { ensurePersonalWorkspace } from "../../src/server/domain/personal-workspace";
 import { createSharedWorkspace } from "../../src/server/domain/workspaces";
 import {
   createProject,
@@ -19,7 +20,11 @@ import {
   createInvitation,
   acceptInvitation,
 } from "../../src/server/domain/invitations";
-import { addSource, getSource } from "../../src/server/research/library";
+import {
+  addSource,
+  getSource,
+  requestIndex,
+} from "../../src/server/research/library";
 import { uploadPdf } from "../../src/server/research/storage";
 import { createFileWorker } from "../../src/server/files/worker";
 import {
@@ -40,13 +45,24 @@ import {
 import { verifiedUser } from "../helpers/identity";
 import { startMailServer } from "../helpers/mail";
 import { syntheticPdf } from "../helpers/pdf";
+import { PLAN_VERSION } from "../../src/server/billing/catalog";
+import { PRICING_VERSION } from "../../src/server/ai/pricing";
+import { reserveResource } from "../../src/server/billing/ledger";
+import type { AiCostReport } from "../../src/lib/ai-types";
+const creditApproval = {
+  maxCredits: 1,
+  pricingVersion: PRICING_VERSION,
+} as const;
+
 test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, budget/idempotence/cancel, validated output and reviewed apply/undo", async () => {
   const root = await mkdtemp(join(tmpdir(), "atlas-ai-"));
   process.env.FILE_STORAGE_PATH = root;
   process.env.ATLAS_AI_CALLS_ENABLED = "false";
+  process.env.ATLAS_RESOURCE_LIMITS_ENABLED = "1";
   const smtp = await startMailServer(),
     env = { ...getEnv(), SMTP_PORT: smtp.port },
     authDb = createDatabase(env.AUTH_DATABASE_URL),
+    migrationDb = createDatabase(process.env.MIGRATION_DATABASE_URL!),
     db = createDatabase(env.DATABASE_URL),
     mail = createMailQueue(env),
     auth = createAuth(authDb, env, mail),
@@ -70,6 +86,27 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
           requestId: randomUUID(),
         })
       ).id;
+    await migrationDb.billingOperator.create({ data: { actorId: other.id } });
+    await asIdentity(db, other, (tx) =>
+      tx.billingSubscription.create({
+        data: {
+          workspaceId: w,
+          provider: "fixture",
+          providerId: "ai-" + randomUUID(),
+          planCode: "TEAM",
+          planVersion: PLAN_VERSION,
+          status: "active",
+          interval: "month",
+          seats: 3,
+          currency: "USD",
+          unitAmountMinor: 1500,
+          revision: 1,
+          periodStart: new Date(Date.now() - 86_400_000),
+          periodEnd: new Date(Date.now() + 30 * 86_400_000),
+          updatedAt: new Date(),
+        },
+      }),
+    );
     for (const [who, role] of [
       [b, "editor"],
       [v, "viewer"],
@@ -120,6 +157,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       s.id,
       randomUUID(),
     );
+    await requestIndex(db, a, w, p, s.id, upload.versionId!);
     await worker.heartbeat();
     await worker.flush();
     const version = (await getSource(db, a, w, p, s.id)).versions.find(
@@ -139,6 +177,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
     const runInput = {
       contextId: context.context.id,
       requestId: randomUUID(),
+      ...creditApproval,
       consent: true as const,
     };
     await assert.rejects(ai.startRun(db, a, w, p, runInput), /AI_DISABLED/);
@@ -170,8 +209,29 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       dailyBudgetMicros: 1000000,
       termsVersion: TERMS,
     });
-    const first = await ai.startRun(db, a, w, p, runInput);
-    assert.equal((await ai.startRun(db, a, w, p, runInput)).id, first.id);
+    await assert.rejects(
+      ai.startRun(db, a, w, p, { ...runInput, maxCredits: 2 }),
+      /AI_CONTEXT_EXPIRED/,
+    );
+    const [first, concurrentReplay] = await Promise.all([
+      ai.startRun(db, a, w, p, runInput),
+      ai.startRun(db, a, w, p, runInput),
+    ]);
+    assert.equal(concurrentReplay.id, first.id);
+    assert.equal(first.reservedCredits, 1);
+    assert.equal(
+      await asIdentity(db, a, (tx) =>
+        tx.billingUsageEntry.count({
+          where: {
+            workspaceId: w,
+            operationId: first.id,
+            resource: "aiCredits",
+            action: "reserve",
+          },
+        }),
+      ),
+      1,
+    );
     assert.equal((await ai.getPolicy(db, a, w)).usage.requests, 1);
     const second = await ai.preview(db, a, w, p, previewInput);
     await assert.rejects(
@@ -186,6 +246,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       viewerRun = await ai.startRun(db, v, w, p, {
         contextId: viewerContext.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     const editorContext = await ai.preview(db, b, w, p, previewInput);
@@ -193,6 +254,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       ai.startRun(db, b, w, p, {
         contextId: editorContext.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       }),
       /AI_LIMITED/,
@@ -216,6 +278,8 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
         model: MODEL,
         inputTokens: 100,
         outputTokens: 70,
+        cachedInputTokens: 40,
+        cacheWrite30mTokens: 20,
         answer: {
           status: "answered",
           segments: [
@@ -246,6 +310,8 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       viewerContext.context.conversationId,
     );
     assert.equal(view.contexts[0].run?.state, "complete");
+    assert.equal(view.contexts[0].run?.chargedCredits, 1);
+    assert.equal(view.contexts[0].run?.chargedMicros, 42);
     await assert.rejects(
       proposal.createProposal(db, v, w, p, {
         requestId: randomUUID(),
@@ -258,6 +324,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       run = await ai.startRun(db, a, w, p, {
         contextId: ctx.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     await executeRun(db, a, w, p, run.id, fake);
@@ -274,6 +341,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       invalidRun = await ai.startRun(db, a, w, p, {
         contextId: invalidCtx.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     await executeRun(db, a, w, p, invalidRun.id, async (input) => {
@@ -301,6 +369,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       insRun = await ai.startRun(db, a, w, p, {
         contextId: insufficient.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     await executeRun(db, a, w, p, insRun.id, async () => ({
@@ -345,6 +414,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
     const artifactRun = await ai.startRun(db, a, w, p, {
       contextId: artifactContext.context.id,
       requestId: randomUUID(),
+      ...creditApproval,
       consent: true,
     });
     await executeRun(db, a, w, p, artifactRun.id, async (input) => ({
@@ -443,6 +513,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       cancelled = await ai.startRun(db, a, w, p, {
         contextId: cancelCtx.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     let began = false;
@@ -472,12 +543,27 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
     ).contexts[0].run!;
     assert.equal(cancelledView.state, "cancelled");
     assert.equal(cancelledView.chargedMicros, cancelled.reservedMicros);
+    assert.equal(cancelledView.chargedCredits, 0);
+    assert.equal(cancelledView.providerCostState, "uncertain");
     assert.equal(cancelledView.result, null);
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const [reconciled] = await migrationDb.$queryRaw<Array<{ ok: boolean }>>`
+        SELECT ops.reconcile_ai_provider_cost(${cancelled.id}::uuid,'synthetic-invoice-proof',17) AS ok`;
+      assert.equal(reconciled.ok, true);
+    }
+    const reconciledRun = await asIdentity(db, a, (tx) =>
+      tx.aiRun.findUniqueOrThrow({ where: { id: cancelled.id } }),
+    );
+    assert.equal(reconciledRun.chargedMicros, 17);
+    assert.equal(reconciledRun.chargedCredits, 0);
+    assert.equal(reconciledRun.providerCostState, "actual");
     // Policy changes while a provider is running suppress its buffered result.
     const policyContext = await ai.preview(db, a, w, p, previewInput),
       policyRun = await ai.startRun(db, a, w, p, {
         contextId: policyContext.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     let releasePolicy!: () => void;
@@ -519,7 +605,9 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       )
     ).contexts[0].run!;
     assert.equal(suppressed.result, null);
-    assert.equal(suppressed.chargedMicros, policyRun.reservedMicros);
+    assert.equal(suppressed.chargedMicros, 42);
+    assert.equal(suppressed.chargedCredits, 0);
+    assert.equal(suppressed.providerCostState, "actual");
     const closed = await ai.getPolicy(db, a, w);
     await ai.setPolicy(db, a, w, {
       enabled: true,
@@ -529,10 +617,18 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
     });
     // Expired leases are settled, never re-dispatched; undispatched jobs release their hold.
     const expiryContext = await ai.preview(db, a, w, p, previewInput);
-    const expired = await asIdentity(db, a, (tx) =>
-      tx.aiRun.create({
+    const expired = await asIdentity(db, a, async (tx) => {
+      const id = randomUUID();
+      await reserveResource(tx, {
+        workspaceId: w,
+        actorId: a.id,
+        operationId: id,
+        resource: "aiCredits",
+        quantity: 1,
+      });
+      return tx.aiRun.create({
         data: {
-          id: randomUUID(),
+          id,
           workspaceId: w,
           projectId: p,
           userId: a.id,
@@ -542,23 +638,41 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
           requestId: randomUUID(),
           policyRevision: closed.revision + 1,
           model: MODEL,
-          reservedMicros: 9000,
+          pricingVersion: PRICING_VERSION,
+          reservedCredits: 1,
+          reservedMicros: 8500,
+          providerCostState: "reserved",
           expiresAt: new Date(Date.now() - 1000),
         },
-      }),
-    );
-    await ai.getPolicy(db, a, w);
+      });
+    });
+    await worker.cleanup();
     const settled = await asIdentity(db, a, (tx) =>
       tx.aiRun.findUniqueOrThrow({ where: { id: expired.id } }),
     );
     assert.equal(settled.state, "cancelled");
     assert.equal(settled.chargedMicros, 0);
-    // The daily counter includes failed/cancelled requests, and request 21 is refused.
-    while ((await ai.getPolicy(db, a, w)).usage.requests < 20) {
+    assert.equal(
+      await asIdentity(db, a, (tx) =>
+        tx.billingUsageEntry.count({
+          where: {
+            workspaceId: w,
+            operationId: expired.id,
+            resource: "aiCredits",
+            action: "expire",
+          },
+        }),
+      ),
+      1,
+    );
+    // The Team daily limit includes failed/cancelled requests, even after credits are released.
+    assert.equal((await ai.getPolicy(db, a, w)).dailyOperationLimit, 30);
+    while ((await ai.getPolicy(db, a, w)).usage.requests < 30) {
       const next = await ai.preview(db, a, w, p, previewInput),
         run = await ai.startRun(db, a, w, p, {
           contextId: next.context.id,
           requestId: randomUUID(),
+          ...creditApproval,
           consent: true,
         });
       await ai.cancelRun(db, a, w, p, run.id);
@@ -568,6 +682,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       ai.startRun(db, a, w, p, {
         contextId: over.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       }),
       (e) => e instanceof Error && e.message === "AI_LIMITED",
@@ -576,6 +691,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
       revokedRun = await ai.startRun(db, b, w, p, {
         contextId: revokedContext.context.id,
         requestId: randomUUID(),
+        ...creditApproval,
         consent: true,
       });
     await revokeProjectMember(db, a, w, p, b.id);
@@ -585,6 +701,132 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
     await assert.rejects(
       ai.getConversation(db, b, w, p, revokedContext.context.conversationId),
     );
+
+    // The synthetic invoice below leaves room for exactly one conservative Luna reservation.
+    const founding = await Promise.all(
+      [a, b, v].map(async (person) => {
+        const personal = await ensurePersonalWorkspace(db, person);
+        const research = await createProject(db, person, personal.id, {
+          name: "Founding budget proof",
+          requestId: randomUUID(),
+        });
+        const note = await createDocument(
+          db,
+          person,
+          personal.id,
+          research.id,
+          {
+            title: "Synthetic founding budget evidence",
+            requestId: randomUUID(),
+          },
+        );
+        const applicationId = randomUUID();
+        await db.$executeRaw`SELECT app.submit_founding_application(${applicationId}::uuid,${person.email},
+        'Synthetic Applicant',NULL,'Software verification','independent',1,ARRAY['ai']::text[],
+        'Synthetic acceptance fixture')`;
+        await asIdentity(db, other, (tx) =>
+          tx.foundingGrant.create({
+            data: {
+              workspaceId: personal.id,
+              applicationId,
+              profile: "RES_FOUNDING_RESEARCHER",
+              seats: 1,
+              emailOwnerId: person.id,
+              startedAt: new Date(Date.now() - 600_000),
+              endsAt: new Date(Date.now() + 90 * 86_400_000),
+            },
+          }),
+        );
+        await ai.setPolicy(db, person, personal.id, {
+          enabled: true,
+          dailyBudgetMicros: 100_000_000,
+          revision: 0,
+          termsVersion: TERMS,
+        });
+        const quoted = await ai.preview(db, person, personal.id, research.id, {
+          conversationId: null,
+          versionIds: [],
+          artifactIds: [note.id],
+          question: "Describe this synthetic fixture.",
+        });
+        return { person, personal, research, quoted };
+      }),
+    );
+    const seed = founding[2];
+    await asIdentity(db, seed.person, async (tx) => {
+      const row = await tx.aiRun.create({
+        data: {
+          id: randomUUID(),
+          workspaceId: seed.personal.id,
+          projectId: seed.research.id,
+          userId: seed.person.id,
+          sessionId: seed.person.sessionId,
+          conversationId: seed.quoted.context.conversationId,
+          contextId: seed.quoted.context.id,
+          requestId: randomUUID(),
+          policyRevision: 1,
+          model: MODEL,
+          pricingVersion: PRICING_VERSION,
+          reservedMicros: 179_991_500,
+          providerCostState: "reserved",
+          founding: true,
+          expiresAt: new Date(Date.now() + 120_000),
+        },
+      });
+      await tx.aiRun.update({
+        where: { id: row.id },
+        data: {
+          state: "provider_error",
+          providerCostState: "actual",
+          chargedMicros: 179_991_500,
+          completedAt: new Date(),
+        },
+      });
+    });
+    const attempts = await Promise.allSettled(
+      founding.slice(0, 2).map(({ person, personal, research, quoted }) =>
+        ai.startRun(db, person, personal.id, research.id, {
+          contextId: quoted.context.id,
+          requestId: randomUUID(),
+          ...creditApproval,
+          consent: true,
+        }),
+      ),
+    );
+    assert.equal(
+      attempts.filter((entry) => entry.status === "fulfilled").length,
+      1,
+    );
+    const denied = attempts.find((entry) => entry.status === "rejected");
+    assert.match(String(denied?.reason), /AI_LIMITED/);
+    const report = await asIdentity(
+      db,
+      other,
+      async (tx) =>
+        (
+          await tx.$queryRaw<
+            Array<{ value: AiCostReport | null }>
+          >`SELECT app.billing_ai_cost_report() AS value`
+        )[0].value,
+    );
+    assert.equal(report?.founding.warning, true);
+    assert.equal(report?.founding.actualMicros, 179_991_500);
+    assert.equal(report?.founding.heldMicros, 8500);
+    assert.equal(report?.founding.allowed, false);
+    assert.equal(
+      await asIdentity(
+        db,
+        a,
+        async (tx) =>
+          (
+            await tx.$queryRaw<
+              Array<{ value: AiCostReport | null }>
+            >`SELECT app.billing_ai_cost_report() AS value`
+          )[0].value,
+      ),
+      null,
+    );
+
     process.env.ATLAS_AI_CALLS_ENABLED = "false";
     assert.equal((await ai.getPolicy(db, a, w)).callsEnabled, false);
     console.log(
@@ -593,6 +835,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
   } finally {
     await Promise.all([
       authDb.$disconnect(),
+      migrationDb.$disconnect(),
       db.$disconnect(),
       mail.close(),
       worker.close(),
@@ -600,6 +843,7 @@ test("Phase 04 local synthetic adapter: evidence/private scope, closed gate, bud
     ]);
     await rm(root, { recursive: true, force: true });
     delete process.env.FILE_STORAGE_PATH;
+    delete process.env.ATLAS_RESOURCE_LIMITS_ENABLED;
     delete process.env.OPENAI_API_KEY;
     delete process.env.ATLAS_AI_CALLS_ENABLED;
   }

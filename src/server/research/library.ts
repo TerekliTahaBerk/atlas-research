@@ -3,9 +3,29 @@ import { z } from "zod";
 import type { Prisma } from "../../generated/prisma/client";
 import type { Database } from "../db/client";
 import type { Identity } from "../auth/identity";
-import { inProject, requireRole, type Tx } from "../domain/access";
+import { audit, inProject, requireRole, type Tx } from "../domain/access";
 import { AppError } from "../errors";
 import { cleanMetadata } from "./metadata";
+import {
+  resolveWorkspaceEntitlement,
+  resourceLimitsEnabled,
+} from "../billing/entitlements";
+import { lockedWorkspaceUsage } from "./resource-usage";
+import {
+  INDEX_RESERVATION_MS,
+  MAX_INDEX_JOB_BYTES,
+} from "../files/index-budget";
+
+async function storageCapabilities(tx: Tx, w: string) {
+  const metered = resourceLimitsEnabled();
+  return {
+    storageAvailable: !!process.env.FILE_STORAGE_PATH,
+    resourceLimitsEnabled: metered,
+    uploadMaxBytes: metered
+      ? (await resolveWorkspaceEntitlement(tx, w)).limits.maxFileBytes
+      : 25 * 1024 * 1024,
+  };
+}
 export function research<T>(
   db: Database,
   actor: Identity,
@@ -92,10 +112,12 @@ export function listLibrary(
     if (filters.tag) and.push({ tags: { has: filters.tag } });
     if (filters.year) and.push({ year: filters.year });
     if (filters.pdf) {
-      const versions = await tx.sourceVersion.findMany({
-        where: { workspaceId: w, projectId: p, fileId: { not: null } },
-        select: { sourceId: true },
-      });
+      const versions = await tx.$queryRaw<
+        { sourceId: string }[]
+      >`SELECT DISTINCT v."sourceId"
+        FROM app.source_versions v JOIN app.file_objects f ON f.id=v."fileId"
+          AND f."workspaceId"=v."workspaceId" AND f."projectId"=v."projectId"
+        WHERE v."workspaceId"=${w}::uuid AND v."projectId"=${p}::uuid AND f."deletedAt" IS NULL`;
       and.push({
         id:
           filters.pdf === "yes"
@@ -177,15 +199,29 @@ export function listLibrary(
         counts.unread--;
       }
     const ids = items.map((s) => s.id);
+    const versions = await tx.sourceVersion.findMany({
+      where: { workspaceId: w, projectId: p, sourceId: { in: ids } },
+      orderBy: { ordinal: "desc" },
+    });
+    const removedFiles = new Set(
+      (
+        await tx.fileObject.findMany({
+          where: {
+            id: { in: versions.flatMap((v) => (v.fileId ? [v.fileId] : [])) },
+            deletedAt: { not: null },
+          },
+          select: { id: true },
+        })
+      ).map((f) => f.id),
+    );
     return {
       items,
       total,
       hasMore: (page + 1) * 30 < total,
       counts,
-      versions: await tx.sourceVersion.findMany({
-        where: { workspaceId: w, projectId: p, sourceId: { in: ids } },
-        orderBy: { ordinal: "desc" },
-      }),
+      versions: versions.map((v) =>
+        v.fileId && removedFiles.has(v.fileId) ? { ...v, fileId: null } : v,
+      ),
       readings: await tx.readingState.findMany({
         where: { sourceId: { in: ids }, userId: actor.id },
       }),
@@ -206,7 +242,7 @@ export function listLibrary(
         !scope.project.archivedAt &&
         !scope.project.deletedAt &&
         !scope.workspace.archivedAt,
-      storageAvailable: !!process.env.FILE_STORAGE_PATH,
+      ...(await storageCapabilities(tx, w)),
     };
   });
 }
@@ -545,7 +581,7 @@ export function getSource(
         !scope.project.archivedAt &&
         !scope.project.deletedAt &&
         !scope.workspace.archivedAt,
-      storageAvailable: !!process.env.FILE_STORAGE_PATH,
+      ...(await storageCapabilities(tx, w)),
       jobs: await tx.fileJob.findMany({
         where: { versionId: { in: versions.map((v) => v.id) } },
         select: jobSelect,
@@ -841,23 +877,111 @@ export async function enqueueFile(
   w: string,
   p: string,
   versionId: string,
+  reservedIndexBytes = 0,
+  metered = false,
 ) {
   const id = randomUUID();
-  await tx.fileJob.createMany({
-    data: [
-      {
-        id,
-        workspaceId: w,
-        projectId: p,
-        versionId,
-        actorId: actor.id,
-        sessionId: actor.sessionId,
-      },
-    ],
-  });
+  await tx.$executeRaw`
+    INSERT INTO ops.file_jobs(id,"workspaceId","projectId","versionId","actorId","sessionId","reservedIndexBytes","reservationExpiresAt")
+    VALUES (${id}::uuid,${w}::uuid,${p}::uuid,${versionId}::uuid,${actor.id},${actor.sessionId},${reservedIndexBytes}::integer,
+      CASE WHEN ${metered} THEN now()+${INDEX_RESERVATION_MS}::integer*interval '1 millisecond' END)
+  `;
   return id;
 }
-export function retryFile(
+
+async function latestIndexJob(tx: Tx, v: string) {
+  const [job] = await tx.$queryRaw<
+    Array<{ state: string; attempts: number; liveReservation: boolean | null }>
+  >`
+    SELECT state,attempts,"reservationExpiresAt">now() AS "liveReservation"
+    FROM ops.file_jobs WHERE "versionId"=${v}::uuid
+    ORDER BY "createdAt" DESC,id DESC LIMIT 1
+  `;
+  return job;
+}
+
+function indexPending(
+  job: Awaited<ReturnType<typeof latestIndexJob>> | undefined,
+) {
+  if (!job) return false;
+  const metered = resourceLimitsEnabled();
+  if (metered && !job.liveReservation) return false;
+  return (
+    job.state === "pending" ||
+    job.state === "running" ||
+    (metered && job.state === "failed" && job.attempts < 2)
+  );
+}
+
+export function requestIndex(
+  db: Database,
+  actor: Identity,
+  w: string,
+  p: string,
+  s: string,
+  v: string,
+  rebuild = false,
+) {
+  return research(db, actor, w, p, true, async (tx) => {
+    if ((await sourceRow(tx, w, p, s)).archivedAt)
+      throw new AppError("ARCHIVED", 409);
+    const version = await tx.sourceVersion.findFirst({
+      where: { id: v, sourceId: s, workspaceId: w, projectId: p },
+    });
+    if (
+      !version?.fileId ||
+      !(await tx.fileObject.count({
+        where: {
+          id: version.fileId,
+          workspaceId: w,
+          projectId: p,
+          deletedAt: null,
+        },
+      }))
+    )
+      throw new AppError("UNAVAILABLE", 404);
+    const job = await latestIndexJob(tx, v);
+    if (indexPending(job)) return { queued: true };
+    if (version.indexRevision && !rebuild) return { queued: false };
+    let bytes = 0;
+    const metered = resourceLimitsEnabled();
+    if (metered) {
+      const { limits, usage } = await lockedWorkspaceUsage(tx, w);
+      bytes = Math.max(0, MAX_INDEX_JOB_BYTES - version.indexedBytes);
+      if (
+        usage.indexedBytes + usage.indexReservedBytes + bytes >
+        limits.indexedBytes
+      )
+        throw new AppError("INDEX_QUOTA", 409);
+    }
+    if (!version.indexRevision)
+      await tx.sourceVersion.update({
+        where: { id: v },
+        data: { extractionStatus: "queued" },
+      });
+    await enqueueFile(tx, actor, w, p, v, bytes, metered);
+    return { queued: true };
+  });
+}
+
+export const retryFile = requestIndex;
+
+export async function removeIndexRows(tx: Tx, w: string, p: string, v: string) {
+  await tx.$executeRaw`DELETE FROM app.source_chunks c USING app.source_pages s
+    WHERE c."pageId"=s.id AND s."versionId"=${v}::uuid
+      AND c."workspaceId"=${w}::uuid AND c."projectId"=${p}::uuid`;
+  await tx.sourceVersion.update({
+    where: { id: v },
+    data: {
+      indexRevision: null,
+      indexedBytes: 0,
+      extractionStatus: "metadata_only",
+      textCharacters: null,
+    },
+  });
+}
+
+export function removeIndex(
   db: Database,
   actor: Identity,
   w: string,
@@ -865,23 +989,19 @@ export function retryFile(
   s: string,
   v: string,
 ) {
+  if (!resourceLimitsEnabled()) throw new AppError("UNAVAILABLE", 404);
   return research(db, actor, w, p, true, async (tx) => {
     const version = await tx.sourceVersion.findFirst({
       where: { id: v, sourceId: s, workspaceId: w, projectId: p },
     });
     if (!version?.fileId) throw new AppError("UNAVAILABLE", 404);
-    const job = await tx.fileJob.findFirst({
-      where: { versionId: v },
-      select: jobSelect,
-      orderBy: { createdAt: "desc" },
-    });
-    if (job && ["pending", "running"].includes(job.state))
-      return { queued: true };
-    await tx.sourceVersion.update({
-      where: { id: v },
-      data: { extractionStatus: "queued" },
-    });
-    await enqueueFile(tx, actor, w, p, v);
-    return { queued: true };
+    if (indexPending(await latestIndexJob(tx, v)))
+      throw new AppError("INDEX_IN_PROGRESS", 409);
+    if (version.indexRevision) {
+      await lockedWorkspaceUsage(tx, w);
+      await removeIndexRows(tx, w, p, v);
+      await audit(tx, actor, w, p, "pdf_index_removed", v);
+    }
+    return { removed: true };
   });
 }

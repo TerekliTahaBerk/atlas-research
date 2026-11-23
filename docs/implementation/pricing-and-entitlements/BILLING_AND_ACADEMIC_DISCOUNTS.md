@@ -1,0 +1,9 @@
+# Billing and academic discounts
+
+Atlas exposes catalog prices in integer USD cents. The app records workspace subscriptions and distinguishes active, trial, past due, canceled and unfinished states. Access for paid terms ends at the paid-through timestamp. Stale subscription events are recorded and cannot overwrite newer revisions.
+
+There is no configured production payment provider. The test-only signed adapter accepts a timestamped HMAC over raw event bytes. It validates price, currency, scope, event identity and subscription revision under transaction locks. Replayed identical events return the original result. A conflicting replay is rejected. It requires a fresh platform billing operator and is off entirely in production.
+
+The one-off AI and Python packs grant twelve calendar months, and a refund revokes the unspent grant. Storage and Team seat supplements are treated as paid extensions for the recorded paid window. The test adapter exercises subscription, purchase and refund transitions. Live tax collection, prorated invoices, external payment reconciliation and real cancel/upgrade checkout require a payment provider contract and remain unavailable. Institution allocations can be recorded by an operator under an external contract with a complete finite resource allocation.
+
+Academic eligibility uses an operator-maintained institution registry with a verification source, Better Auth verified institutional email, and explicit review of current enrollment. No domain suffix self-approves a discount. Operators store evidence provenance and a short reason, with no document upload. Eligibility expires within 365 days. Renewals can be requested in the last 30 days while valid enrollment remains in force. Changed or retired institutional email is rejected. Unapproved annual academic prices are excluded from checkout. Academic decisions and overrides are audited.

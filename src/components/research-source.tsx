@@ -362,10 +362,23 @@ export function uploadVersion(
     xhr.send(file);
   });
 }
-function FilePicker({ onFile }: { onFile: (file: File | null) => void }) {
+function FilePicker({
+  onFile,
+  maxBytes,
+}: {
+  onFile: (file: File | null) => void;
+  maxBytes: number;
+}) {
   return (
     <label className="file-picker">
-      PDF document <span className="optional">up to 25 MB · 500 pages</span>
+      PDF document{" "}
+      <span className="optional">
+        up to{" "}
+        {(maxBytes / 1_000_000).toLocaleString("en-US", {
+          maximumFractionDigits: 0,
+        })}{" "}
+        MB
+      </span>
       <input
         type="file"
         accept="application/pdf,.pdf"
@@ -381,7 +394,7 @@ function UploadProgress({ value }: { value: number }) {
       <span>
         {value < 100
           ? `Uploading ${value}% · keep this page open`
-          : "PDF stored. Preparing text…"}
+          : "PDF stored."}
       </span>
     </div>
   );
@@ -390,11 +403,13 @@ export function UploadVersion({
   w,
   p,
   sourceId,
+  maxBytes,
   onSaved,
 }: {
   w: string;
   p: string;
   sourceId: string;
+  maxBytes: number;
   onSaved: (v: string) => void;
 }) {
   const [file, setFile] = useState<File | null>(null),
@@ -409,8 +424,7 @@ export function UploadVersion({
         setBusy(true);
         setError(undefined);
         try {
-          if (file.size > 25 * 1024 * 1024)
-            throw new ApiError(413, "FILE_TOO_LARGE");
+          if (file.size > maxBytes) throw new ApiError(413, "FILE_TOO_LARGE");
           const result = await uploadVersion(w, p, sourceId, file, setProgress);
           onSaved(result.versionId);
         } catch (error) {
@@ -424,7 +438,7 @@ export function UploadVersion({
         Each different PDF creates an immutable version. Earlier highlights stay
         with their original PDF.
       </p>
-      <FilePicker onFile={setFile} />
+      <FilePicker maxBytes={maxBytes} onFile={setFile} />
       {busy && <UploadProgress value={progress} />}
       <InlineError error={error} />
       <button className="primary" disabled={!file || busy}>
@@ -447,11 +461,13 @@ export function SourceForm({
   w,
   p,
   existing,
+  maxBytes = 25 * 1024 * 1024,
   onSaved,
 }: {
   w: string;
   p: string;
   existing?: ResearchDetail;
+  maxBytes?: number;
   onSaved: (id: string) => void;
 }) {
   const [baseRevision] = useState(existing?.source.revision);
@@ -528,7 +544,7 @@ export function SourceForm({
         );
         onSaved(existing.source.id);
       } else {
-        if (file && file.size > 25 * 1024 * 1024)
+        if (file && file.size > maxBytes)
           throw new ApiError(413, "FILE_TOO_LARGE");
         let id = createdId;
         if (!id) {
@@ -698,6 +714,7 @@ export function SourceForm({
         </>
       ) : (
         <FilePicker
+          maxBytes={maxBytes}
           onFile={(f) => {
             setFile(f);
             if (f && !meta.title)
@@ -746,11 +763,36 @@ export function SourceDetails({
   const [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
     [copied, setCopied] = useState(false),
+    [removingVersion, setRemovingVersion] = useState<string | null>(null),
     s = detail.source,
     reading = detail.reading,
     base = `${researchApi(w, p)}/sources/${s.id}`,
     versions = detail.versions.filter((v) => v.fileId),
-    latest = versions[0];
+    readableVersions = versions.filter((v) =>
+      detail.files.some((f) => f.id === v.fileId && !f.deletedAt),
+    ),
+    latest = readableVersions[0],
+    metered = detail.resourceLimitsEnabled;
+  async function updatePdf(
+    versionId: string,
+    action: "index" | "unindex" | "remove-file" | "retry",
+    rebuild = false,
+  ) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await api(
+        `${base}/versions/${versionId}/${action}`,
+        rebuild ? { rebuild: true } : {},
+      );
+      setRemovingVersion(null);
+      reload();
+    } catch (error) {
+      setError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <div className="source-detail-grid">
       <WorkVisit w={w} p={p} id={s.id} kind="source" />
@@ -768,7 +810,7 @@ export function SourceDetails({
           {latest && (
             <Link
               className="button primary"
-              href={`${researchPath(w, p)}/sources/${s.id}/read?version=${versions.some((v) => v.id === reading?.versionId) ? reading!.versionId : latest.id}&library=${encodeURIComponent(libraryQuery)}`}
+              href={`${researchPath(w, p)}/sources/${s.id}/read?version=${readableVersions.some((v) => v.id === reading?.versionId) ? reading!.versionId : latest.id}&library=${encodeURIComponent(libraryQuery)}`}
             >
               Read PDF
             </Link>
@@ -921,50 +963,98 @@ export function SourceDetails({
         {versions.length ? (
           versions.map((v) => {
             const f = detail.files.find((f) => f.id === v.fileId),
-              job = detail.jobs.find((j) => j.versionId === v.id);
+              job = detail.jobs.find((j) => j.versionId === v.id),
+              removed = !f || f.deletedAt !== null,
+              indexing = ["pending", "running"].includes(job?.state ?? "");
             return (
               <div key={v.id} className="version-card">
                 <strong>Version {v.ordinal}</strong>
                 <span className="muted">
-                  {f?.filename} · {((f?.bytes ?? 0) / 1024 / 1024).toFixed(2)}{" "}
-                  MB
+                  {f?.filename}{" "}
+                  {removed
+                    ? ""
+                    : `· ${((f.bytes ?? 0) / 1_000_000).toFixed(2)} MB`}
                 </span>
                 <span>
-                  {v.pageCount ? `${v.pageCount} pages · ` : ""}
-                  {v.extractionStatus.replaceAll("_", " ")}
+                  {removed
+                    ? "PDF removed"
+                    : v.indexRevision
+                      ? "Text indexed"
+                      : indexing
+                        ? "Indexing text…"
+                        : v.extractionStatus === "metadata_only"
+                          ? "PDF stored · text not indexed"
+                          : v.extractionStatus.replaceAll("_", " ")}
                 </span>
-                {job?.error && (
+                {!removed && job?.error && (
                   <span className="muted">
                     {job.error === "PASSWORD_PROTECTED"
                       ? "Password protected. Upload an unlocked copy."
                       : job.error === "PAGE_LIMIT"
-                        ? "Text processing supports up to 500 pages."
-                        : "Text processing could not finish. The PDF may still be readable."}
+                        ? "Text indexing supports up to 500 pages."
+                        : job.error === "INDEX_QUOTA"
+                          ? "The workspace ran out of index capacity."
+                          : "Text indexing could not finish. The PDF is still available."}
                   </span>
                 )}
-                <div className="actions">
-                  <Link
-                    className="button"
-                    href={`${researchPath(w, p)}/sources/${s.id}/read?version=${v.id}&library=${encodeURIComponent(libraryQuery)}`}
-                  >
-                    Open version
-                  </Link>
-                  {canEdit &&
-                    ["failed", "cancelled"].includes(job?.state ?? "") && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            await api(`${base}/versions/${v.id}/retry`, {});
-                            reload();
-                          } catch (error) {
-                            setError(error);
+                {!removed && (
+                  <div className="actions">
+                    <Link
+                      className="button"
+                      href={`${researchPath(w, p)}/sources/${s.id}/read?version=${v.id}&library=${encodeURIComponent(libraryQuery)}`}
+                    >
+                      Open version
+                    </Link>
+                    {canEdit && metered && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={busy || indexing}
+                          onClick={() =>
+                            void updatePdf(
+                              v.id,
+                              "index",
+                              Boolean(v.indexRevision),
+                            )
                           }
-                        }}
-                      >
-                        Retry text processing
-                      </button>
+                        >
+                          {v.indexRevision
+                            ? "Rebuild text index"
+                            : "Index text"}
+                        </button>
+                        {v.indexRevision && (
+                          <button
+                            type="button"
+                            disabled={busy || indexing}
+                            onClick={() => void updatePdf(v.id, "unindex")}
+                          >
+                            Remove text index
+                          </button>
+                        )}
+                        {["owner", "admin"].includes(detail.role) && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setRemovingVersion(v.id)}
+                          >
+                            Remove PDF
+                          </button>
+                        )}
+                      </>
                     )}
-                </div>
+                    {canEdit &&
+                      !metered &&
+                      ["failed", "cancelled"].includes(job?.state ?? "") && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void updatePdf(v.id, "retry")}
+                        >
+                          Retry text processing
+                        </button>
+                      )}
+                  </div>
+                )}
               </div>
             );
           })
@@ -972,8 +1062,40 @@ export function SourceDetails({
           <p className="muted">No PDF yet. Add a copy to read and annotate.</p>
         )}
         <p className="muted">
-          Notes remain attached to the PDF version where they were written.
+          {metered
+            ? "Indexing makes PDF text available to research search and uses separate index capacity. Notes keep their original version links."
+            : "Notes remain attached to the PDF version where they were written."}
         </p>
+        {removingVersion && (
+          <Modal
+            title="Remove this PDF?"
+            onClose={() => {
+              if (!busy) setRemovingVersion(null);
+            }}
+          >
+            <p>
+              The file and its text index will be removed. Source details,
+              notes, and previous citation text are retained.
+            </p>
+            <InlineError error={error} />
+            <div className="actions">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setRemovingVersion(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void updatePdf(removingVersion, "remove-file")}
+              >
+                Remove PDF
+              </button>
+            </div>
+          </Modal>
+        )}
       </aside>
     </div>
   );

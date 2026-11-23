@@ -20,7 +20,8 @@ import {
   addAnnotation,
   annotationEdit,
   editAnnotation,
-  retryFile,
+  requestIndex,
+  removeIndex,
   collectSources,
   bulkSourcesInput,
 } from "@/server/research/library";
@@ -30,7 +31,7 @@ import {
   bibtex,
   ris,
 } from "@/server/research/metadata";
-import { uploadPdf, servePdf } from "@/server/research/storage";
+import { uploadPdf, servePdf, removePdf } from "@/server/research/storage";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
@@ -155,7 +156,22 @@ async function handle(request: Request, context: Context) {
           );
         if (parts[4] === "retry" && method === "POST") {
           await readMutation(request, z.object({}).strict());
-          return retryFile(db, actor, w, p, s, v);
+          return requestIndex(db, actor, w, p, s, v);
+        }
+        if (parts[4] === "index" && method === "POST") {
+          const input = await readMutation(
+            request,
+            z.object({ rebuild: z.boolean().optional() }).strict(),
+          );
+          return requestIndex(db, actor, w, p, s, v, input.rebuild);
+        }
+        if (parts[4] === "unindex" && method === "POST") {
+          await readMutation(request, z.object({}).strict());
+          return removeIndex(db, actor, w, p, s, v);
+        }
+        if (parts[4] === "remove-file" && method === "POST") {
+          await readMutation(request, z.object({}).strict());
+          return removePdf(db, actor, w, p, s, v);
         }
       }
     }

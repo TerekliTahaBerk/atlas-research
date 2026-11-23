@@ -1,0 +1,117 @@
+.founding-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 500px);
+  align-items: start;
+  gap: clamp(24px, 5vw, 64px);
+  padding-block: clamp(32px, 6vw, 80px);
+}
+.founding-layout h1 {
+  font-size: clamp(32px, 4vw, 54px);
+  line-height: 1.07;
+  letter-spacing: -0.04em;
+  margin: 0 0 16px;
+}
+.founding-layout p {
+  line-height: 1.55;
+}
+.founding-profiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-block: 20px;
+}
+.founding-profiles article,
+.founding-panel {
+  border: 1px solid var(--line, #ddd);
+  background: var(--paper, #fff);
+  border-radius: 10px;
+  padding: 16px;
+}
+.founding-panel {
+  padding: clamp(16px, 2vw, 28px);
+}
+.founding-profiles h2 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+.founding-profiles p {
+  font-size: 13px;
+  margin: 3px 0;
+}
+.founding-form {
+  display: grid;
+  gap: 12px;
+}
+.founding-form label {
+  display: grid;
+  gap: 5px;
+  font-weight: 550;
+  font-size: 13px;
+}
+.founding-form :is(input:not([type="checkbox"]), select, textarea) {
+  width: 100%;
+  min-height: 38px;
+  font: inherit;
+  padding: 8px;
+  border: 1px solid var(--line, #ccc);
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+}
+.founding-form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-width: 0;
+}
+.founding-form fieldset label {
+  display: inline-flex;
+  align-items: center;
+}
+.founding-form button {
+  justify-self: start;
+}
+@media (max-width: 800px) {
+  .founding-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.resource-admin {
+  max-width: 1024px;
+  padding-block: 26px 60px;
+}
+.resource-admin .founding-panel {
+  margin-block: 16px;
+}
+.resource-admin details {
+  margin-block: 7px;
+  padding-block: 5px;
+  border-top: 1px solid var(--line, #ddd);
+}
+.resource-admin summary {
+  cursor: pointer;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.resource-admin details .founding-form {
+  margin-top: 12px;
+}
+.resource-admin-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.resource-admin-totals dd {
+  margin-inline-start: 0;
+  font-size: 22px;
+  font-weight: 650;
+}
+.resource-invite-link {
+  display: grid;
+  gap: 7px;
+}
+.resource-invite-link input {
+  width: 100%;
+  font: inherit;
+  padding: 7px;
+}

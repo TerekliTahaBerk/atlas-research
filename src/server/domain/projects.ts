@@ -3,6 +3,8 @@ import type { Database } from "../db/client";
 import type { Identity } from "../auth/identity";
 import { asIdentity } from "../db/transaction";
 import { AppError } from "../errors";
+import { resourceLimitsEnabled } from "../billing/entitlements";
+import { lockedWorkspaceUsage } from "../research/resource-usage";
 import { audit, fresh, inProject, requireRole, workspaceLock, type ProjectRole } from "./access";
 
 export const projectInput = z.object({ name: z.string().trim().min(1).max(100), description: z.string().trim().max(500).default(""), requestId: z.uuid() }).strict();
@@ -18,6 +20,10 @@ export function createProject(db: Database, actor: Identity, workspaceId: string
     if (existing) {
       if (existing.workspaceId !== workspaceId || existing.createdBy !== actor.id || existing.name !== input.name) throw new AppError("CONFLICT", 409);
       return existing;
+    }
+    if (resourceLimitsEnabled()) {
+      const { limits, usage } = await lockedWorkspaceUsage(tx, workspaceId);
+      if (usage.activeProjects >= limits.activeProjects) throw new AppError("PROJECT_QUOTA", 409);
     }
     await tx.project.createMany({ data: [{ id: input.requestId, workspaceId, name: input.name, description: input.description, createdBy: actor.id }] });
     await tx.projectMember.createMany({ data: [{ workspaceId, projectId: input.requestId, userId: actor.id, role: "owner" }] });
@@ -35,6 +41,14 @@ export function updateProject(db: Database, actor: Identity, w: string, p: strin
     if ((change.name !== undefined || change.description !== undefined) && (scope.project.archivedAt || scope.project.deletedAt)) throw new AppError("ARCHIVED", 409);
     if (change.expectedUpdatedAt && scope.project.updatedAt.toISOString() !== change.expectedUpdatedAt) throw new AppError("REVISION_CONFLICT", 409);
     if (change.deletion) fresh(actor);
+    if (resourceLimitsEnabled() && (change.deletion || change.archived !== undefined)) {
+      const { limits, usage } = await lockedWorkspaceUsage(tx, w);
+      const reactivating = (change.deletion === "restore" ||
+        (change.archived === false && !scope.project.deletedAt && !change.deletion)) &&
+        (scope.project.archivedAt || scope.project.deletedAt);
+      if (reactivating && usage.activeProjects >= limits.activeProjects)
+        throw new AppError("PROJECT_QUOTA", 409);
+    }
     await audit(tx, actor, w, p, change.deletion ? `project_deletion_${change.deletion}` : "project_updated");
     if (change.deletion === "request") await tx.invitation.updateMany({ where: { workspaceId: w, projectId: p, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
     return tx.project.update({ where: { id: p }, data: {

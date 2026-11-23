@@ -30,6 +30,7 @@ Atlas is a connected workspace for individual researchers and small research tea
 
 ## Start here
 
+- [Pricing, entitlements and Founding access implementation](docs/implementation/pricing-and-entitlements/TEST_REPORT.md)
 - [Agent contract](AGENTS.md)
 - [Roadmap and beta boundary](docs/ROADMAP.md)
 - [Restart and recovery record](docs/RESTART.md)

@@ -95,6 +95,9 @@ services:
       APP_ORIGIN: ${APP_ORIGIN:?required}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ATLAS_AI_CALLS_ENABLED: ${ATLAS_AI_CALLS_ENABLED:-false}
+      ATLAS_FOUNDING_INTAKE_ENABLED: ${ATLAS_FOUNDING_INTAKE_ENABLED:-0}
+      ATLAS_FOUNDING_MAIL_ENABLED: ${ATLAS_FOUNDING_MAIL_ENABLED:-0}
+      ATLAS_AI_MODEL: ${ATLAS_AI_MODEL:-}
       BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION:?required}
       AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTH}@postgres:5432/atlas
       DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
@@ -103,6 +106,7 @@ services:
       MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
       SMTP_HOST: ${SMTP_HOST:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
       FILE_STORAGE_PATH: /data/atlas-files
     volumes:
       - atlas-private-files:/data/atlas-files
@@ -152,6 +156,7 @@ services:
       <<: *atlas-isolated-env
       DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
       QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
       FILE_STORAGE_PATH: /data/atlas-files
       ATLAS_RELEASE: ${ATLAS_RELEASE}
     volumes:

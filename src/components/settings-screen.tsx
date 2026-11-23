@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { BillingUsagePanel } from "./billing-usage";
 import { Failure, InlineError, Loading, Modal, useResource } from "./ui";
 import {
   WorkspaceShell,
@@ -65,6 +66,7 @@ function AccountSettings({
       "notifications",
       "security",
       "workspaces",
+      "usage",
     ].includes(requested ?? "")
       ? requested
       : "profile";
@@ -79,6 +81,7 @@ function AccountSettings({
             ["notifications", "Notifications"],
             ["security", "Security & sessions"],
             ["workspaces", "Workspaces"],
+            ["usage", "Billing & usage"],
           ] as const
         ).map(([key, title]) => (
           <Link
@@ -103,6 +106,12 @@ function AccountSettings({
           <NotificationSettings />
         ) : tab === "security" ? (
           <SecuritySessions />
+        ) : tab === "usage" ? (
+          <BillingUsagePanel
+            workspace={me.personalWorkspace}
+            email={me.user.email}
+            path="/settings?tab=usage"
+          />
         ) : (
           <section className="settings-section">
             <h2>Workspaces</h2>
@@ -323,6 +332,12 @@ function WorkspaceSettings({
         <small>{workspace.kind} workspace</small>
         <h1>{workspace.name}</h1>
         <p>Workspace membership does not grant access to private projects.</p>
+        <Link
+          className="button"
+          href={`/w/${encodeURIComponent(workspace.id)}/usage`}
+        >
+          Billing &amp; usage
+        </Link>
       </header>
       {detail.error ? (
         <Failure error={detail.error} retry={detail.reload} />

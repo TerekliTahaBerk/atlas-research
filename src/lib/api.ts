@@ -41,6 +41,11 @@ export async function api<T>(
 export function message(error: unknown) {
   const code = error instanceof ApiError ? error.code : "INTERNAL_ERROR";
   const research: Record<string, string> = {
+    ACADEMIC_UNAVAILABLE: "Use a verified email from an institution recognized by Atlas.",
+    BILLING_DISABLED: "Checkout is unavailable in this environment.",
+    FOUNDING_CAPACITY: "This founding profile has no places available.",
+    SEAT_QUOTA: "There are no editing seats available in this workspace.",
+    RESOURCE_QUOTA: "This workspace has reached its limit for this resource.",
     AI_DISABLED: "AI calls are disabled. No new provider request was sent.",
     AI_POLICY_DISABLED:
       "The workspace owner must enable sharing and set a daily budget first.",
@@ -67,12 +72,16 @@ export function message(error: unknown) {
       "This DOI or article link is already in this project’s library.",
     STORAGE_UNAVAILABLE:
       "PDF storage is temporarily unavailable. Your source details are still saved.",
-    FILE_TOO_LARGE: "Choose a PDF of 25 MB or less.",
+    FILE_TOO_LARGE: "This PDF exceeds the workspace’s per-file size limit.",
     INVALID_PDF:
       "This file does not look like a complete PDF. Choose another copy.",
     UPLOAD_IN_PROGRESS:
       "This upload is already being processed. Refresh, or try again shortly.",
-    STORAGE_QUOTA: "This project has reached its 250 MB PDF storage limit.",
+    STORAGE_QUOTA: "There is insufficient storage capacity for this PDF.",
+    UPLOAD_QUOTA: "This workspace has reached its file upload allowance for the current period.",
+    PROJECT_QUOTA: "This workspace is at its active project limit. Archive a project to make room.",
+    INDEX_QUOTA: "There is insufficient text index capacity. Remove an index before trying again.",
+    INDEX_IN_PROGRESS: "Wait for the current indexing job to finish, then try again.",
     UPLOAD_FAILED:
       "The PDF could not be saved. Your source details are safe; try the upload again.",
   };

@@ -15,7 +15,11 @@ import { createMailQueue } from "../src/server/mail/outbox";
 import { createFileWorker } from "../src/server/files/worker";
 import { createSharedWorkspace } from "../src/server/domain/workspaces";
 import { createProject } from "../src/server/domain/projects";
-import { addSource, getSource } from "../src/server/research/library";
+import {
+  addSource,
+  getSource,
+  requestIndex,
+} from "../src/server/research/library";
 import { uploadPdf } from "../src/server/research/storage";
 import { createDocument } from "../src/server/collaboration/service";
 import { verifiedUser } from "../tests/helpers/identity";
@@ -73,7 +77,11 @@ const mock = createServer(async (req, res) => {
     JSON.stringify({
       status: "completed",
       model: MODEL,
-      usage: { input_tokens: 100, output_tokens: 70 },
+      usage: {
+        input_tokens: 100,
+        output_tokens: 70,
+        input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+      },
       output: [
         {
           type: "message",
@@ -91,6 +99,9 @@ process.env.APP_ORIGIN = origin;
 process.env.SMTP_PORT = String(smtp.port);
 process.env.FILE_STORAGE_PATH = join(folder, "private-files");
 process.env.ATLAS_AI_CALLS_ENABLED = "true";
+process.env.ATLAS_RESOURCE_LIMITS_ENABLED = process.argv.includes("--beta")
+  ? "0"
+  : "1";
 process.env.OPENAI_API_KEY = "atlas-synthetic-fixture";
 process.env.ATLAS_AI_TEST_ORIGIN = `http://127.0.0.1:${(mock.address() as { port: number }).port}`;
 const env = getEnv(),
@@ -143,6 +154,7 @@ const source = (
     source.id,
     randomUUID(),
   );
+await requestIndex(db, a, w, p, source.id, upload.versionId!);
 await worker.heartbeat();
 await worker.flush();
 assert.ok(
@@ -171,7 +183,10 @@ server.stderr.on("data", () => {});
 const heartbeat = setInterval(() => {
   void Promise.all([worker.heartbeat(), mail.heartbeat()]).catch(() => {});
 }, 5000);
-const browser = await chromium.launch({ headless: true }),
+const browser = await chromium.launch({
+    headless: true,
+    channel: process.env.ATLAS_TEST_CHROMIUM_CHANNEL || undefined,
+  }),
   context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     recordVideo: {
@@ -356,6 +371,8 @@ try {
   const queued = await startRun(db, a, w, p, {
     contextId: queuedContext.context.id,
     requestId: randomUUID(),
+    maxCredits: queuedContext.maxCredits,
+    pricingVersion: queuedContext.pricingVersion!,
     consent: true,
   });
   await page.getByLabel("Floating AI", { exact: true }).click();
