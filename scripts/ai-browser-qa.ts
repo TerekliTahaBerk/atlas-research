@@ -422,6 +422,9 @@ try {
         await page
           .getByRole("heading", { name: "Pilot guide & support", exact: true })
           .waitFor();
+        await page
+          .getByText(/Email your pilot coordinator using the address/)
+          .waitFor();
         assert.ok(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth,
