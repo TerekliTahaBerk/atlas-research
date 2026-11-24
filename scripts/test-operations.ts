@@ -19,6 +19,8 @@ import {
 import assert from "node:assert/strict";
 import pg from "pg";
 import { createDatabase } from "../src/server/db/client";
+import { asIdentity } from "../src/server/db/transaction";
+import { readComputeJob, readComputePdf } from "../src/server/compute/service";
 import { createSharedWorkspace } from "../src/server/domain/workspaces";
 import {
   createProject,
@@ -252,6 +254,68 @@ function startWeb(
     origin: `http://127.0.0.1:${docker("port", name, "3000/tcp").split(":").at(-1)}`,
   };
 }
+async function seedCompletedCompute(
+  port: string,
+  actor: Identity,
+  project: { workspaceId: string; id: string },
+) {
+  const admin = createDatabase(url("postgres", "127.0.0.1", port));
+  clients.push(admin);
+  const id = randomUUID(),
+    { workspaceId } = project,
+    scope = { workspaceId, projectId: project.id },
+    resource = "latexCompiles",
+    stdout = "Synthetic completed LaTeX result",
+    pdf = new Uint8Array(syntheticPdf()),
+    completedAt = new Date();
+  await admin.$transaction(async (tx) => {
+    const usage = { workspaceId, operationId: id, resource, actorId: actor.id };
+    await tx.billingUsageReservation.create({
+      data: {
+        ...usage,
+        requested: 1n,
+        charged: 1n,
+        status: "settled",
+        allocations: [{ grantId: null, quantity: 1 }],
+        periodStart: new Date(
+          Date.UTC(completedAt.getUTCFullYear(), completedAt.getUTCMonth(), 1),
+        ),
+        periodEnd: new Date(
+          Date.UTC(completedAt.getUTCFullYear(), completedAt.getUTCMonth() + 1, 1),
+        ),
+        closedAt: completedAt,
+      },
+    });
+    await tx.billingUsageEntry.createMany({
+      data: ["reserve", "settle"].map((action) => ({
+        ...usage,
+        id: randomUUID(),
+        action,
+        quantity: 1n,
+      })),
+    });
+    await tx.computeJob.create({
+      data: {
+        ...scope,
+        id,
+        actorId: actor.id,
+        sessionId: actor.sessionId,
+        kind: "latex",
+        resource,
+        sourceHash: createHash("sha256").update("synthetic source").digest("hex"),
+        source: null,
+        status: "succeeded",
+        timeoutMs: 1_000,
+        elapsedMs: 47,
+        stdout,
+        pdf,
+        completedAt,
+        outputExpiresAt: new Date(completedAt.getTime() + 86_400_000),
+      },
+    });
+  });
+  return { id, scope, resource, stdout, pdfHash: createHash("sha256").update(pdf).digest("hex") };
+}
 async function fixture(port: string) {
   const auth = createDatabase(url("atlas_auth", "127.0.0.1", port)),
     runtime = createDatabase(url("atlas_runtime", "127.0.0.1", port));
@@ -404,7 +468,8 @@ async function fixture(port: string) {
     });
   }
   await worker.close();
-  return { actors, records, artifacts };
+  const compute = await seedCompletedCompute(port, actors[0], records[0]);
+  return { actors, records, artifacts, compute };
 }
 async function verifyRestored(
   port: string,
@@ -455,6 +520,41 @@ async function verifyRestored(
     const other = data.records[1 - i];
     await assert.rejects(readProject(db, actor, other.workspaceId, other.id));
   }
+  const { id, scope, resource, stdout, pdfHash } = data.compute;
+  const [owner, outsider] = data.actors;
+  const job = await readComputeJob(db, owner, scope, id);
+  assert.equal(job.status, "succeeded");
+  assert.equal(job.stdout, stdout);
+  assert.equal(job.elapsedMs, 47);
+  const pdf = await readComputePdf(db, owner, scope, id);
+  assert.equal(
+    createHash("sha256").update(Buffer.from(await pdf.arrayBuffer())).digest("hex"),
+    pdfHash,
+  );
+  await assert.rejects(readComputeJob(db, outsider, scope, id));
+  await assert.rejects(readComputePdf(db, outsider, scope, id));
+  await asIdentity(db, owner, async (tx) => {
+    const restored = await tx.computeJob.findUniqueOrThrow({
+      where: { id },
+      select: { source: true },
+    });
+    assert.equal(restored.source, null);
+    const where = { workspaceId: scope.workspaceId, operationId: id, resource };
+    const reservation = await tx.billingUsageReservation.findFirstOrThrow({
+      where,
+      select: { status: true, requested: true, charged: true },
+    });
+    assert.deepEqual(reservation, { status: "settled", requested: 1n, charged: 1n });
+    const ledger = await tx.billingUsageEntry.findMany({
+      where,
+      select: { action: true, quantity: true },
+      orderBy: { action: "asc" },
+    });
+    assert.deepEqual(ledger, [
+      { action: "reserve", quantity: 1n },
+      { action: "settle", quantity: 1n },
+    ]);
+  });
   assert.deepEqual(await db.project.findMany(), []);
 }
 try {
@@ -761,6 +861,7 @@ try {
         "fresh-cluster restore with owners/policies",
         "synthetic PDFs and file-tree SHA-256",
         "source/page evidence, private AI preview, document versions/citations, linked task/thread survive restore",
+        "completed compute output hash, owner-only access, cleared source and settled billing receipts",
         "two-team RLS after restore",
         "compatible metadata-image rollback",
       ],

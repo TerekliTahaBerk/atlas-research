@@ -28,6 +28,8 @@ try {
     ATLAS_INITIAL_PASSWORD: "synthetic-initial-secret",
     SMTP_PASSWORD: "synthetic-smtp-secret",
     OPENAI_API_KEY: "synthetic-openai-isolation-secret",
+    ATLAS_COMPUTE_RUNNER_TOKEN: "7".repeat(64),
+    ATLAS_BILLING_SANDBOX_SECRET: "synthetic-billing-isolation-secret",
   };
   // Reproduce Coolify 4.6's unconditional global env_file injection. No daemon.
   const envFile = join(folder, "injected.env");
@@ -43,7 +45,7 @@ try {
     overlay,
     JSON.stringify({
       services: Object.fromEntries(
-        ["postgres", "bootstrap", "migrate", "web", "mail", "files"].map((name) => [
+        ["postgres", "bootstrap", "migrate", "web", "mail", "files", "compute-broker", "compute-runner"].map((name) => [
           name,
           { env_file: [envFile] },
         ]),
@@ -59,6 +61,7 @@ try {
     file,
     "--file",
     overlay,
+    "--profile", "compute",
     "config",
     "--format",
     "json",
@@ -78,10 +81,19 @@ try {
     Object.entries(variables).filter(
       ([k]) =>
         k.startsWith("SERVICE_HEX_") ||
-        ["SMTP_PASSWORD", "ATLAS_INITIAL_PASSWORD", "OPENAI_API_KEY"].includes(k),
+        ["SMTP_PASSWORD", "ATLAS_INITIAL_PASSWORD", "OPENAI_API_KEY", "ATLAS_COMPUTE_RUNNER_TOKEN", "ATLAS_BILLING_SANDBOX_SECRET"].includes(k),
     ),
   );
+  const runner = services["compute-runner"];
+  assert.equal(runner.read_only, true);
+  assert.equal(runner.privileged ?? false, false);
+  assert.deepEqual(runner.cap_drop, ["ALL"]);
+  assert.equal(Object.keys(runner.networks).join(","), "compute-execution");
+  assert.equal(runner.ports?.length ?? 0, 0);
+  assert.equal(runner.volumes?.length ?? 0, 0);
   const allowed = {
+    "compute-broker": ["SERVICE_HEX_64_ATLASQUEUE", "ATLAS_COMPUTE_RUNNER_TOKEN"],
+    "compute-runner": ["ATLAS_COMPUTE_RUNNER_TOKEN"],
     files: ["SERVICE_HEX_64_ATLASRUNTIME", "SERVICE_HEX_64_ATLASQUEUE"],
     postgres: ["SERVICE_HEX_64_ATLASPOSTGRES"],
     bootstrap: [

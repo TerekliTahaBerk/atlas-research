@@ -329,6 +329,7 @@ export function createFileWorker(env: Record<string, string | undefined>) {
 
   async function cleanup() {
     await queue.query("SELECT ops.sweep_expired_ai_runs()");
+    await queue.query("SELECT ops.reap_compute_jobs()");
     const uuid = "[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}";
     const directoryName = new RegExp(`^${uuid}$`, "i");
     const stagedName = new RegExp(`^\\.${uuid}\\.part$`, "i");

@@ -456,14 +456,14 @@ function UsageDetails({
           )}
           .
         </p>
-        {report.capabilities &&
-        (!report.capabilities.pythonExecution ||
-          !report.capabilities.latexCompilation ||
-          !report.capabilities.automationExecution) ? (
-          <p>
-            Python execution, native LaTeX compilation and custom automation
-            runs are unavailable.
-          </p>
+        {!report.capabilities.pythonExecution ? (
+          <p>Python execution is unavailable.</p>
+        ) : null}
+        {!report.capabilities.latexCompilation ? (
+          <p>Native LaTeX compilation is unavailable.</p>
+        ) : null}
+        {!report.capabilities.automationExecution ? (
+          <p>Custom automation runs are unavailable.</p>
         ) : null}
         {workspace.kind === "shared" && report.planCode === "TEAM" ? (
           <div className="billing-pool">

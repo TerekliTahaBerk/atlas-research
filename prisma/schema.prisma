@@ -109,6 +109,7 @@ model Project {
   updatedAt DateTime @updatedAt
   members ProjectMember[]
   invitations Invitation[]
+  computeJobs ComputeJob[]
   @@unique([workspaceId, id])
   @@map("projects")
   @@schema("app")
@@ -789,6 +790,7 @@ model BillingUsageReservation {
   closedAt DateTime? @db.Timestamptz(3)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   ledger BillingUsageEntry[]
+  computeJobs ComputeJob[]
   @@id([workspaceId, operationId, resource])
   @@index([workspaceId, resource, periodStart])
   @@index([workspaceId, resource, actorId, createdAt])
@@ -912,4 +914,33 @@ model AcademicEligibility {
   institution AcademicInstitution @relation(fields: [institutionDomain], references: [domain], onDelete: Restrict, onUpdate: NoAction)
   @@map("academic_eligibility")
   @@schema("app")
+}
+
+model ComputeJob {
+  id String @id @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  actorId String
+  sessionId String
+  kind String
+  resource String
+  sourceHash String
+  source String?
+  timeoutMs Int
+  status String @default("queued")
+  leaseToken String? @db.Uuid
+  leaseUntil DateTime? @db.Timestamptz(3)
+  cancelRequestedAt DateTime? @db.Timestamptz(3)
+  elapsedMs Int?
+  stdout String @default("")
+  stderr String @default("")
+  pdf Bytes?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  completedAt DateTime? @db.Timestamptz(3)
+  outputExpiresAt DateTime? @db.Timestamptz(3)
+  project Project @relation(fields: [workspaceId, projectId], references: [workspaceId, id], onDelete: Restrict, onUpdate: NoAction)
+  reservation BillingUsageReservation @relation(fields: [workspaceId, id, resource], references: [workspaceId, operationId, resource], onDelete: Restrict, onUpdate: NoAction)
+  @@index([workspaceId, projectId, actorId, createdAt(sort: Desc), id], map: "compute_project_history")
+  @@map("compute_jobs")
+  @@schema("ops")
 }

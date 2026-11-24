@@ -41,6 +41,7 @@ export async function api<T>(
 export function message(error: unknown) {
   const code = error instanceof ApiError ? error.code : "INTERNAL_ERROR";
   const research: Record<string, string> = {
+    COMPUTE_UNAVAILABLE: "The isolated runner is currently unavailable. No quota was used.",
     ACADEMIC_UNAVAILABLE: "Use a verified email from an institution recognized by Atlas.",
     BILLING_DISABLED: "Checkout is unavailable in this environment.",
     FOUNDING_CAPACITY: "This founding profile has no places available.",

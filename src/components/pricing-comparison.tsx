@@ -187,9 +187,9 @@ export function PricingComparison() {
         })}
       </div>
       <p className="pricing-availability">
-        Checkout is closed in this environment. Python execution, native LaTeX
-        compilation and custom automations are not available here. AI and
-        indexing depend on workspace and infrastructure settings.
+        Checkout and custom automations are unavailable here. Python and LaTeX
+        depend on runner availability and workspace limits. AI and indexing
+        depend on workspace and infrastructure settings.
       </p>
       <div className="pricing-secondary">
         <section

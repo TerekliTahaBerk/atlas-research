@@ -1,4 +1,5 @@
 import type { Identity } from "../auth/identity";
+import { computeAvailable } from "../compute/availability";
 import type { Database } from "../db/client";
 import { asIdentity } from "../db/transaction";
 import { audit, requireRole, workspaceLock } from "../domain/access";
@@ -68,6 +69,7 @@ export function readWorkspaceUsage(db: Database, actor: Identity, w: string) {
       e.foundingProfile && e.startsAt
         ? (now.getTime() - e.startsAt.getTime()) / 86_400_000
         : null;
+    const compute = await computeAvailable(tx);
     const { activeProjects, storageBytes, monthlyUploads, indexedBytes } =
       resources;
     return {
@@ -113,8 +115,8 @@ export function readWorkspaceUsage(db: Database, actor: Identity, w: string) {
       })),
       capabilities: {
         checkout: false,
-        pythonExecution: false,
-        latexCompilation: false,
+        pythonExecution: compute,
+        latexCompilation: compute,
         automationExecution: false,
         indexing: true,
         foundingIntake: foundingIntakeEnabled(),

@@ -148,17 +148,19 @@ export function WorkspaceShell({
             ? "discussions"
             : path.endsWith("/discover")
               ? "library"
-              : path.includes("/sources")
-                ? "library"
-                : path.endsWith("/members")
-                  ? "members"
-                  : path.endsWith("/settings")
-                    ? "settings"
-                    : current
-                      ? "overview"
-                      : path === "/home" || path === "/onboarding"
-                        ? "home"
-                        : "settings";
+              : path.endsWith("/compute")
+                ? "compute"
+                : path.includes("/sources")
+                  ? "library"
+                  : path.endsWith("/members")
+                    ? "members"
+                    : path.endsWith("/settings")
+                      ? "settings"
+                      : current
+                        ? "overview"
+                        : path === "/home" || path === "/onboarding"
+                          ? "home"
+                          : "settings";
   const nav = (
     <>
       <div className="sidebar-heading">
@@ -297,6 +299,15 @@ export function WorkspaceShell({
               <Icon name="discussion" />
               Discussions
             </Link>
+            <Link
+              className={`nav-item ${active === "compute" ? "selected" : ""}`}
+              aria-current={active === "compute" ? "page" : undefined}
+              href={base + "/compute"}
+              onClick={() => setDrawer(false)}
+            >
+              <Icon name="panel" />
+              Compute
+            </Link>
           </details>
         )}
         {!base && !!projects.data && (
@@ -401,6 +412,7 @@ export function WorkspaceShell({
                   <Link href={base + "/docs"}>Documents</Link>
                   <Link href={base + "/tasks"}>Tasks</Link>
                   <Link href={base + "/discussions"}>Discussions</Link>
+                  <Link href={base + "/compute"}>Compute</Link>
                 </>
               )}
               <button onClick={() => setSwitching(true)}>
