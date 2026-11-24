@@ -11,9 +11,10 @@ import {
   type Tx,
 } from "../domain/access";
 import { AppError } from "../errors";
+import { resolveWorkspaceEntitlement } from "../billing/entitlements";
+import { reserveResource, settleResource } from "../billing/ledger";
 import {
   aiConfig,
-  MODEL,
   TERMS,
   reservation,
   responseSchema,
@@ -24,6 +25,7 @@ import type {
   EvidenceView,
   AiUsage,
   AiArtifactSnapshot,
+  FoundingBudgetGate,
 } from "../../lib/ai-types";
 import type { Prisma } from "../../generated/prisma/client";
 export const hash = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -41,6 +43,8 @@ export const runInput = z
     contextId: z.uuid(),
     requestId: z.uuid(),
     consent: z.literal(true),
+    maxCredits: z.number().int().min(1).max(100000),
+    pricingVersion: z.string().min(1).max(80),
   })
   .strict();
 export const policyInput = z
@@ -75,7 +79,7 @@ export function aiScope<T>(
   });
 }
 export async function budgetLock(tx: Tx, w: string, a: Identity) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${w},17404))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${w}::uuid::text,17404))`;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${a.id},17405))`;
   await tx.$executeRaw`SELECT app.expire_ai_runs(${w}::uuid)`;
 }
@@ -96,11 +100,34 @@ export async function usage(tx: Tx, w: string): Promise<AiUsage> {
   >`SELECT app.ai_usage(${w}::uuid) AS value`;
   return r.value;
 }
+function creditsEnabled() {
+  return process.env.ATLAS_RESOURCE_LIMITS_ENABLED === "1";
+}
+export async function foundingBudget(tx: Tx, w: string, requiredMicros = 0) {
+  const [row] = await tx.$queryRaw<
+    { value: FoundingBudgetGate | null }[]
+  >`SELECT app.founding_ai_budget(${w}::uuid,${requiredMicros}::integer) AS value`;
+  return row?.value ?? null;
+}
 export async function policyView(tx: Tx, w: string, role: string) {
+  const { callsEnabled, keyConfigured, model, terms, pricingAvailable } =
+    aiConfig();
+  const entitlements = await resolveWorkspaceEntitlement(tx, w);
   return {
     ...(await policyRow(tx, w)),
     canManage: role === "owner",
-    ...aiConfig(),
+    callsEnabled,
+    keyConfigured,
+    model,
+    terms,
+    pricingAvailable,
+    creditsEnforced: creditsEnabled(),
+    dailyOperationLimit: creditsEnabled()
+      ? entitlements.limits.dailyAiOperationsPerMember
+      : 20,
+    foundingBudget: entitlements.foundingProfile
+      ? await foundingBudget(tx, w)
+      : null,
     testing:
       Reflect.get(process.env, "NODE_ENV") === "test" &&
       !!process.env.ATLAS_AI_TEST_ORIGIN,
@@ -385,17 +412,19 @@ export function preview(
     const ids = [...new Set(input.versionIds)];
     const artifactIds = [...new Set(input.artifactIds ?? [])];
     if (!ids.length && !artifactIds.length) throw new AppError("INVALID_INPUT");
+    const selected = await assertScope(tx, w, p, ids);
     const artifacts = await artifactSnapshots(tx, w, p, artifactIds);
     if (input.selection?.trim()) {
       const excerpt = input.selection.trim();
-      const page = await tx.sourcePage.findFirst({
-        where: {
-          workspaceId: w,
-          projectId: p,
-          versionId: { in: ids },
-          text: { contains: excerpt },
-        },
-      });
+      const [page] = await tx.$queryRaw<
+        { id: string; versionId: string; page: number; sourceId: string }[]
+      >`SELECT sp.id,sp."versionId",sp.page,sp."sourceId"
+        FROM app.source_pages sp JOIN app.source_versions sv ON sv.id=sp."versionId"
+        JOIN app.file_objects f ON f.id=sv."fileId" JOIN app.sources s ON s.id=sp."sourceId"
+        WHERE sp."workspaceId"=${w}::uuid AND sp."projectId"=${p}::uuid AND sv.id=ANY(${ids}::uuid[])
+          AND sv."extractionStatus"='ready' AND sp.extractor=sv."indexRevision"
+          AND s."archivedAt" IS NULL AND f."deletedAt" IS NULL AND position(${excerpt} IN sp.text)>0
+        ORDER BY sp.page,sp.id LIMIT 1`;
       const artifact = artifacts.find((a) => a.text?.includes(excerpt));
       if (!page && !artifact) throw new AppError("INVALID_INPUT");
       if (page)
@@ -421,7 +450,6 @@ export function preview(
       )
         throw new AppError("INVALID_INPUT");
     }
-    const selected = await assertScope(tx, w, p, ids);
     if (!conversation)
       conversation = await tx.aiConversation.create({
         data: {
@@ -497,7 +525,7 @@ export function preview(
     const candidates = query
       ? await tx.$queryRaw<
           Chunk[]
-        >`SELECT ch.*,p."sourceId",p."versionId",p.page,p."fileSha256",p.extractor FROM app.source_chunks ch JOIN app.source_pages p ON p.id=ch."pageId" JOIN app.source_versions v ON v.id=p."versionId" JOIN app.sources s ON s.id=p."sourceId" WHERE ch."workspaceId"=${w}::uuid AND ch."projectId"=${p}::uuid AND v.id=ANY(${ids}::uuid[]) AND s."archivedAt" IS NULL AND v."extractionStatus"='ready' AND p.extractor=v."indexRevision" AND to_tsvector('simple',ch.text)@@to_tsquery('simple',${query}) ORDER BY ts_rank_cd(to_tsvector('simple',ch.text),to_tsquery('simple',${query})) DESC,p.page,ch.start LIMIT 60`
+        >`SELECT ch.*,p."sourceId",p."versionId",p.page,p."fileSha256",p.extractor FROM app.source_chunks ch JOIN app.source_pages p ON p.id=ch."pageId" JOIN app.source_versions v ON v.id=p."versionId" JOIN app.sources s ON s.id=p."sourceId" JOIN app.file_objects f ON f.id=v."fileId" WHERE f."deletedAt" IS NULL AND ch."workspaceId"=${w}::uuid AND ch."projectId"=${p}::uuid AND v.id=ANY(${ids}::uuid[]) AND s."archivedAt" IS NULL AND v."extractionStatus"='ready' AND p.extractor=v."indexRevision" AND to_tsvector('simple',ch.text)@@to_tsquery('simple',${query}) ORDER BY ts_rank_cd(to_tsvector('simple',ch.text),to_tsquery('simple',${query})) DESC,p.page,ch.start LIMIT 60`
       : [];
     // Limit overlap per physical page and total shared bytes; the preview is the exact dispatch snapshot.
     const picked: Chunk[] = [];
@@ -550,13 +578,29 @@ export function preview(
       warnings.push(
         "No matching indexed evidence was found. This is not a model answer. Try a more specific question or prepare a PDF.",
       );
+    const payload = providerInput(data);
+    const rates = aiConfig().pricing;
+    let estimate: ReturnType<typeof reservation> | null = null;
+    if (rates && payload.evidence.length) {
+      try {
+        estimate = reservation(payload, rates);
+      } catch (error) {
+        if (!(
+          error instanceof AppError && error.code === "AI_INVALID_EVIDENCE"
+        ))
+          throw error;
+        warnings.push(
+          "The selected context is too large. Select fewer sources or a shorter passage.",
+        );
+      }
+    }
     return {
       context,
       evidence: shared,
       warnings,
-      reservedMicros: providerInput(data).evidence.length
-        ? reservation(providerInput(data))
-        : 0,
+      reservedMicros: estimate?.micros ?? 0,
+      maxCredits: estimate?.credits ?? 0,
+      pricingVersion: estimate?.pricingVersion ?? null,
       policy: await policyView(tx, w, s.role),
     };
   });
@@ -582,6 +626,7 @@ export async function validateEvidence(
   w: string,
   p: string,
   data: Awaited<ReturnType<typeof contextData>>,
+  forDispatch = false,
 ) {
   await assertScope(tx, w, p, data.conversation.versionIds);
   const pages = await tx.sourcePage.findMany({
@@ -598,6 +643,41 @@ export async function validateEvidence(
         sha256: { in: [...new Set(data.evidence.map((e) => e.fileSha256))] },
       },
     });
+  if (forDispatch) {
+    const passages = (
+      data.context.artifacts as unknown as AiArtifactSnapshot[]
+    ).filter((artifact) => artifact.kind === "passage");
+    const pageIds = [
+      ...new Set([
+        ...data.evidence.map((item) => item.pageId),
+        ...passages.map((item) => item.id),
+      ]),
+    ];
+    if (pageIds.length) {
+      const dispatchPages = await tx.$queryRaw<
+        { id: string; versionId: string; page: number; text: string }[]
+      >`SELECT sp.id,sp."versionId",sp.page,sp.text
+        FROM app.source_pages sp JOIN app.source_versions sv ON sv.id=sp."versionId"
+        JOIN app.file_objects f ON f.id=sv."fileId" JOIN app.sources s ON s.id=sp."sourceId"
+        WHERE sp."workspaceId"=${w}::uuid AND sp."projectId"=${p}::uuid AND sp.id=ANY(${pageIds}::uuid[])
+          AND sv."extractionStatus"='ready' AND sp.extractor=sv."indexRevision" AND f."deletedAt" IS NULL
+          AND s."archivedAt" IS NULL`;
+      if (
+        dispatchPages.length !== pageIds.length ||
+        passages.some(
+          (passage) =>
+            !dispatchPages.some(
+              (page) =>
+                page.id === passage.id &&
+                page.versionId === passage.versionId &&
+                page.page === passage.page &&
+                page.text.includes(passage.text),
+            ),
+        )
+      )
+        throw new AppError("AI_INVALID_EVIDENCE", 409);
+    }
+  }
   for (const e of data.evidence) {
     const page = pages.find((p) => p.id === e.pageId);
     if (
@@ -664,7 +744,7 @@ export function startRun(
       throw new AppError("CONFLICT", 409);
     const config = aiConfig(),
       policy = await policyRow(tx, w);
-    if (!config.callsEnabled || !config.keyConfigured)
+    if (!config.callsEnabled || !config.keyConfigured || !config.pricing)
       throw new AppError("AI_DISABLED", 409);
     if (
       !policy.enabled ||
@@ -676,19 +756,41 @@ export function startRun(
       throw new AppError("AI_CONTEXT_EXPIRED", 409);
     if (!providerInput(data).evidence.length)
       throw new AppError("AI_INVALID_EVIDENCE", 409);
-    await validateEvidence(tx, w, p, data);
-    const reserve = reservation(providerInput(data)),
-      use = await usage(tx, w);
+    await validateEvidence(tx, w, p, data, true);
+    const estimate = reservation(providerInput(data), config.pricing);
+    if (
+      estimate.pricingVersion !== input.pricingVersion ||
+      estimate.credits !== input.maxCredits
+    )
+      throw new AppError("AI_CONTEXT_EXPIRED", 409);
+    const use = await usage(tx, w);
+    const entitlement = await resolveWorkspaceEntitlement(tx, w);
+    const enforceCredits = creditsEnabled();
     if (
       use.activeWorkspace >= 2 ||
       use.activeUser >= 1 ||
-      use.requests >= 20 ||
-      use.spentMicros + use.heldMicros + reserve > policy.dailyBudgetMicros
+      use.requests >=
+        (enforceCredits ? entitlement.limits.dailyAiOperationsPerMember : 20) ||
+      use.spentMicros + use.heldMicros + estimate.micros >
+        policy.dailyBudgetMicros
     )
       throw new AppError("AI_LIMITED", 429);
+    const id = randomUUID();
+    const founding = Boolean(entitlement.foundingProfile);
+    if (founding && !(await foundingBudget(tx, w, estimate.micros))?.allowed)
+      throw new AppError("AI_LIMITED", 429);
+    if (enforceCredits) {
+      await reserveResource(tx, {
+        workspaceId: w,
+        actorId: a.id,
+        resource: "aiCredits",
+        operationId: id,
+        quantity: estimate.credits,
+      });
+    }
     return tx.aiRun.create({
       data: {
-        id: randomUUID(),
+        id,
         workspaceId: w,
         projectId: p,
         userId: a.id,
@@ -697,8 +799,12 @@ export function startRun(
         contextId: input.contextId,
         requestId: input.requestId,
         policyRevision: policy.revision,
-        model: MODEL,
-        reservedMicros: reserve,
+        model: config.model,
+        pricingVersion: estimate.pricingVersion,
+        reservedMicros: estimate.micros,
+        reservedCredits: enforceCredits ? estimate.credits : 0,
+        providerCostState: "reserved",
+        founding,
         expiresAt: new Date(Date.now() + 120000),
       },
     });
@@ -740,6 +846,9 @@ export function getConversation(
               result: run.result,
               reservedMicros: run.reservedMicros,
               chargedMicros: run.chargedMicros,
+              reservedCredits: run.reservedCredits,
+              chargedCredits: run.chargedCredits,
+              providerCostState: run.providerCostState,
               inputTokens: run.inputTokens,
               outputTokens: run.outputTokens,
               createdAt: run.createdAt,
@@ -779,12 +888,27 @@ export function cancelRun(
     });
     if (!run) unavailable();
     if (["queued", "running"].includes(run.state)) {
+      if (run.reservedCredits) {
+        await settleResource(tx, {
+          workspaceId: w,
+          actorId: a.id,
+          resource: "aiCredits",
+          operationId: run.id,
+          quantity: 0,
+          outcome: "release",
+        });
+      }
       await tx.aiRun.update({
         where: { id },
         data: {
           state: "cancelled",
           error: run.dispatchedAt ? "CANCELLED_AFTER_DISPATCH" : null,
           chargedMicros: run.dispatchedAt ? run.reservedMicros : 0,
+          providerCostState: !run.pricingVersion
+            ? "legacy"
+            : run.dispatchedAt
+              ? "uncertain"
+              : "released",
           completedAt: new Date(),
         },
       });

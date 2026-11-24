@@ -832,7 +832,10 @@ export function LibraryExperience({
                                       : version.extractionStatus ===
                                           "image_only"
                                         ? "PDF · no text"
-                                        : "PDF · processing"}
+                                        : version.extractionStatus ===
+                                            "metadata_only"
+                                          ? "PDF · stored"
+                                          : "PDF · processing"}
                               </span>
                             </div>
                             {(s.tags.length > 0 || cs.length > 0) && (
@@ -1081,6 +1084,7 @@ export function LibraryExperience({
           <SourceForm
             w={w}
             p={p}
+            maxBytes={data?.uploadMaxBytes}
             onSaved={(id) => {
               setAdd(false);
               setNotice("Source saved. Open its details or add a PDF.");
@@ -1120,6 +1124,11 @@ export function LibraryExperience({
             w={w}
             p={p}
             sourceId={source.id}
+            maxBytes={
+              detail.data?.uploadMaxBytes ??
+              data?.uploadMaxBytes ??
+              25 * 1024 * 1024
+            }
             onSaved={(v) => {
               setUpload(false);
               reload();

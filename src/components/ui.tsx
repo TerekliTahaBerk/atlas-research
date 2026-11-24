@@ -354,7 +354,9 @@ export function Modal({
   useEffect(() => {
     const node = ref.current;
     const opener = document.activeElement;
-    window.dispatchEvent(new Event("atlas-modal-opened"));
+    window.dispatchEvent(
+      new CustomEvent("atlas-modal-opened", { detail: node }),
+    );
     node?.showModal();
     node
       ?.querySelector<HTMLElement>(

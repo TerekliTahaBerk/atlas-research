@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { getEnv } from "../src/server/env";
+import { SCHEMA_REVISION } from "../src/server/release";
 import { createDatabase } from "../src/server/db/client";
 import { createAuth } from "../src/server/auth/create-auth";
 import { requireIdentity } from "../src/server/auth/identity";
@@ -15,7 +16,11 @@ import { createMailQueue } from "../src/server/mail/outbox";
 import { createFileWorker } from "../src/server/files/worker";
 import { createSharedWorkspace } from "../src/server/domain/workspaces";
 import { createProject } from "../src/server/domain/projects";
-import { addSource, getSource } from "../src/server/research/library";
+import {
+  addSource,
+  getSource,
+  requestIndex,
+} from "../src/server/research/library";
 import { uploadPdf } from "../src/server/research/storage";
 import {
   createDocument,
@@ -71,7 +76,11 @@ const mock = createServer(async (req, res) => {
     JSON.stringify({
       status: "completed",
       model: MODEL,
-      usage: { input_tokens: 100, output_tokens: 70 },
+      usage: {
+        input_tokens: 100,
+        output_tokens: 70,
+        input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+      },
       output: [
         {
           type: "message",
@@ -89,6 +98,9 @@ process.env.APP_ORIGIN = origin;
 process.env.SMTP_PORT = String(smtp.port);
 process.env.FILE_STORAGE_PATH = join(folder, "private-files");
 process.env.ATLAS_AI_CALLS_ENABLED = "true";
+process.env.ATLAS_RESOURCE_LIMITS_ENABLED = process.argv.includes("--beta")
+  ? "0"
+  : "1";
 process.env.OPENAI_API_KEY = "atlas-synthetic-fixture";
 process.env.ATLAS_AI_TEST_ORIGIN = `http://127.0.0.1:${(mock.address() as { port: number }).port}`;
 const env = getEnv(),
@@ -141,6 +153,7 @@ const source = (
     source.id,
     randomUUID(),
   );
+await requestIndex(db, a, w, p, source.id, upload.versionId!);
 await worker.heartbeat();
 await worker.flush();
 assert.ok(
@@ -169,7 +182,10 @@ server.stderr.on("data", () => {});
 const heartbeat = setInterval(() => {
   void Promise.all([worker.heartbeat(), mail.heartbeat()]).catch(() => {});
 }, 5000);
-const browser = await chromium.launch({ headless: true }),
+const browser = await chromium.launch({
+    headless: true,
+    channel: process.env.ATLAS_TEST_CHROMIUM_CHANNEL || undefined,
+  }),
   context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   }),
@@ -225,13 +241,13 @@ try {
   await panel
     .getByRole("button", { name: "Preview evidence", exact: true })
     .click();
-  await panel.getByRole("heading", { name: "Review before sharing" }).waitFor();
+  await panel
+    .getByRole("heading", { name: "Evidence from your papers" })
+    .waitFor();
   assert.equal(calls, 0);
   assert.equal(
-    await panel
-      .getByRole("button", { name: "Send approved evidence" })
-      .isDisabled(),
-    true,
+    await panel.getByRole("button", { name: "Send approved evidence" }).count(),
+    0,
   );
   if (process.argv.includes("--beta")) {
     stage = "unsent preview navigation recovery";
@@ -240,7 +256,16 @@ try {
       .getByRole("link", { name: "Open exact version · page 1", exact: true })
       .click();
     await page.waitForURL("**/read?version=" + upload.versionId + "&page=1");
-    await page.getByRole("button", { name: "Restore unsent question" }).click();
+    await page.reload();
+    const aiToggle = page.getByRole("button", {
+      name: "Ask Atlas",
+      exact: true,
+    });
+    if ((await aiToggle.getAttribute("aria-expanded")) !== "true")
+      await aiToggle.click();
+    await panel
+      .getByRole("button", { name: "Restore unsent question" })
+      .click();
     assert.equal(
       await page.getByLabel("Research question", { exact: true }).inputValue(),
       "What stable source supports connected research?",
@@ -249,11 +274,12 @@ try {
       .getByRole("button", { name: "Preview evidence", exact: true })
       .click();
     await page
-      .getByRole("heading", { name: "Review before sharing" })
+      .getByRole("heading", { name: "Evidence from your papers" })
       .waitFor();
     assert.equal(calls, 0);
   }
   stage = "owner policy";
+  await panel.getByText("Conversation options", { exact: true }).click();
   await panel.getByRole("button", { name: "Usage & sharing" }).click();
   await panel
     .getByLabel("Enable external AI sharing for this workspace")
@@ -269,8 +295,10 @@ try {
     })
     .waitFor({ state: "hidden" });
   stage = "consent + buffered result";
+  if (!process.argv.includes("--beta"))
+    await panel.getByText(/up to 1 credit.*provider cost ceiling/).waitFor();
   await panel
-    .getByLabel("I approve sending this question and the displayed excerpts.")
+    .getByLabel(/I approve sending this question and the displayed excerpts/)
     .check();
   await panel.getByRole("button", { name: "Send approved evidence" }).click();
   await panel
@@ -279,6 +307,8 @@ try {
     })
     .waitFor();
   assert.equal(calls, 1);
+  if (!process.argv.includes("--beta"))
+    await panel.getByText(/1 credit.*provider cost/).waitFor();
   await panel
     .getByLabel("Review support for claim 1")
     .selectOption("supported");
@@ -325,6 +355,7 @@ try {
     .click();
   stage = "responsive sheet + keyboard";
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByLabel("Focus AI", { exact: true }).click();
   const mobile = page.getByRole("dialog", { name: "Ask Atlas" });
   await mobile.waitFor();
   assert.equal(
@@ -341,7 +372,7 @@ try {
   await mobile.waitFor({ state: "hidden" });
   assert.equal(
     await page
-      .getByRole("button", { name: "Ask Atlas", exact: true })
+      .getByRole("button", { name: "Focus AI", exact: true })
       .evaluate((e) => e === document.activeElement),
     true,
   );
@@ -404,7 +435,7 @@ try {
             name: "Technical details — no research or account data",
           })
           .inputValue();
-        assert.match(details, /Schema: 202611090007_grounded_ai/);
+        assert.ok(details.split("\n").includes(`Schema: ${SCHEMA_REVISION}`));
         assert.ok(!details.includes(owner.email));
         if (width === 390 || width === 1440)
           await page.screenshot({

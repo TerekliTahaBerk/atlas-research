@@ -244,12 +244,29 @@ try {
     .getByLabel("Task title", { exact: true })
     .fill(title);
   assert.equal(await page.getByLabel("Assignee", { exact: true }).count(), 0);
-  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  const [createResult] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().endsWith(endpoint + "/tasks") &&
+        response.request().method() === "POST",
+    ),
+    page
+      .getByRole("dialog", { name: "New task" })
+      .getByRole("button", { name: "Create task", exact: true })
+      .click(),
+  ]);
+  assert.equal(
+    createResult.ok(),
+    true,
+    `Task creation returned ${createResult.status()}`,
+  );
+  const created = await createResult.json();
+  await page.waitForURL(`**/tasks/${created.id}`);
   await page
     .locator(".task-editor")
     .getByLabel("Task title", { exact: true })
     .waitFor();
-  const id = new URL(page.url()).pathname.split("/").at(-1)!,
+  const id = created.id as string,
     taskApi = origin + endpoint + "/tasks/" + id;
   let detail = await (await context.request.get(taskApi)).json();
   assert.ok(detail.links.some((l: { id: string }) => l.id === note.id));
@@ -366,13 +383,11 @@ try {
   const notifications = await (
     await ec.request.get(origin + "/api/collaboration/inbox")
   ).json();
-  assert.equal(
-    notifications.filter(
-      (n: { event: string; target: { id: string } }) =>
-        n.event === "assignment" && n.target?.id === id,
-    ).length,
-    2,
+  const assignments = notifications.filter(
+    (n: { event: string; target: { id: string } }) =>
+      n.event === "assignment" && n.target?.id === id,
   );
+  assert.equal(assignments.length, 2);
   await step(
     "two-session stale detail retains inputs and applies only reviewed fields",
   );
@@ -420,8 +435,13 @@ try {
   await page
     .getByRole("button", { name: "Add research link", exact: true })
     .click();
-  await page.getByLabel("Find related research").fill("Metadata-only");
-  await page.getByLabel("Add research link").selectOption(metadataOnly.id);
+  const linkedResearch = page.locator(".task-linked");
+  await linkedResearch
+    .getByLabel("Find related research")
+    .fill("Metadata-only");
+  await linkedResearch
+    .getByLabel("Add research link")
+    .selectOption(metadataOnly.id);
   await page.getByRole("button", { name: "Save task", exact: true }).click();
   await saved();
   await page
@@ -446,7 +466,7 @@ try {
     .getByRole("heading", { name: "Controlled task discussion", exact: true })
     .waitFor();
   await page
-    .locator(`.discussion-messages .artifact-cards a[href$="/tasks/${id}"]`)
+    .locator(`.discussion-message .artifact-cards a[href$="/tasks/${id}"]`)
     .click();
   await page.locator(".task-editor").waitFor();
   assert.ok(
@@ -456,7 +476,10 @@ try {
   );
   await step("Inbox deep link, access boundaries and ineligible assignee");
   await ep.goto(origin + "/inbox");
-  await ep.locator(`a[href*="/tasks/${id}"]`).first().click();
+  await ep
+    .locator(`.inbox-item[data-notification="${assignments[0].id}"]`)
+    .click();
+  await ep.getByRole("link", { name: "Open task", exact: true }).click();
   await ep.locator(".task-editor").waitFor();
   assert.equal(new URL(ep.url()).pathname, path + `/tasks/${id}`);
   detail = await (await context.request.get(taskApi)).json();

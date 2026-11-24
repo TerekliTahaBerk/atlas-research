@@ -37,6 +37,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     "/inbox",
     "/settings",
     "/help",
+    "/invite/",
     "/w/",
   ].some(
     (prefix) =>
@@ -123,7 +124,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     remembered?.user === actor
       ? projects.data?.find((p) => p.id === remembered?.id && !p.deletedAt)
       : undefined;
-  const workspaceScope = path.match(/^\/w\/([^/]+)\/settings$/)?.[1];
+  const workspaceScope = path.match(/^\/w\/([^/]+)\/(?:settings|usage)$/)?.[1];
   const selectedProject =
     current ??
     (!/^\/w\/[^/]+\/p\//.test(path) &&

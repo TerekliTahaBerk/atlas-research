@@ -62,3 +62,8 @@ LABEL org.opencontainers.image.revision=$ATLAS_SOURCE_COMMIT
 USER node
 HEALTHCHECK --interval=15s --timeout=8s --start-period=30s CMD ["node","ops/files-probe.mjs"]
 CMD ["node","dist/worker/files/run.js"]
+
+FROM mail AS compute-broker
+COPY ops/compute-broker-probe.mjs ./ops/compute-broker-probe.mjs
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s CMD ["node","ops/compute-broker-probe.mjs"]
+CMD ["node","dist/worker/compute/run.js"]

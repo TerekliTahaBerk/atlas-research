@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 export class AppError extends Error {
-  constructor(public code: "UNAVAILABLE" | "INVALID_INPUT" | "CONFLICT" | "UNAUTHENTICATED" | "REAUTH_REQUIRED" | "OWNER_REQUIRED" | "ARCHIVED" | "RATE_LIMITED" | "MAIL_DISABLED" | "INVALID_DOI" | "INVALID_URL" | "PROVIDER_BUSY" | "PROVIDER_UNAVAILABLE" | "REVISION_CONFLICT" | "DUPLICATE_SOURCE" | "COLLECTION_EXISTS" | "LIBRARY_LIMIT" | "STORAGE_UNAVAILABLE" | "FILE_TOO_LARGE" | "INVALID_PDF" | "UPLOAD_IN_PROGRESS" | "STORAGE_QUOTA" | "UPLOAD_FAILED" | "AI_DISABLED" | "AI_POLICY_DISABLED" | "AI_LIMITED" | "AI_CONTEXT_EXPIRED" | "AI_INVALID_EVIDENCE" | "AI_PROVIDER_ERROR", public status = 400) {
+  constructor(public code: "UNAVAILABLE" | "INVALID_INPUT" | "CONFLICT" | "UNAUTHENTICATED" | "REAUTH_REQUIRED" | "OWNER_REQUIRED" | "ARCHIVED" | "RATE_LIMITED" | "MAIL_DISABLED" | "INVALID_DOI" | "INVALID_URL" | "PROVIDER_BUSY" | "PROVIDER_UNAVAILABLE" | "REVISION_CONFLICT" | "DUPLICATE_SOURCE" | "COLLECTION_EXISTS" | "LIBRARY_LIMIT" | "STORAGE_UNAVAILABLE" | "FILE_TOO_LARGE" | "INVALID_PDF" | "UPLOAD_IN_PROGRESS" | "STORAGE_QUOTA" | "UPLOAD_QUOTA" | "PROJECT_QUOTA" | "INDEX_QUOTA" | "INDEX_IN_PROGRESS" | "UPLOAD_FAILED" | "AI_DISABLED" | "AI_POLICY_DISABLED" | "AI_LIMITED" | "AI_CONTEXT_EXPIRED" | "AI_INVALID_EVIDENCE" | "AI_PROVIDER_ERROR" | "RESOURCE_QUOTA" | "ACADEMIC_UNAVAILABLE" | "BILLING_DISABLED" | "FOUNDING_CAPACITY" | "SEAT_QUOTA" | "COMPUTE_UNAVAILABLE", public status = 400) {
     super(code);
   }
 }
@@ -13,7 +13,7 @@ export function errorResponse(error: unknown) {
     else if (["P2002", "P2003", "P2004"].includes(code)) error = new AppError("CONFLICT", 409);
     else if (code === "P2010") {
       const meta = "meta" in error && error.meta && typeof error.meta === "object" ? error.meta as Record<string, unknown> : {};
-      error = new AppError(meta.code === "23514" ? "CONFLICT" : "UNAVAILABLE", meta.code === "23514" ? 409 : 404);
+      error = String(meta.message ?? "").includes("seat_capacity") ? new AppError("SEAT_QUOTA", 409) : new AppError(meta.code === "23514" ? "CONFLICT" : "UNAVAILABLE", meta.code === "23514" ? 409 : 404);
     }
   }
   const requestId = randomUUID();

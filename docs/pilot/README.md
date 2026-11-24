@@ -1,5 +1,7 @@
 # Pilot preparation kit
 
+The [current 20-person launch plan](LAUNCH.md) records the production and staging acceptance status for the commercial and Compute release. This kit retains the observation, consent, and incident procedures.
+
 Owner direction, 9 November 2026: complete preparation and hardening; participants and support/incident owner are **not assigned**. No recruitment, invitation, paid AI call, email enablement or independent backup destination is authorized by this kit. Closed beta has not launched.
 
 ## Start and stop conditions
