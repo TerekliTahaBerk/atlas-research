@@ -260,6 +260,8 @@ function WorkspaceDemo() {
 
 export function PublicSite({ appOrigin = "" }: { appOrigin?: string }) {
   const signIn = `${appOrigin}/sign-in`;
+  const pricing = `${appOrigin}/pricing`;
+  const earlyAccess = `${appOrigin}/early-access`;
   return (
     <div className="public-site atlas-entry-v2">
       <a className="public-skip" href="#public-main">
@@ -271,6 +273,7 @@ export function PublicSite({ appOrigin = "" }: { appOrigin?: string }) {
           <nav aria-label="Main navigation">
             <a href="#workspace">The workspace</a>
             <a href="#workflow">How it connects</a>
+            <Link href={pricing}>Pricing</Link>
             <a href="#faq">FAQ</a>
           </nav>
           <div className="public-header-actions">
@@ -419,6 +422,8 @@ export function PublicSite({ appOrigin = "" }: { appOrigin?: string }) {
           <a href="#workspace">The workspace</a>
           <a href="#workflow">How it connects</a>
           <a href="#faq">FAQ</a>
+          <Link href={pricing}>Pricing</Link>
+          <Link href={earlyAccess}>Early access</Link>
           <Link href={signIn}>Log in</Link>
         </nav>
         <small>Atlas Research</small>

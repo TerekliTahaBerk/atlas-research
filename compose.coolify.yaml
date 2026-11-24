@@ -5,6 +5,8 @@
 # override that env_file without the parser's legacy empty-value substitution.
 x-atlas-isolated-env: &atlas-isolated-env
   OPENAI_API_KEY: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_COMPUTE_RUNNER_TOKEN: "${ATLAS_ISOLATION_EMPTY:-}"
+  ATLAS_BILLING_SANDBOX_SECRET: "${ATLAS_ISOLATION_EMPTY:-}"
   ATLAS_AI_TEST_ORIGIN: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASPOSTGRES: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASMIGRATOR: "${ATLAS_ISOLATION_EMPTY:-}"
@@ -13,6 +15,7 @@ x-atlas-isolated-env: &atlas-isolated-env
   SERVICE_HEX_64_ATLASQUEUE: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASBACKUP: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASSESSION: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASCOMPUTE: "${ATLAS_ISOLATION_EMPTY:-}"
   ATLAS_ISOLATION_EMPTY: "${ATLAS_ISOLATION_EMPTY:-}"
   POSTGRES_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
   ATLAS_MIGRATOR_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
@@ -95,6 +98,10 @@ services:
       APP_ORIGIN: ${APP_ORIGIN:?required}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ATLAS_AI_CALLS_ENABLED: ${ATLAS_AI_CALLS_ENABLED:-false}
+      ATLAS_COMPUTE_ENABLED: ${ATLAS_COMPUTE_ENABLED:-0}
+      ATLAS_FOUNDING_INTAKE_ENABLED: ${ATLAS_FOUNDING_INTAKE_ENABLED:-0}
+      ATLAS_FOUNDING_MAIL_ENABLED: ${ATLAS_FOUNDING_MAIL_ENABLED:-0}
+      ATLAS_AI_MODEL: ${ATLAS_AI_MODEL:-}
       BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION:?required}
       AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTH}@postgres:5432/atlas
       DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
@@ -103,6 +110,7 @@ services:
       MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
       SMTP_HOST: ${SMTP_HOST:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
       FILE_STORAGE_PATH: /data/atlas-files
     volumes:
       - atlas-private-files:/data/atlas-files
@@ -152,6 +160,7 @@ services:
       <<: *atlas-isolated-env
       DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
       QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
       FILE_STORAGE_PATH: /data/atlas-files
       ATLAS_RELEASE: ${ATLAS_RELEASE}
     volumes:
@@ -167,7 +176,51 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     stop_grace_period: 30s
+  compute-broker:
+    profiles: [compute]
+    build: { context: ., target: compute-broker, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:compute-broker-${ATLAS_RELEASE}
+    environment:
+      <<: *atlas-isolated-env
+      ATLAS_COMPUTE_ENABLED: ${ATLAS_COMPUTE_ENABLED:-0}
+      ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
+      ATLAS_COMPUTE_RUNNER_URL: http://compute-runner:8090
+      ATLAS_COMPUTE_RUNNER_TOKEN: ${SERVICE_HEX_64_ATLASCOMPUTE:?required}
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+    networks: [backend, compute-execution]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      compute-runner: { condition: service_started }
+    mem_limit: 160m
+    cpus: 0.25
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 15s
+  compute-runner:
+    profiles: [compute]
+    build: { context: ./ops/compute-runner }
+    image: atlas-research:compute-runner-${ATLAS_RELEASE}
+    environment:
+      <<: *atlas-isolated-env
+      ATLAS_COMPUTE_RUNNER_VERSION: ${ATLAS_RELEASE}
+      ATLAS_COMPUTE_RUNNER_TOKEN: ${SERVICE_HEX_64_ATLASCOMPUTE:?required}
+    networks: [compute-execution]
+    expose: ["8090"]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 32
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777,noexec,nosuid,nodev"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 15s
 networks:
+  compute-execution: { internal: true }
   frontend: {}
   backend: { internal: true }
   egress: {}

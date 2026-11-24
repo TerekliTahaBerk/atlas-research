@@ -24,6 +24,7 @@ export type ResearchVersion = {
   ordinal: number;
   fileId: string | null;
   extractionStatus: string;
+  indexRevision: string | null;
   pageCount: number | null;
   textCharacters: number | null;
   createdAt: string;
@@ -33,6 +34,7 @@ export type ResearchFile = {
   filename: string;
   bytes: number;
   sha256: string;
+  deletedAt: string | null;
 };
 export type Reading = {
   sourceId: string;
@@ -76,6 +78,8 @@ export type ResearchDetail = {
   role: string;
   canEdit: boolean;
   storageAvailable: boolean;
+  resourceLimitsEnabled: boolean;
+  uploadMaxBytes: number;
   jobs: { versionId: string; state: string; error: string | null }[];
 };
 export type ResearchLibrary = {
@@ -98,6 +102,8 @@ export type ResearchLibrary = {
     done: number;
   };
   storageAvailable: boolean;
+  resourceLimitsEnabled: boolean;
+  uploadMaxBytes: number;
 };
 export type DiscoveryItem = MetadataInput & {
   providerId: string;

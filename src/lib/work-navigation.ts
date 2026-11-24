@@ -50,7 +50,7 @@ export function workLocation(value: string): WorkLocation | null {
     };
   const m = path.match(
     new RegExp(
-      `^/w/(${uuid})/p/(${uuid})(?:/(sources|docs|tasks|discussions|discover|settings|members)(?:/(${uuid})(/read)?)?)?$`,
+      `^/w/(${uuid})/p/(${uuid})(?:/(sources|docs|tasks|discussions|discover|settings|members|compute)(?:/(${uuid})(/read)?)?)?$`,
       "i",
     ),
   );
@@ -113,6 +113,7 @@ export const workLabel = (kind: string) =>
     documents: "Documents",
     tasks: "Tasks",
     discussions: "Discussions",
+    compute: "Compute",
     members: "Project members",
     source: "Source",
     document: "Document",

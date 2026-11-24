@@ -17,7 +17,12 @@ import type {
 } from "@/lib/ai-types";
 import type { DocNode } from "@/lib/document-model";
 import { Icon, InlineError, Loading, Modal, useResource } from "./ui";
-const dollars = (n: number) => `$${(n / 1000000).toFixed(4)}`;
+const providerDollars = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 6,
+});
+const dollars = (n: number) => providerDollars.format(n / 1_000_000);
 type Options = {
   versions: AiVersion[];
   policy: AiPolicyView;
@@ -83,6 +88,11 @@ export function AiCompanion({
     };
     const writing = () =>
       dispatch(modeRef.current === "hidden" ? "hidden" : "compact");
+    const openedModal = (event: Event) => {
+      const dialog = (event as CustomEvent<HTMLDialogElement | null>).detail;
+      if (dialog && surface.current?.contains(dialog)) return;
+      writing();
+    };
     const keyboard = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
         e.preventDefault();
@@ -96,7 +106,7 @@ export function AiCompanion({
     window.addEventListener("atlas-ai-open", launch);
     window.addEventListener("atlas-document-tools-open", writing);
     window.addEventListener("atlas-research-writing", writing);
-    window.addEventListener("atlas-modal-opened", writing);
+    window.addEventListener("atlas-modal-opened", openedModal);
     window.addEventListener("atlas-menu-opened", writing);
     return () => {
       observer.disconnect();
@@ -104,7 +114,7 @@ export function AiCompanion({
       window.removeEventListener("atlas-ai-open", launch);
       window.removeEventListener("atlas-document-tools-open", writing);
       window.removeEventListener("atlas-research-writing", writing);
-      window.removeEventListener("atlas-modal-opened", writing);
+      window.removeEventListener("atlas-modal-opened", openedModal);
       window.removeEventListener("atlas-menu-opened", writing);
     };
   }, [key, w, p]);
@@ -228,6 +238,8 @@ export function AiCompanion({
         role={mode === "focus" ? "dialog" : "complementary"}
         aria-modal={mode === "focus" || undefined}
         onKeyDown={(e) => {
+          if (e.target instanceof Element && e.target.closest("dialog[open]"))
+            return;
           if (e.key === "Escape") {
             e.preventDefault();
             e.stopPropagation();
@@ -486,7 +498,7 @@ function AiPanel({
   }
   const runRequest = useRef<{ context: string; id: string } | null>(null);
   async function send() {
-    if (!preview || !consent) return;
+    if (!preview?.pricingVersion || preview.maxCredits < 1 || !consent) return;
     await act(async () => {
       await api(base + "/runs", {
         contextId: preview.context.id,
@@ -498,6 +510,8 @@ function AiPanel({
             })
         ).id,
         consent: true,
+        maxCredits: preview.maxCredits,
+        pricingVersion: preview.pricingVersion,
       });
       setPreview(undefined);
       setConsent(false);
@@ -509,6 +523,7 @@ function AiPanel({
   const unavailable =
     !policy?.callsEnabled ||
     !policy.keyConfigured ||
+    !policy.pricingAvailable ||
     !policy.enabled ||
     policy.dailyBudgetMicros <= 0;
   return (
@@ -591,9 +606,16 @@ function AiPanel({
                   {dollars(policy.dailyBudgetMicros)}
                   <br />
                   <small>
-                    {policy.usage.requests}/20 requests per user ·{" "}
-                    {policy.usage.activeWorkspace}/2 workspace active
+                    {policy.usage.requests}/{policy.dailyOperationLimit}{" "}
+                    requests per member · {policy.usage.activeWorkspace}/2
+                    workspace active
                   </small>
+                  {policy.foundingBudget?.warning && (
+                    <p className="notice" role="status">
+                      The Founding Researcher program has reached 80% of its
+                      monthly AI provider budget.
+                    </p>
+                  )}
                 </div>
               )}
               {unavailable && (
@@ -602,7 +624,9 @@ function AiPanel({
                     ? "AI answers are turned off. You can still search your papers for evidence."
                     : !policy.keyConfigured
                       ? "The server API key is not configured."
-                      : "Workspace sharing or its daily budget is disabled."}{" "}
+                      : !policy.pricingAvailable
+                        ? "A provider pricing version is required for this model."
+                        : "Workspace sharing or its daily budget is disabled."}{" "}
                 </p>
               )}
               {policyOpen && (
@@ -807,7 +831,20 @@ function AiPanel({
                 <h3>{c.question}</h3>
                 <p role="status" className="muted">
                   {c.run!.state.replaceAll("_", " ")} ·{" "}
-                  {dollars(c.run!.chargedMicros)} budget units
+                  {c.run!.reservedCredits > 0 && (
+                    <>
+                      {c.run!.chargedCredits}{" "}
+                      {c.run!.chargedCredits === 1 ? "credit" : "credits"}{" "}
+                      ·{" "}
+                    </>
+                  )}
+                  {dollars(c.run!.chargedMicros)} provider cost
+                  {c.run!.providerCostState === "uncertain"
+                    ? " (pending reconciliation)"
+                    : ""}
+                  {c.run!.providerCostState === "legacy"
+                    ? " (historical estimate)"
+                    : ""}
                 </p>
                 {["queued", "running"].includes(c.run!.state) && (
                   <button
@@ -842,8 +879,10 @@ function AiPanel({
                 )}
                 {c.run!.error && (
                   <p className="notice">
-                    {c.run!.error}. No automatic retry. A dispatched request may
-                    retain its full reservation.
+                    {c.run!.error}. Preview the evidence again to retry.
+                    {c.run!.providerCostState === "uncertain"
+                      ? " Provider cost is pending reconciliation."
+                      : ""}
                   </p>
                 )}
                 {c.run!.result && (
@@ -1099,11 +1138,12 @@ function AiPanel({
               ))}
               <p>
                 {preview.evidence.length} matching excerpts
-                {!unavailable && (
+                {!unavailable && preview.maxCredits > 0 && (
                   <>
                     {" "}
-                    · reserve at most {dollars(preview.reservedMicros)} budget
-                    units
+                    · up to {preview.maxCredits}{" "}
+                    {preview.maxCredits === 1 ? "credit" : "credits"} · provider
+                    cost ceiling {dollars(preview.reservedMicros)}
                   </>
                 )}
               </p>
@@ -1135,8 +1175,8 @@ function AiPanel({
                       onChange={(e) => setConsent(e.target.checked)}
                     />
                     <span>
-                      I approve sending this question and the displayed
-                      excerpts.
+                      I approve sending this question and the displayed excerpts
+                      and their displayed usage ceiling.
                     </span>
                   </label>
                   <button
@@ -1145,6 +1185,8 @@ function AiPanel({
                       busy ||
                       !consent ||
                       unavailable ||
+                      !preview.pricingVersion ||
+                      preview.maxCredits < 1 ||
                       (!preview.evidence.length &&
                         !preview.context.artifacts?.some((a) => a.text))
                     }
@@ -1231,10 +1273,11 @@ function Sharing({
         </a>
       </p>
       <p>
-        Conservative budget units: $0.50/M input and $1/M output, not a provider
-        invoice. One active request per user, two per workspace, 20/user/day.
-        Cancel after dispatch or an uncertain timeout can charge the full
-        reservation.
+        Atlas reserves the displayed credit limit before sending and settles
+        successful answers using measured provider usage. Failed or cancelled
+        requests release the credits. Provider costs from interrupted requests
+        may remain pending reconciliation. One request per user and two per
+        workspace can run at once.
       </p>
       {policy.canManage ? (
         <>
@@ -1247,7 +1290,7 @@ function Sharing({
             Enable external AI sharing for this workspace
           </label>
           <label>
-            Daily workspace cap (USD budget units)
+            Daily workspace cap (USD provider cost)
             <input
               type="number"
               min="0"

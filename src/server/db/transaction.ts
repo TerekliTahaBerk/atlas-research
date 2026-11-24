@@ -6,7 +6,7 @@ export async function asIdentity<T>(db: Database, identity: Identity, action: (t
   for (let attempt=0; ; attempt++) {
     try {
       return await db.$transaction(async tx => {
-        await tx.$executeRaw`SELECT set_config('app.user_id', ${identity.id}, true), set_config('app.session_id', ${identity.sessionId}, true)`;
+        await tx.$executeRaw`SELECT set_config('app.user_id', ${identity.id}, true), set_config('app.session_id', ${identity.sessionId}, true), set_config('app.resources_enabled', ${process.env.ATLAS_RESOURCE_LIMITS_ENABLED === '1' ? '1' : '0'}, true)`;
         return action(tx);
       }, { maxWait: 5000, timeout: 10000 });
     } catch(error) {

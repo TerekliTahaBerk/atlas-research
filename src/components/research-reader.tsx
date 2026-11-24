@@ -58,7 +58,11 @@ export function PdfReader(props: Props) {
       setPositions((old) => ({ ...old, [value.versionId]: value })),
     [],
   );
-  const versions = props.detail.versions.filter((v) => v.fileId);
+  const versions = props.detail.versions.filter(
+    (v) =>
+      v.fileId &&
+      props.detail.files.some((f) => f.id === v.fileId && !f.deletedAt),
+  );
   const [versionId, setVersionId] = useState(
     () =>
       new URLSearchParams(location.search).get("version") ??
