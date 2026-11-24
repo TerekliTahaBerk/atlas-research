@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { getEnv } from "../src/server/env";
+import { SCHEMA_REVISION } from "../src/server/release";
 import { createDatabase } from "../src/server/db/client";
 import { createAuth } from "../src/server/auth/create-auth";
 import { requireIdentity } from "../src/server/auth/identity";
@@ -255,7 +256,16 @@ try {
       .getByRole("link", { name: "Open exact version · page 1", exact: true })
       .click();
     await page.waitForURL("**/read?version=" + upload.versionId + "&page=1");
-    await page.getByRole("button", { name: "Restore unsent question" }).click();
+    await page.reload();
+    const aiToggle = page.getByRole("button", {
+      name: "Ask Atlas",
+      exact: true,
+    });
+    if ((await aiToggle.getAttribute("aria-expanded")) !== "true")
+      await aiToggle.click();
+    await panel
+      .getByRole("button", { name: "Restore unsent question" })
+      .click();
     assert.equal(
       await page.getByLabel("Research question", { exact: true }).inputValue(),
       "What stable source supports connected research?",
@@ -425,7 +435,7 @@ try {
             name: "Technical details — no research or account data",
           })
           .inputValue();
-        assert.match(details, /Schema: 202611090007_grounded_ai/);
+        assert.ok(details.split("\n").includes(`Schema: ${SCHEMA_REVISION}`));
         assert.ok(!details.includes(owner.email));
         if (width === 390 || width === 1440)
           await page.screenshot({
