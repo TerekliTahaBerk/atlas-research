@@ -14,20 +14,18 @@ export function HelpScreen() {
     <WorkspaceShell title="Pilot guide">
       {() => (
         <section className="pilot-guide">
-          <p className="eyebrow">Atlas research · preparation preview</p>
           <h1>Pilot guide & support</h1>
           <p>
-            Recruitment has not started. A support owner and pilot teams have
-            not been assigned. This preview is not a completed closed-beta
-            release.
+            Email your pilot coordinator using the address in your welcome
+            instructions. Start with a sample you are allowed to share and can
+            replace.
           </p>
           <div className="notice">
             AI model calls remain disabled.{" "}
             {capabilities.data?.emailDelivery === "disabled"
               ? "Email registration, recovery and invitations are unavailable. "
               : ""}
-            Independent backup/recovery acceptance is still open. Keep a
-            separate copy of important original research files.
+            Keep your own copy of original research files.
           </div>
           <h2>Your connected research workflow</h2>
           <ol>
@@ -72,10 +70,9 @@ export function HelpScreen() {
           </ul>
           <h2>Report a problem safely</h2>
           <p>
-            The pilot support channel is not assigned yet. Prepare a short
-            report for the product owner: local time, affected screen, expected
-            behavior, actual behavior and any displayed request ID. Redact
-            research content, names and emails from screenshots.
+            Include the time, affected screen, what you expected, what happened
+            and any displayed request ID. Remove research content, names and
+            emails from screenshots before sharing them privately.
           </p>
           <button
             onClick={async () => {
@@ -105,18 +102,13 @@ export function HelpScreen() {
           <InlineError error={error} />
           <h2>Privacy & limitations</h2>
           <p>
-            This preparation adds no analytics SDK or automatic research-content
-            collection. Pilot measurements use explicit participant consent and
-            a separate observation sheet. Security/audit records remain subject
-            to existing access controls. AI histories are private to their
-            author; approved text applied into a project document becomes shared
-            project content.
+            Pilot observations require participant consent and use a separate
+            observation sheet. AI histories are private to their author. Text
+            added to a project document is visible to its authorized members.
           </p>
           <p>
-            Original PDFs and in-app versions are not a substitute for an
-            independently tested backup. Archiving a project is not permanent
-            account erasure. Ask the product owner to agree retention and
-            deletion handling before joining a pilot.
+            Archiving preserves a project for later access. For questions about
+            retention, export or deletion, contact your pilot coordinator.
           </p>
           <Link href="/settings">Account and active sessions</Link>
         </section>

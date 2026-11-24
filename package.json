@@ -33,7 +33,8 @@
     "test:ai": "node --import tsx scripts/test-integration.ts --ai",
     "test:ai:browser": "node --import tsx scripts/test-integration.ts --ai-browser",
     "test:beta:browser": "node --import tsx scripts/test-integration.ts --beta-browser",
-    "pilot:metrics": "node --import tsx scripts/pilot-metrics.ts"
+    "pilot:metrics": "node --import tsx scripts/pilot-metrics.ts",
+    "pilot:preflight": "node --import tsx scripts/pilot-preflight.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
