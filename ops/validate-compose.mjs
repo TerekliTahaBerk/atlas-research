@@ -19,6 +19,7 @@ try {
     SERVICE_HEX_64_ATLASQUEUE: "4".repeat(64),
     SERVICE_HEX_64_ATLASBACKUP: "5".repeat(64),
     SERVICE_HEX_64_ATLASSESSION: "6".repeat(64),
+    SERVICE_HEX_64_ATLASCOMPUTE: "8".repeat(64),
     ATLAS_RELEASE: "local",
     APP_ORIGIN: "https://atlas.example.invalid",
     SMTP_HOST: "smtp.example.invalid",
@@ -85,6 +86,8 @@ try {
     ),
   );
   const runner = services["compute-runner"];
+  assert.equal(runner.environment.ATLAS_COMPUTE_RUNNER_TOKEN, variables.SERVICE_HEX_64_ATLASCOMPUTE);
+  assert.equal(services["compute-broker"].environment.ATLAS_COMPUTE_RUNNER_TOKEN, variables.SERVICE_HEX_64_ATLASCOMPUTE);
   assert.equal(runner.read_only, true);
   assert.equal(runner.privileged ?? false, false);
   assert.deepEqual(runner.cap_drop, ["ALL"]);
@@ -92,8 +95,8 @@ try {
   assert.equal(runner.ports?.length ?? 0, 0);
   assert.equal(runner.volumes?.length ?? 0, 0);
   const allowed = {
-    "compute-broker": ["SERVICE_HEX_64_ATLASQUEUE", "ATLAS_COMPUTE_RUNNER_TOKEN"],
-    "compute-runner": ["ATLAS_COMPUTE_RUNNER_TOKEN"],
+    "compute-broker": ["SERVICE_HEX_64_ATLASQUEUE", "SERVICE_HEX_64_ATLASCOMPUTE"],
+    "compute-runner": ["SERVICE_HEX_64_ATLASCOMPUTE"],
     files: ["SERVICE_HEX_64_ATLASRUNTIME", "SERVICE_HEX_64_ATLASQUEUE"],
     postgres: ["SERVICE_HEX_64_ATLASPOSTGRES"],
     bootstrap: [
