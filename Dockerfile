@@ -13,7 +13,7 @@ COPY . .
 RUN npm run typecheck && npm run lint && npm test && npm run build
 
 FROM deps AS migrator
-COPY ops/provision-db.mjs ops/provision-initial-user.mjs ops/migrate.mjs ./ops/
+COPY ops/provision-db.mjs ops/provision-initial-user.mjs ops/migrate.mjs ops/rotate-staging-db.mjs ops/run-staging-db-rotation.mjs ops/verify-staging-rotation.mjs ./ops/
 ARG ATLAS_SOURCE_COMMIT=local
 LABEL org.opencontainers.image.revision=$ATLAS_SOURCE_COMMIT
 USER node

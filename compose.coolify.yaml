@@ -1,3 +1,4 @@
+# Staging rotation release only. Bootstrap checks the dedicated HTTPS origin before mutating PostgreSQL.
 # Git-based Compose Application in the user's yulaco project.
 # Only web receives a Coolify domain (internal port 3000). No host ports.
 # exclude_from_hc is a documented Coolify extension for one-shot services.
@@ -9,12 +10,19 @@ x-atlas-isolated-env: &atlas-isolated-env
   ATLAS_BILLING_SANDBOX_SECRET: "${ATLAS_ISOLATION_EMPTY:-}"
   ATLAS_AI_TEST_ORIGIN: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASPOSTGRES: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASPOSTGRESV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASMIGRATOR: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASMIGRATORV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASAUTH: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASAUTHV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASRUNTIME: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASRUNTIMEV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASQUEUE: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASQUEUEV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASBACKUP: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASBACKUPV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASSESSION: "${ATLAS_ISOLATION_EMPTY:-}"
+  SERVICE_HEX_64_ATLASSESSIONV2: "${ATLAS_ISOLATION_EMPTY:-}"
   SERVICE_HEX_64_ATLASCOMPUTE: "${ATLAS_ISOLATION_EMPTY:-}"
   ATLAS_ISOLATION_EMPTY: "${ATLAS_ISOLATION_EMPTY:-}"
   POSTGRES_PASSWORD: "${ATLAS_ISOLATION_EMPTY:-}"
@@ -40,7 +48,7 @@ services:
     environment:
       <<: *atlas-isolated-env
       POSTGRES_DB: atlas
-      POSTGRES_PASSWORD: ${SERVICE_HEX_64_ATLASPOSTGRES:?required}
+      POSTGRES_PASSWORD: ${SERVICE_HEX_64_ATLASPOSTGRESV2:?required}
     volumes:
       - atlas-postgres:/var/lib/postgresql
     networks: [backend]
@@ -56,16 +64,29 @@ services:
   bootstrap:
     build: { context: ., target: migrator, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
     image: atlas-research:migrator-${ATLAS_RELEASE:?required}
-    command: [node, ops/provision-db.mjs]
+    command: [sh, -c, "node ops/run-staging-db-rotation.mjs && exec node ops/provision-db.mjs"]
     environment:
       <<: *atlas-isolated-env
       ALLOW_ATLAS_BOOTSTRAP: atlas
-      ADMIN_DATABASE_URL: postgresql://postgres:${SERVICE_HEX_64_ATLASPOSTGRES}@postgres:5432/atlas
-      ATLAS_MIGRATOR_PASSWORD: ${SERVICE_HEX_64_ATLASMIGRATOR:?required}
-      ATLAS_AUTH_PASSWORD: ${SERVICE_HEX_64_ATLASAUTH:?required}
-      ATLAS_RUNTIME_PASSWORD: ${SERVICE_HEX_64_ATLASRUNTIME:?required}
-      ATLAS_QUEUE_PASSWORD: ${SERVICE_HEX_64_ATLASQUEUE:?required}
-      ATLAS_BACKUP_PASSWORD: ${SERVICE_HEX_64_ATLASBACKUP:?required}
+      APP_ORIGIN: ${APP_ORIGIN:?required}
+      ATLAS_ROTATION_OLD_POSTGRES: ${SERVICE_HEX_64_ATLASPOSTGRES:?required}
+      ATLAS_ROTATION_NEW_POSTGRES: ${SERVICE_HEX_64_ATLASPOSTGRESV2:?required}
+      ATLAS_ROTATION_OLD_MIGRATOR: ${SERVICE_HEX_64_ATLASMIGRATOR:?required}
+      ATLAS_ROTATION_NEW_MIGRATOR: ${SERVICE_HEX_64_ATLASMIGRATORV2:?required}
+      ATLAS_ROTATION_OLD_AUTH: ${SERVICE_HEX_64_ATLASAUTH:?required}
+      ATLAS_ROTATION_NEW_AUTH: ${SERVICE_HEX_64_ATLASAUTHV2:?required}
+      ATLAS_ROTATION_OLD_RUNTIME: ${SERVICE_HEX_64_ATLASRUNTIME:?required}
+      ATLAS_ROTATION_NEW_RUNTIME: ${SERVICE_HEX_64_ATLASRUNTIMEV2:?required}
+      ATLAS_ROTATION_OLD_QUEUE: ${SERVICE_HEX_64_ATLASQUEUE:?required}
+      ATLAS_ROTATION_NEW_QUEUE: ${SERVICE_HEX_64_ATLASQUEUEV2:?required}
+      ATLAS_ROTATION_OLD_BACKUP: ${SERVICE_HEX_64_ATLASBACKUP:?required}
+      ATLAS_ROTATION_NEW_BACKUP: ${SERVICE_HEX_64_ATLASBACKUPV2:?required}
+      ADMIN_DATABASE_URL: postgresql://postgres:${SERVICE_HEX_64_ATLASPOSTGRESV2}@postgres:5432/atlas
+      ATLAS_MIGRATOR_PASSWORD: ${SERVICE_HEX_64_ATLASMIGRATORV2:?required}
+      ATLAS_AUTH_PASSWORD: ${SERVICE_HEX_64_ATLASAUTHV2:?required}
+      ATLAS_RUNTIME_PASSWORD: ${SERVICE_HEX_64_ATLASRUNTIMEV2:?required}
+      ATLAS_QUEUE_PASSWORD: ${SERVICE_HEX_64_ATLASQUEUEV2:?required}
+      ATLAS_BACKUP_PASSWORD: ${SERVICE_HEX_64_ATLASBACKUPV2:?required}
     networks: [backend]
     depends_on: { postgres: { condition: service_healthy } }
     exclude_from_hc: true
@@ -78,7 +99,7 @@ services:
     image: atlas-research:migrator-${ATLAS_RELEASE}
     environment:
       <<: *atlas-isolated-env
-      MIGRATION_DATABASE_URL: postgresql://atlas_migrator:${SERVICE_HEX_64_ATLASMIGRATOR}@postgres:5432/atlas
+      MIGRATION_DATABASE_URL: postgresql://atlas_migrator:${SERVICE_HEX_64_ATLASMIGRATORV2}@postgres:5432/atlas
       ATLAS_INITIAL_USER_ACK: ${ATLAS_INITIAL_USER_ACK:-}
       ATLAS_INITIAL_EMAIL: ${ATLAS_INITIAL_EMAIL:-}
       ATLAS_INITIAL_PASSWORD: ${ATLAS_INITIAL_PASSWORD:-}
@@ -102,10 +123,10 @@ services:
       ATLAS_FOUNDING_INTAKE_ENABLED: ${ATLAS_FOUNDING_INTAKE_ENABLED:-0}
       ATLAS_FOUNDING_MAIL_ENABLED: ${ATLAS_FOUNDING_MAIL_ENABLED:-0}
       ATLAS_AI_MODEL: ${ATLAS_AI_MODEL:-}
-      BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION:?required}
-      AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTH}@postgres:5432/atlas
-      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
-      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSIONV2:?required}
+      AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTHV2}@postgres:5432/atlas
+      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIMEV2}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUEV2}@postgres:5432/atlas
       ATLAS_RELEASE: ${ATLAS_RELEASE}
       MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
       SMTP_HOST: ${SMTP_HOST:-}
@@ -131,9 +152,9 @@ services:
     image: atlas-research:mail-${ATLAS_RELEASE}
     environment:
       <<: *atlas-isolated-env
-      BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSION}
-      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
-      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      BETTER_AUTH_SECRET: ${SERVICE_HEX_64_ATLASSESSIONV2}
+      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIMEV2}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUEV2}@postgres:5432/atlas
       ATLAS_RELEASE: ${ATLAS_RELEASE}
       MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
       SMTP_HOST: ${SMTP_HOST:-}
@@ -158,8 +179,8 @@ services:
     image: atlas-research:files-${ATLAS_RELEASE}
     environment:
       <<: *atlas-isolated-env
-      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIME}@postgres:5432/atlas
-      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      DATABASE_URL: postgresql://atlas_runtime:${SERVICE_HEX_64_ATLASRUNTIMEV2}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUEV2}@postgres:5432/atlas
       ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
       FILE_STORAGE_PATH: /data/atlas-files
       ATLAS_RELEASE: ${ATLAS_RELEASE}
@@ -186,7 +207,7 @@ services:
       ATLAS_RESOURCE_LIMITS_ENABLED: ${ATLAS_RESOURCE_LIMITS_ENABLED:-0}
       ATLAS_COMPUTE_RUNNER_URL: http://compute-runner:8090
       ATLAS_COMPUTE_RUNNER_TOKEN: ${SERVICE_HEX_64_ATLASCOMPUTE:?required}
-      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUE}@postgres:5432/atlas
+      QUEUE_DATABASE_URL: postgresql://atlas_queue:${SERVICE_HEX_64_ATLASQUEUEV2}@postgres:5432/atlas
     networks: [backend, compute-execution]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -219,6 +240,29 @@ services:
     security_opt: [no-new-privileges:true]
     restart: unless-stopped
     stop_grace_period: 15s
+  rotation-verify:
+    profiles: [compute]
+    build: { context: ., target: migrator, args: { ATLAS_SOURCE_COMMIT: "${ATLAS_RELEASE}" } }
+    image: atlas-research:migrator-${ATLAS_RELEASE}
+    command: [node, ops/verify-staging-rotation.mjs]
+    environment:
+      <<: *atlas-isolated-env
+      APP_ORIGIN: ${APP_ORIGIN:?required}
+      AUTH_DATABASE_URL: postgresql://atlas_auth:${SERVICE_HEX_64_ATLASAUTHV2}@postgres:5432/atlas
+      ATLAS_ROTATION_OLD_SESSION: ${SERVICE_HEX_64_ATLASSESSION:?required}
+      ATLAS_ROTATION_NEW_SESSION: ${SERVICE_HEX_64_ATLASSESSIONV2:?required}
+      ATLAS_RELEASE: ${ATLAS_RELEASE}
+      MAIL_DELIVERY: ${MAIL_DELIVERY:-disabled}
+      ATLAS_FOUNDING_MAIL_ENABLED: ${ATLAS_FOUNDING_MAIL_ENABLED:-0}
+    networks: [frontend, backend]
+    depends_on: { web: { condition: service_started }, compute-broker: { condition: service_started } }
+    exclude_from_hc: true
+    restart: "no"
+    read_only: true
+    mem_limit: 256m
+    cpus: 0.5
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
 networks:
   compute-execution: { internal: true }
   frontend: {}

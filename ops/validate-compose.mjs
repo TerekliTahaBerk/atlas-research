@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 const folder = mkdtempSync(join(tmpdir(), "atlas-compose-"));
 try {
   const source = readFileSync("compose.coolify.yaml", "utf8");
-  if ((source.match(/^    exclude_from_hc: true$/gm) ?? []).length !== 2)
+  if ((source.match(/^    exclude_from_hc: true$/gm) ?? []).length !== 3)
     throw new Error("Expected Coolify one-shot exclusions");
   // Coolify consumes this documented extension before invoking standard Compose.
   const file = join(folder, "compose.yaml");
@@ -20,6 +20,13 @@ try {
     SERVICE_HEX_64_ATLASBACKUP: "5".repeat(64),
     SERVICE_HEX_64_ATLASSESSION: "6".repeat(64),
     SERVICE_HEX_64_ATLASCOMPUTE: "8".repeat(64),
+    SERVICE_HEX_64_ATLASPOSTGRESV2: "9".repeat(64),
+    SERVICE_HEX_64_ATLASMIGRATORV2: "a".repeat(64),
+    SERVICE_HEX_64_ATLASAUTHV2: "b".repeat(64),
+    SERVICE_HEX_64_ATLASRUNTIMEV2: "c".repeat(64),
+    SERVICE_HEX_64_ATLASQUEUEV2: "d".repeat(64),
+    SERVICE_HEX_64_ATLASBACKUPV2: "e".repeat(64),
+    SERVICE_HEX_64_ATLASSESSIONV2: "f".repeat(64),
     ATLAS_RELEASE: "local",
     APP_ORIGIN: "https://atlas.example.invalid",
     SMTP_HOST: "smtp.example.invalid",
@@ -46,7 +53,7 @@ try {
     overlay,
     JSON.stringify({
       services: Object.fromEntries(
-        ["postgres", "bootstrap", "migrate", "web", "mail", "files", "compute-broker", "compute-runner"].map((name) => [
+        ["postgres", "bootstrap", "migrate", "web", "mail", "files", "compute-broker", "compute-runner", "rotation-verify"].map((name) => [
           name,
           { env_file: [envFile] },
         ]),
@@ -95,10 +102,11 @@ try {
   assert.equal(runner.ports?.length ?? 0, 0);
   assert.equal(runner.volumes?.length ?? 0, 0);
   const allowed = {
-    "compute-broker": ["SERVICE_HEX_64_ATLASQUEUE", "SERVICE_HEX_64_ATLASCOMPUTE"],
+    "compute-broker": ["SERVICE_HEX_64_ATLASQUEUEV2", "SERVICE_HEX_64_ATLASCOMPUTE"],
     "compute-runner": ["SERVICE_HEX_64_ATLASCOMPUTE"],
-    files: ["SERVICE_HEX_64_ATLASRUNTIME", "SERVICE_HEX_64_ATLASQUEUE"],
-    postgres: ["SERVICE_HEX_64_ATLASPOSTGRES"],
+    "rotation-verify": ["SERVICE_HEX_64_ATLASAUTHV2", "SERVICE_HEX_64_ATLASSESSION", "SERVICE_HEX_64_ATLASSESSIONV2"],
+    files: ["SERVICE_HEX_64_ATLASRUNTIMEV2", "SERVICE_HEX_64_ATLASQUEUEV2"],
+    postgres: ["SERVICE_HEX_64_ATLASPOSTGRESV2"],
     bootstrap: [
       "SERVICE_HEX_64_ATLASPOSTGRES",
       "SERVICE_HEX_64_ATLASMIGRATOR",
@@ -106,19 +114,25 @@ try {
       "SERVICE_HEX_64_ATLASRUNTIME",
       "SERVICE_HEX_64_ATLASQUEUE",
       "SERVICE_HEX_64_ATLASBACKUP",
+      "SERVICE_HEX_64_ATLASPOSTGRESV2",
+      "SERVICE_HEX_64_ATLASMIGRATORV2",
+      "SERVICE_HEX_64_ATLASAUTHV2",
+      "SERVICE_HEX_64_ATLASRUNTIMEV2",
+      "SERVICE_HEX_64_ATLASQUEUEV2",
+      "SERVICE_HEX_64_ATLASBACKUPV2",
     ],
-    migrate: ["SERVICE_HEX_64_ATLASMIGRATOR", "ATLAS_INITIAL_PASSWORD"],
+    migrate: ["SERVICE_HEX_64_ATLASMIGRATORV2", "ATLAS_INITIAL_PASSWORD"],
     web: [
       "OPENAI_API_KEY",
-      "SERVICE_HEX_64_ATLASAUTH",
-      "SERVICE_HEX_64_ATLASRUNTIME",
-      "SERVICE_HEX_64_ATLASQUEUE",
-      "SERVICE_HEX_64_ATLASSESSION",
+      "SERVICE_HEX_64_ATLASAUTHV2",
+      "SERVICE_HEX_64_ATLASRUNTIMEV2",
+      "SERVICE_HEX_64_ATLASQUEUEV2",
+      "SERVICE_HEX_64_ATLASSESSIONV2",
     ],
     mail: [
-      "SERVICE_HEX_64_ATLASRUNTIME",
-      "SERVICE_HEX_64_ATLASQUEUE",
-      "SERVICE_HEX_64_ATLASSESSION",
+      "SERVICE_HEX_64_ATLASRUNTIMEV2",
+      "SERVICE_HEX_64_ATLASQUEUEV2",
+      "SERVICE_HEX_64_ATLASSESSIONV2",
       "SMTP_PASSWORD",
     ],
   };
