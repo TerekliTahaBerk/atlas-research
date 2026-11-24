@@ -20,7 +20,7 @@ The runner qualifies both engines at boot and requires cgroup v2 and Landlock AB
 
 ## Controlled activation
 
-The `compute` Compose profile is opt-in. The web and broker require `ATLAS_COMPUTE_ENABLED=1` and `ATLAS_RESOURCE_LIMITS_ENABLED=1`. Set a separate freshly generated 32-byte hex `ATLAS_COMPUTE_RUNNER_TOKEN` on the broker and runner. Keep the endpoint at `http://compute-runner:8090`. Keep payment, Founding mail and external invitation delivery off during verification.
+The `compute` Compose profile is opt-in. The web and broker require `ATLAS_COMPUTE_ENABLED=1` and `ATLAS_RESOURCE_LIMITS_ENABLED=1`. In Coolify, Compose creates `SERVICE_HEX_64_ATLASCOMPUTE` and passes it as `ATLAS_COMPUTE_RUNNER_TOKEN` only to the broker and runner. For the local Compose profile, supply a separate freshly generated 32-byte hex `ATLAS_COMPUTE_RUNNER_TOKEN`. Keep the endpoint at `http://compute-runner:8090`. Keep payment, Founding mail and external invitation delivery off during verification.
 
 Use the disposable runner's isolation test `ops/compute-runner/test.mjs` and `npm run test:compute`. The integration suite uses a synthetic transport by default. For real execution set `ATLAS_TEST_COMPUTE_REAL=1`, `ATLAS_TEST_COMPUTE_RUNNER_URL` to an explicit loopback-only QA runner and `ATLAS_TEST_COMPUTE_RUNNER_TOKEN` to its temporary token. Test credentials and source examples belong only in the disposable test environment.
 

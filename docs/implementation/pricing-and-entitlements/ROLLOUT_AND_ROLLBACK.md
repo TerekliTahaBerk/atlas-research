@@ -13,7 +13,7 @@ Retain the separate Coolify runtime, authentication, migration, queue and backup
 
 ## Application sequence
 
-1. Take an encrypted backup and rehearse restoration in a disposable environment. Review preserved project, file, evidence and membership counts and validate capacity for existing shared workspaces.
+1. Take an encrypted backup and rehearse restoration in a disposable environment. Review preserved project, file, evidence and membership counts and validate capacity for existing shared workspaces. [Capture and verify a consistent PostgreSQL and private-file set](../../operations/RECOVERY.md).
 2. Apply the ordered additive migrations as the migrator. Build the web, mail and file services from the same revision. Observe all service heartbeats and `/health/ready`.
 3. Provision the first operator by inserting a previously verified user ID into `ops.billing_operators` under authorized migration credentials. Never grant application access to privileged DB credentials. The next UI mutation requires a fresh application session. Review the app at `/admin/resources`.
 4. Enable metering on both web and file worker together in the first restricted environment. Observe quota denials, reservation expiry, AI provider cost, PDF extraction, capped users and support volume before expanding.
